@@ -23,7 +23,7 @@ import ProjectsList from "./Sidebar/ProjectsList";
 import SidebarHeader from "./Sidebar/SidebarHeader";
 
 export function DashboardSidebar() {
-  const { signOut, user } = useAuth();
+  const { signOut, user, profile } = useAuth();
   const location = useLocation();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -64,6 +64,9 @@ export function DashboardSidebar() {
     setProjects([newProject, ...projects]);
   };
 
+  // Check if user is crew role
+  const isCrewMember = profile?.role === "crew";
+
   return (
     <Sidebar>
       <SidebarHeader />
@@ -81,15 +84,18 @@ export function DashboardSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip="Create New Project" 
-                  onClick={() => setIsNewProjectDialogOpen(true)}
-                >
-                  <PlusCircle />
-                  <span>New Project</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Only show New Project button if not a crew member */}
+              {!isCrewMember && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    tooltip="Create New Project" 
+                    onClick={() => setIsNewProjectDialogOpen(true)}
+                  >
+                    <PlusCircle />
+                    <span>New Project</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
