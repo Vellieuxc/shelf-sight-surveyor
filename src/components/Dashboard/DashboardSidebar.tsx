@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, LayoutDashboard, Store, PlusCircle } from "lucide-react";
 import {
@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function DashboardSidebar() {
   const { signOut, user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({
     title: "",
@@ -74,8 +75,8 @@ export function DashboardSidebar() {
       setIsNewProjectDialogOpen(false);
       setNewProject({ title: "", description: "", category: "", country: "" });
       
-      // Optionally redirect to the new project
-      // navigate(`/dashboard/projects/${data.id}/stores`);
+      // Redirect to the new project's stores page
+      navigate(`/dashboard/projects/${data.id}/stores`);
     } catch (error: any) {
       toast.error(error.message || "Failed to create project");
     } finally {
