@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
+import { getFileFromCanvas } from "@/utils/imageUtils";
 
 interface CameraDialogProps {
   open: boolean;
@@ -52,7 +53,7 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
     }
   };
   
-  const takePicture = () => {
+  const takePicture = async () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -63,12 +64,11 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `camera_capture_${Date.now()}.png`, { 
-              type: 'image/png' 
-            });
-            
+        try {
+          const fileName = `camera_capture_${Date.now()}.png`;
+          const file = await getFileFromCanvas(canvas, fileName);
+          
+          if (file) {
             // Create preview
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -79,8 +79,13 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
               }
             };
             reader.readAsDataURL(file);
+          } else {
+            toast.error("Failed to capture image");
           }
-        }, 'image/png');
+        } catch (err) {
+          console.error("Error capturing image:", err);
+          toast.error("Failed to process captured image");
+        }
       }
     }
   };

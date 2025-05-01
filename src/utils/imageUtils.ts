@@ -1,7 +1,7 @@
 
 // Utility functions for handling images and camera
 
-export const getFileFromCanvas = (canvas: HTMLCanvasElement, fileName: string): File | null => {
+export const getFileFromCanvas = (canvas: HTMLCanvasElement, fileName: string): Promise<File | null> => {
   return new Promise<File | null>((resolve) => {
     canvas.toBlob((blob) => {
       if (blob) {
