@@ -10,6 +10,7 @@ import { transformAnalysisData } from "@/utils/dataTransformers";
 import StoreHeader from "./StoreHeader";
 import PictureGrid from "./PictureGrid";
 import PictureUpload from "./PictureUpload";
+import { Microscope } from "lucide-react";
 
 interface StoreViewProps {
   storeId: string;
@@ -128,6 +129,10 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
     // This would be implemented later - placeholder for now
   };
 
+  const handleAnalyzeStore = () => {
+    navigate(`/dashboard/stores/${storeId}/analyze`);
+  };
+
   if (isLoading) {
     return <div className="container px-4 py-8">Loading store data...</div>;
   }
@@ -150,18 +155,25 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         onSynthesizeStore={handleSynthesizeStore} 
       />
 
-      <div className="flex justify-end mb-6">
-        {(!isProjectClosed || isConsultant || isBoss) && (
-          <PictureUpload 
-            storeId={storeId} 
-            onPictureUploaded={fetchStoreAndPictures} 
-          />
-        )}
-        {isProjectClosed && !isConsultant && !isBoss && (
-          <div className="text-sm text-muted-foreground">
-            This project is closed. Contact a consultant to make changes.
-          </div>
-        )}
+      <div className="flex justify-between mb-6">
+        <Button variant="outline" onClick={handleAnalyzeStore}>
+          <Microscope className="mr-2 h-4 w-4" />
+          Analyze Store Data
+        </Button>
+        
+        <div>
+          {(!isProjectClosed || isConsultant || isBoss) && (
+            <PictureUpload 
+              storeId={storeId} 
+              onPictureUploaded={fetchStoreAndPictures} 
+            />
+          )}
+          {isProjectClosed && !isConsultant && !isBoss && (
+            <div className="text-sm text-muted-foreground">
+              This project is closed. Contact a consultant to make changes.
+            </div>
+          )}
+        </div>
       </div>
 
       <PictureGrid 

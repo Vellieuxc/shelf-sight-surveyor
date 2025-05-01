@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ExternalLink, Info, Calendar, User } from "lucide-react";
+import { Trash2, ExternalLink, Info, Calendar, User, Microscope } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,8 +91,8 @@ const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelet
       <CardFooter className="flex justify-between p-2 pt-0">
         <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`}>
           <Button variant="ghost" size="sm">
-            <ExternalLink className="mr-1 h-4 w-4" />
-            <span>View</span>
+            <Microscope className="mr-1 h-4 w-4" />
+            <span>Analyze</span>
           </Button>
         </Link>
         {allowDelete && (

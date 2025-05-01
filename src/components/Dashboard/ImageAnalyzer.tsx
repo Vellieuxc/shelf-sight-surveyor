@@ -1,28 +1,66 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Camera, Upload, FileSpreadsheet, Trash } from "lucide-react";
+import { Camera, Upload, FileSpreadsheet, Trash, Sparkles } from "lucide-react";
 import { AnalysisData } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useParams, useSearchParams } from "react-router-dom";
 
 interface ImageAnalyzerProps {
   storeId?: string;
 }
 
-const mockAnalysisData: AnalysisData[] = [
-  { sku_name: "Organic Milk 1L", brand: "Happy Cow", sku_count: 5, sku_price: 3.99 },
-  { sku_name: "Whole Grain Bread", brand: "Nature's Best", sku_count: 8, sku_price: 4.49, sku_price_pre_promotion: 5.99, sku_price_post_promotion: 4.49 },
-  { sku_name: "Protein Bars (6 pack)", brand: "FitLife", sku_count: 3, sku_price: 7.99 },
-  { sku_name: "Empty", brand: "-", sku_count: 0, sku_price: 0, empty_space_estimate: 15 },
-];
-
 const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const pictureId = searchParams.get("pictureId");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
+  const [currentPictureId, setCurrentPictureId] = useState<string | null>(null);
+
+  // Load image and analysis data if pictureId is provided
+  useEffect(() => {
+    if (pictureId) {
+      setIsLoading(true);
+      const fetchPictureData = async () => {
+        try {
+          const { data: picture, error } = await supabase
+            .from("pictures")
+            .select("*")
+            .eq("id", pictureId)
+            .single();
+
+          if (error) throw error;
+
+          if (picture) {
+            setSelectedImage(picture.image_url);
+            setCurrentPictureId(picture.id);
+            
+            // If analysis data exists, set it
+            if (picture.analysis_data && Array.isArray(picture.analysis_data) && picture.analysis_data.length > 0) {
+              setAnalysisData(picture.analysis_data as AnalysisData[]);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching picture:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load picture data",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchPictureData();
+    }
+  }, [pictureId, toast]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -31,31 +69,102 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
       reader.onload = (e) => {
         setSelectedImage(e.target?.result as string);
         setAnalysisData(null);
+        setCurrentPictureId(null);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleAnalyzeImage = () => {
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage) return;
+    
     setIsAnalyzing(true);
     
-    // Simulate API call to Claude AI
-    setTimeout(() => {
-      setAnalysisData(mockAnalysisData);
-      setIsAnalyzing(false);
-      toast({
-        title: "Analysis Complete",
-        description: "Image has been successfully analyzed.",
+    try {
+      // Call the Edge Function to analyze the image
+      const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
+        body: {
+          imageUrl: selectedImage,
+          imageId: currentPictureId
+        }
       });
-    }, 2000);
+
+      if (error) throw error;
+      
+      if (data.success && data.data) {
+        setAnalysisData(data.data);
+        toast({
+          title: "Analysis Complete",
+          description: "Image has been successfully analyzed.",
+        });
+
+        // If we have a pictureId, update the analysis data in the database
+        if (currentPictureId) {
+          const { error: updateError } = await supabase
+            .from("pictures")
+            .update({
+              analysis_data: data.data,
+              last_edited_at: new Date().toISOString(),
+              last_edited_by: (await supabase.auth.getUser()).data.user?.id
+            })
+            .eq("id", currentPictureId);
+
+          if (updateError) {
+            console.error("Error updating analysis data:", updateError);
+            toast({
+              title: "Warning",
+              description: "Analysis completed but failed to save results to database.",
+              variant: "destructive"
+            });
+          }
+        }
+      } else {
+        throw new Error("Invalid response format from analysis function");
+      }
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleExportToExcel = () => {
-    toast({
-      title: "Export Started",
-      description: "Exporting analysis data to Excel...",
+    if (!analysisData) return;
+
+    // Create CSV content
+    let csvContent = "SKU Name,Brand,Count,Price,Pre-Promotion Price,Post-Promotion Price,Empty Space %\n";
+    
+    analysisData.forEach(item => {
+      csvContent += [
+        `"${item.sku_name || ''}"`,
+        `"${item.brand || ''}"`,
+        item.sku_count || '',
+        item.sku_price || '',
+        item.sku_price_pre_promotion || '',
+        item.sku_price_post_promotion || '',
+        item.empty_space_estimate || ''
+      ].join(',') + '\n';
     });
-    // In a real app, implement Excel export functionality here
+    
+    // Create blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `shelf-analysis-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export Complete",
+      description: "Analysis data has been exported to CSV.",
+    });
   };
 
   return (
@@ -85,6 +194,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
                     onClick={() => {
                       setSelectedImage(null);
                       setAnalysisData(null);
+                      setCurrentPictureId(null);
                     }}
                   >
                     <Trash size={16} />
@@ -132,7 +242,16 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
                 onClick={handleAnalyzeImage}
                 className="w-full"
               >
-                {isAnalyzing ? "Analyzing..." : "Analyze Image"}
+                {isAnalyzing ? (
+                  <>Analyzing... <span className="ml-2 animate-spin">⏳</span></>
+                ) : analysisData ? (
+                  <>View Results</>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Analyze Image with AI
+                  </>
+                )}
               </Button>
             </CardFooter>
           )}
@@ -143,10 +262,16 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
             <CardTitle>Analysis Results</CardTitle>
           </CardHeader>
           <CardContent>
-            {isAnalyzing ? (
+            {isLoading ? (
               <div className="flex flex-col items-center justify-center h-60">
                 <div className="animate-pulse text-muted-foreground">
-                  Analyzing shelf contents...
+                  Loading data...
+                </div>
+              </div>
+            ) : isAnalyzing ? (
+              <div className="flex flex-col items-center justify-center h-60">
+                <div className="animate-pulse text-muted-foreground">
+                  Analyzing shelf contents with AI...
                 </div>
               </div>
             ) : analysisData ? (
@@ -177,7 +302,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
                         <TableCell>
                           {item.empty_space_estimate 
                             ? "-" 
-                            : `$${item.sku_price.toFixed(2)}`
+                            : item.sku_price ? `$${item.sku_price.toFixed(2)}` : "-"
                           }
                         </TableCell>
                         {analysisData.some(item => item.sku_price_pre_promotion) && (
