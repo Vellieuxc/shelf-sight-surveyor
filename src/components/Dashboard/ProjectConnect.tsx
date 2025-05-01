@@ -31,57 +31,31 @@ const ProjectConnect: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Check if the project exists
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .select("id, title")
-        .eq("id", projectId)
-        .maybeSingle();
+      // Use the connect_to_project database function to handle project connection
+      const { data, error } = await supabase
+        .rpc('connect_to_project', { 
+          project_id_param: projectId 
+        })
+        .single();
         
-      if (projectError) {
-        toast.error("Error checking project: " + projectError.message);
+      if (error) {
+        toast.error("Error connecting to project: " + error.message);
         return;
       }
       
-      if (!project) {
+      if (!data || !data.project_id) {
         toast.error("Project not found. Please check the ID and try again.");
         return;
       }
       
-      // Check if the user is already a member of this project
-      const { data: existingMembership, error: membershipError } = await supabase
-        .from("project_members")
-        .select("id")
-        .eq("project_id", project.id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-        
-      if (membershipError) {
-        toast.error("Error checking project membership: " + membershipError.message);
-        return;
-      }
-      
-      // If not already a member, add the user to the project
-      if (!existingMembership) {
-        const { error: addMemberError } = await supabase
-          .from("project_members")
-          .insert({
-            project_id: project.id,
-            user_id: user.id
-          });
-          
-        if (addMemberError) {
-          toast.error("Error joining project: " + addMemberError.message);
-          return;
-        }
-        
-        toast.success(`Successfully connected to project: ${project.title}`);
+      if (data.already_member) {
+        toast.success(`Connected to project: ${data.project_title}`);
       } else {
-        toast.success(`Connected to project: ${project.title}`);
+        toast.success(`Successfully connected to project: ${data.project_title}`);
       }
       
       // Navigate to the project
-      navigate(`/dashboard/projects/${project.id}/stores`);
+      navigate(`/dashboard/projects/${data.project_id}/stores`);
     } catch (error: any) {
       toast.error("Failed to connect to project: " + error.message);
     } finally {

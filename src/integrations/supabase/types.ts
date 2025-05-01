@@ -188,6 +188,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      connect_to_project: {
+        Args: { project_id_param: string }
+        Returns: {
+          project_id: string
+          project_title: string
+          already_member: boolean
+        }[]
+      }
       has_role: {
         Args: { role_to_check: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
