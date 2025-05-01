@@ -1,46 +1,64 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, MapPin } from "lucide-react";
 import { Store } from "@/types";
-
-// Dummy data for stores
-const dummyStores: Store[] = [
-  {
-    id: "1",
-    project_id: "1",
-    type: "Supermarket",
-    name: "Fresh Mart",
-    address: "123 Main St, Boston, MA",
-    country: "United States",
-    google_map_pin: "https://goo.gl/maps/example1",
-    store_image: "https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&w=300&h=200",
-  },
-  {
-    id: "2",
-    project_id: "1",
-    type: "Convenience",
-    name: "Quick Stop",
-    address: "456 Oak Ave, Cambridge, MA",
-    country: "United States",
-    google_map_pin: "https://goo.gl/maps/example2",
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import AddStoreDialog from "./AddStoreDialog";
 
 interface StoresListProps {
   projectId?: string;
   onStoreSelect?: (storeId: string) => void;
 }
 
-const StoresList: React.FC<StoresListProps> = ({ projectId, onStoreSelect }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onStoreSelect }) => {
+  const { projectId: paramProjectId } = useParams<{ projectId: string }>();
+  const projectId = propProjectId || paramProjectId;
+  const { toast } = useToast();
   
-  const filteredStores = dummyStores.filter(store => 
-    store.project_id === projectId && 
-    (store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     store.address.toLowerCase().includes(searchTerm.toLowerCase()))
+  const [searchTerm, setSearchTerm] = useState("");
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddStoreDialog, setShowAddStoreDialog] = useState(false);
+  
+  const fetchStores = async () => {
+    if (!projectId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false });
+        
+      if (error) {
+        throw error;
+      }
+      
+      setStores(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching stores",
+        description: error.message || "Could not load stores. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchStores();
+  }, [projectId]);
+  
+  const filteredStores = stores.filter(store => 
+    store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    store.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -57,17 +75,42 @@ const StoresList: React.FC<StoresListProps> = ({ projectId, onStoreSelect }) => 
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button className="whitespace-nowrap">
+          <Button className="whitespace-nowrap" onClick={() => setShowAddStoreDialog(true)}>
             <Plus size={16} className="mr-2" />
             Add Store
           </Button>
         </div>
       </div>
       
-      {filteredStores.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((n) => (
+            <Card key={n} className="card-shadow overflow-hidden">
+              <div className="h-40 bg-muted animate-pulse" />
+              <CardHeader>
+                <div className="h-6 w-3/4 bg-muted animate-pulse mb-2 rounded-md" />
+                <div className="h-4 w-full bg-muted animate-pulse rounded-md" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-muted animate-pulse rounded-md" />
+                  <div className="h-4 w-3/4 bg-muted animate-pulse rounded-md" />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <div className="h-9 w-full bg-muted animate-pulse rounded-md" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : filteredStores.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No stores found. Create one?</p>
-          <Button variant="outline" className="mt-4">
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => setShowAddStoreDialog(true)}
+          >
             <Plus size={16} className="mr-2" />
             Add New Store
           </Button>
@@ -117,6 +160,12 @@ const StoresList: React.FC<StoresListProps> = ({ projectId, onStoreSelect }) => 
           ))}
         </div>
       )}
+      
+      <AddStoreDialog 
+        open={showAddStoreDialog}
+        onOpenChange={setShowAddStoreDialog}
+        onStoreAdded={fetchStores}
+      />
     </div>
   );
 };
