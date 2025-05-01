@@ -3,7 +3,7 @@ import React from "react";
 import { AnalysisData } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { useFormatPrice } from "./hooks/useFormatPrice";
+import { formatPrice } from "@/utils/formatters";
 
 interface AnalysisResultsTableProps {
   data: AnalysisData[];
@@ -16,7 +16,6 @@ export const AnalysisResultsTable: React.FC<AnalysisResultsTableProps> = ({
   editMode, 
   onInputChange 
 }) => {
-  const { formatPrice } = useFormatPrice();
   const showPrePromo = data.some(item => item.sku_price_pre_promotion);
   
   return (
