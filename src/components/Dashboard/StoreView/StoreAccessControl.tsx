@@ -1,7 +1,7 @@
 
 import React from "react";
 import { NavigateFunction } from "react-router-dom";
-import { Toast } from "@/hooks/use-toast";
+import { type ToastAPI } from "@/hooks/use-toast";
 import { UserProfile } from "@/contexts/auth/types";
 import { Store } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ interface StoreAccessControlProps {
   isLoading: boolean;
   profile: UserProfile | null;
   navigate: NavigateFunction;
-  toast: Toast;
+  toast: ToastAPI;
   children: React.ReactNode;
 }
 

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import type {
   ToastActionElement,
@@ -165,6 +164,9 @@ function toast({ ...props }: Toast) {
     update,
   };
 }
+
+// Export the Toast API type
+export type ToastAPI = ReturnType<typeof useToast>;
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);

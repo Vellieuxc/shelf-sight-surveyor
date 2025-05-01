@@ -1,0 +1,41 @@
+
+import React from "react";
+import { format } from "date-fns";
+import { Store } from "@/types";
+import StoreImage from "./StoreImage";
+import StoreInfo from "./StoreInfo";
+import SynthesizeButton from "./SynthesizeButton";
+import { useCreatorInfo } from "./useCreatorInfo";
+
+interface StoreHeaderProps {
+  store: Store;
+  onSynthesizeStore: () => void;
+}
+
+const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) => {
+  const { creatorName } = useCreatorInfo(store.created_by);
+  const creationDate = format(new Date(store.created_at), "PPP");
+  
+  return (
+    <div className="mb-8">
+      <StoreImage 
+        imageUrl={store.store_image} 
+        storeName={store.name} 
+      />
+      
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <StoreInfo 
+          name={store.name}
+          type={store.type}
+          address={store.address}
+          creationDate={creationDate}
+          creatorName={creatorName}
+        />
+        
+        <SynthesizeButton onSynthesizeStore={onSynthesizeStore} />
+      </div>
+    </div>
+  );
+};
+
+export default StoreHeader;

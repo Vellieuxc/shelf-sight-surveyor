@@ -2,10 +2,10 @@
 import React from "react";
 import { NavigateFunction } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
-import { Toast } from "@/hooks/use-toast";
+import { type ToastAPI } from "@/hooks/use-toast";
 import { UserProfile } from "@/contexts/auth/types";
 import { supabase } from "@/integrations/supabase/client";
-import StoreHeader from "../StoreHeader";
+import StoreHeader from "../StoreHeader/index";
 import PictureGrid from "../PictureGrid";
 import StoreActions from "./StoreActions";
 import StoreDataFetcher from "./StoreDataFetcher";
@@ -14,7 +14,7 @@ import StoreAccessControl from "./StoreAccessControl";
 interface StoreViewProps {
   storeId: string;
   navigate: NavigateFunction;
-  toast: Toast;
+  toast: ToastAPI;
   user: User | null;
   profile: UserProfile | null;
 }
