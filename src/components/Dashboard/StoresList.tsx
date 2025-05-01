@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-import { Store } from "@/types";
+import { Store, Project } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AddStoreDialog from "./AddStoreDialog";
@@ -12,6 +12,7 @@ import StoreCard from "./StoreCard";
 import StoreCardSkeleton from "./StoreCardSkeleton";
 import EmptyStoresState from "./EmptyStoresState";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StoresListProps {
   projectId?: string;
@@ -22,17 +23,31 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
   const { projectId: paramProjectId } = useParams<{ projectId: string }>();
   const projectId = propProjectId || paramProjectId;
   const { toast: hookToast } = useToast();
+  const { profile } = useAuth();
+  const isConsultant = profile?.role === "consultant";
   
   const [searchTerm, setSearchTerm] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddStoreDialog, setShowAddStoreDialog] = useState(false);
   
-  const fetchStores = async () => {
+  const fetchProjectAndStores = async () => {
     if (!projectId) return;
     
     setLoading(true);
     try {
+      // First fetch the project to check if it's closed
+      const { data: projectData, error: projectError } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .single();
+        
+      if (projectError) throw projectError;
+      setProject(projectData);
+      
+      // Then fetch the stores
       const { data, error } = await supabase
         .from("stores")
         .select("*")
@@ -46,8 +61,8 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
       setStores(data || []);
     } catch (error: any) {
       hookToast({
-        title: "Error fetching stores",
-        description: error.message || "Could not load stores. Please try again.",
+        title: "Error fetching data",
+        description: error.message || "Could not load data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -56,10 +71,16 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
   };
   
   useEffect(() => {
-    fetchStores();
+    fetchProjectAndStores();
   }, [projectId]);
   
   const handleDeleteStore = async (storeId: string) => {
+    // Prevent deletion if project is closed and user is not a consultant
+    if (project?.is_closed && !isConsultant) {
+      toast.error("Cannot delete stores in a closed project");
+      return;
+    }
+    
     if (!confirm("Are you sure you want to delete this store? This will delete all associated data.")) {
       return;
     }
@@ -84,7 +105,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
       toast.success("Store deleted successfully");
       
       // Refresh the store list
-      fetchStores();
+      fetchProjectAndStores();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete store. Please try again.");
     }
@@ -120,6 +141,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
             store={store} 
             onSelect={onStoreSelect}
             onDeleteStore={handleDeleteStore}
+            projectClosed={project?.is_closed || false}
           />
         ))}
       </div>
@@ -140,19 +162,27 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button className="whitespace-nowrap" onClick={() => setShowAddStoreDialog(true)}>
-            <Plus size={16} className="mr-2" />
-            Add Store
-          </Button>
+          {(!project?.is_closed || isConsultant) && (
+            <Button className="whitespace-nowrap" onClick={() => setShowAddStoreDialog(true)}>
+              <Plus size={16} className="mr-2" />
+              Add Store
+            </Button>
+          )}
         </div>
       </div>
+      
+      {project?.is_closed && !isConsultant && (
+        <div className="bg-muted text-muted-foreground text-sm p-3 rounded-md">
+          This project is currently closed. Contact a consultant to make changes.
+        </div>
+      )}
       
       {renderStoresList()}
       
       <AddStoreDialog 
         open={showAddStoreDialog}
         onOpenChange={setShowAddStoreDialog}
-        onStoreAdded={fetchStores}
+        onStoreAdded={fetchProjectAndStores}
       />
     </div>
   );

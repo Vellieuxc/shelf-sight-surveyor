@@ -1,89 +1,78 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Store } from "@/types";
-import { Eye, Trash2, Images } from "lucide-react";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Store as StoreIcon, MapPin, Trash } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StoreCardProps {
   store: Store;
-  onDeleteStore?: (storeId: string) => void;
   onSelect?: (storeId: string) => void;
+  onDeleteStore?: (storeId: string) => void;
+  projectClosed?: boolean;
 }
 
-const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore, onSelect }) => {
-  const [pictureCount, setPictureCount] = useState<number>(0);
+const StoreCard: React.FC<StoreCardProps> = ({ 
+  store, 
+  onSelect, 
+  onDeleteStore,
+  projectClosed = false
+}) => {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const isConsultant = profile?.role === "consultant";
+  const canEditStore = !projectClosed || isConsultant;
   
-  useEffect(() => {
-    const fetchPictureCount = async () => {
-      try {
-        const { count, error } = await supabase
-          .from("pictures")
-          .select("*", { count: "exact", head: true })
-          .eq("store_id", store.id);
-          
-        if (error) {
-          console.error("Error fetching picture count:", error);
-          return;
-        }
-        
-        if (count !== null) {
-          setPictureCount(count);
-        }
-      } catch (error) {
-        console.error("Error fetching picture count:", error);
-      }
-    };
-    
-    fetchPictureCount();
-  }, [store.id]);
-  
+  const handleStoreClick = () => {
+    if (onSelect) {
+      onSelect(store.id);
+    } else {
+      navigate(`/dashboard/stores/${store.id}`);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDeleteStore) {
+      onDeleteStore(store.id);
+    }
+  };
+
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
+    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleStoreClick}>
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="truncate">{store.name}</CardTitle>
-            <CardDescription className="truncate">{store.type}</CardDescription>
+            <h3 className="font-medium text-lg">{store.name}</h3>
+            <p className="text-muted-foreground text-sm">{store.address}</p>
           </div>
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Images size={14} />
-            <span>{pictureCount}</span>
-          </Badge>
+          <Badge>{store.type}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="space-y-2 text-sm">
-          <p className="truncate">{store.address}</p>
-          <p>{store.country}</p>
+      <CardContent className="pb-0">
+        <div className="flex items-center gap-2 text-sm">
+          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground">{store.country}</span>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        {onDeleteStore && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDeleteStore(store.id)}
-            className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+      <CardFooter className="flex justify-between pt-4">
+        <Button variant="outline" size="sm" className="flex items-center gap-2">
+          <StoreIcon className="h-3.5 w-3.5" />
+          View Details
+        </Button>
+        {canEditStore && onDeleteStore && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleDeleteClick}
+            className="text-destructive hover:bg-destructive/10"
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+            <Trash className="h-3.5 w-3.5" />
           </Button>
         )}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          asChild
-          onClick={onSelect ? () => onSelect(store.id) : undefined}
-        >
-          <Link to={`/dashboard/stores/${store.id}`}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Store
-          </Link>
-        </Button>
       </CardFooter>
     </Card>
   );

@@ -19,20 +19,27 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const [store, setStore] = useState<Store | null>(null);
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const [isProjectClosed, setIsProjectClosed] = useState(false);
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const isConsultant = profile?.role === "consultant";
 
   const fetchStoreAndPictures = async () => {
     try {
       // Fetch store info
       const { data: storeData, error: storeError } = await supabase
         .from("stores")
-        .select("*")
+        .select("*, projects:project_id(is_closed)")
         .eq("id", storeId)
         .single();
 
       if (storeError) throw storeError;
       setStore(storeData);
+      
+      // Check if the project is closed
+      if (storeData?.projects) {
+        setIsProjectClosed(!!storeData.projects.is_closed);
+      }
 
       // Fetch pictures for this store
       const { data: picturesData, error: picturesError } = await supabase
@@ -69,6 +76,11 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   }, [storeId]);
 
   const handleDeletePicture = async (pictureId: string) => {
+    if (isProjectClosed && !isConsultant) {
+      toast.error("Cannot delete pictures in a closed project");
+      return;
+    }
+    
     if (!confirm("Are you sure you want to delete this picture?")) return;
     
     try {
@@ -90,6 +102,11 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   };
 
   const handleSynthesizeStore = () => {
+    if (isProjectClosed && !isConsultant) {
+      toast.error("Cannot synthesize data in a closed project");
+      return;
+    }
+    
     toast.info("Synthesizing store data...");
     // This would be implemented later - placeholder for now
   };
@@ -117,15 +134,23 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       />
 
       <div className="flex justify-end mb-6">
-        <PictureUpload 
-          storeId={storeId} 
-          onPictureUploaded={fetchStoreAndPictures} 
-        />
+        {(!isProjectClosed || isConsultant) && (
+          <PictureUpload 
+            storeId={storeId} 
+            onPictureUploaded={fetchStoreAndPictures} 
+          />
+        )}
+        {isProjectClosed && !isConsultant && (
+          <div className="text-sm text-muted-foreground">
+            This project is closed. Contact a consultant to make changes.
+          </div>
+        )}
       </div>
 
       <PictureGrid 
         pictures={pictures}
         onDeletePicture={handleDeletePicture}
+        allowEditing={!isProjectClosed || isConsultant}
       />
     </div>
   );
