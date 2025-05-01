@@ -35,7 +35,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { UserRole } from "@/types";
-import { format } from "date-fns";
 
 interface UserData {
   id: string;
@@ -123,10 +122,13 @@ const UsersManagement = () => {
       ));
       
       toast.success(`Changed ${selectedUser.email}'s role to ${selectedRole}`);
-      setShowRoleDialog(false);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
       toast.error("Failed to update user role");
+    } finally {
+      // Make sure dialog is closed after operation finishes
+      setShowRoleDialog(false);
+      setSelectedUser(null);
     }
   };
 
@@ -156,10 +158,13 @@ const UsersManagement = () => {
           ? `Blocked user ${selectedUser.email}` 
           : `Unblocked user ${selectedUser.email}`
       );
-      setShowBlockDialog(false);
     } catch (error: any) {
       console.error("Error updating user blocked status:", error.message);
       toast.error("Failed to update user status");
+    } finally {
+      // Make sure dialog is closed after operation finishes 
+      setShowBlockDialog(false);
+      setSelectedUser(null);
     }
   };
 
@@ -301,7 +306,10 @@ const UsersManagement = () => {
       </div>
 
       {/* Role Change Dialog */}
-      <AlertDialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+      <AlertDialog open={showRoleDialog} onOpenChange={(open) => {
+        setShowRoleDialog(open);
+        if (!open) setSelectedUser(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Change User Role</AlertDialogTitle>
@@ -342,7 +350,10 @@ const UsersManagement = () => {
       </AlertDialog>
 
       {/* Block User Dialog */}
-      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+      <AlertDialog open={showBlockDialog} onOpenChange={(open) => {
+        setShowBlockDialog(open);
+        if (!open) setSelectedUser(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
