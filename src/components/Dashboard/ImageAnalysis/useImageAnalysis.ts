@@ -80,6 +80,7 @@ export const useImageAnalysis = (storeId?: string) => {
     setIsAnalyzing(true);
     
     try {
+      console.log("Starting image analysis...");
       // Call the Edge Function to analyze the image
       const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
         body: {
@@ -88,7 +89,12 @@ export const useImageAnalysis = (storeId?: string) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error analyzing image:", error);
+        throw error;
+      }
+      
+      console.log("Response received:", data);
       
       if (data.success && data.data) {
         setAnalysisData(data.data);
@@ -99,6 +105,7 @@ export const useImageAnalysis = (storeId?: string) => {
 
         // If we have a pictureId, update the analysis data in the database
         if (currentPictureId) {
+          console.log("Updating analysis data in database for picture ID:", currentPictureId);
           const { error: updateError } = await supabase
             .from("pictures")
             .update({
@@ -118,6 +125,7 @@ export const useImageAnalysis = (storeId?: string) => {
           }
         }
       } else {
+        console.error("Invalid response format:", data);
         throw new Error("Invalid response format from analysis function");
       }
     } catch (error) {

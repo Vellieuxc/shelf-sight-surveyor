@@ -2,30 +2,43 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
+// Define proper CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  console.log("Edge Function received request:", req.method);
+  
+  // Handle CORS preflight requests properly
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Handling OPTIONS request with CORS headers");
+    return new Response(null, { 
+      status: 204, 
+      headers: corsHeaders 
+    });
   }
 
   try {
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {
+      console.error("ANTHROPIC_API_KEY is not configured");
       throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
+    console.log("Parsing request body");
     const { imageUrl, imageId } = await req.json();
     if (!imageUrl) {
+      console.error("Image URL is required but was not provided");
       throw new Error("Image URL is required");
     }
 
     console.log(`Processing analysis for image: ${imageId}`);
 
+    // Make the request to the Anthropic API
+    console.log("Sending request to Anthropic API");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -66,6 +79,7 @@ serve(async (req) => {
       })
     });
 
+    console.log("Response received from Anthropic API");
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Claude API error:", errorData);
@@ -80,12 +94,14 @@ serve(async (req) => {
     try {
       // Find JSON in Claude's response
       const textContent = data.content[0].text;
+      console.log("Parsing Claude response as JSON");
       
       // Use regex to extract JSON array from possible text
       const jsonMatch = textContent.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         analysisData = JSON.parse(jsonMatch[0]);
       } else {
+        console.error("Could not extract JSON data from Claude's response");
         throw new Error("Could not extract JSON data from Claude's response");
       }
     } catch (error) {
@@ -93,6 +109,9 @@ serve(async (req) => {
       throw new Error("Failed to parse analysis data from Claude response");
     }
 
+    console.log("Successfully extracted and parsed data from Claude response");
+    
+    // Return the response with CORS headers
     return new Response(JSON.stringify({ success: true, data: analysisData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
