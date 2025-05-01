@@ -19,6 +19,15 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   analysisData,
   onExportToExcel,
 }) => {
+  // Helper function to safely format price values
+  const formatPrice = (price: any): string => {
+    // Check if price is a valid number
+    if (typeof price === 'number' && !isNaN(price)) {
+      return `$${price.toFixed(2)}`;
+    }
+    return "-";
+  };
+
   return (
     <Card className="card-shadow">
       <CardHeader>
@@ -65,13 +74,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                     <TableCell>
                       {item.empty_space_estimate 
                         ? "-" 
-                        : item.sku_price ? `$${item.sku_price.toFixed(2)}` : "-"
+                        : formatPrice(item.sku_price)
                       }
                     </TableCell>
                     {analysisData.some(item => item.sku_price_pre_promotion) && (
                       <TableCell>
                         {item.sku_price_pre_promotion 
-                          ? `$${item.sku_price_pre_promotion.toFixed(2)}` 
+                          ? formatPrice(item.sku_price_pre_promotion) 
                           : "-"
                         }
                       </TableCell>
