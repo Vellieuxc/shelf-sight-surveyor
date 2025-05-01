@@ -35,8 +35,8 @@ export const ensurePicturesBucketExists = async () => {
       return; // Bucket exists and is accessible
     }
     
-    // If upload failed with a 404, the bucket likely doesn't exist
-    if (uploadError.message.includes('Bucket not found') || uploadError.statusCode === 404) {
+    // If upload failed with a 404 or bucket not found message, the bucket likely doesn't exist
+    if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('404')) {
       console.warn('Pictures bucket not found, attempting to create it');
       // If bucket doesn't exist, try to create it
       const { data: newBucket, error: createError } = await supabase.storage.createBucket('pictures', {
