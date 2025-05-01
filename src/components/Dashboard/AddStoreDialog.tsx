@@ -1,10 +1,10 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ const AddStoreDialog: React.FC<AddStoreDialogProps> = ({ open, onOpenChange, onS
   const { projectId } = useParams<{ projectId: string }>();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -59,19 +60,27 @@ const AddStoreDialog: React.FC<AddStoreDialogProps> = ({ open, onOpenChange, onS
         });
         return;
       }
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to create a store",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const { data, error } = await supabase
         .from("stores")
-        .insert([
-          {
-            project_id: projectId,
-            name: values.name,
-            type: values.type,
-            address: values.address,
-            country: values.country,
-            google_map_pin: values.google_map_pin || null,
-          },
-        ])
+        .insert({
+          project_id: projectId,
+          name: values.name,
+          type: values.type,
+          address: values.address,
+          country: values.country,
+          google_map_pin: values.google_map_pin || null,
+          created_by: user.id
+        })
         .select();
 
       if (error) {

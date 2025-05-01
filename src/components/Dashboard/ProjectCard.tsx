@@ -1,20 +1,14 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, FolderX } from "lucide-react";
+import { Calendar, CheckCircle, FolderX, Store as StoreIcon, Image } from "lucide-react";
 import { Project } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 
 interface ProjectCardProps {
   project: Project;
@@ -30,6 +24,52 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const navigate = useNavigate();
   const { profile } = useAuth();
   const isConsultant = profile?.role === "consultant";
+  const [storeCount, setStoreCount] = useState<number | null>(null);
+  const [pictureCount, setPictureCount] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    const fetchProjectStats = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch store count
+        const { count: storesCount, error: storesError } = await supabase
+          .from("stores")
+          .select("id", { count: 'exact' })
+          .eq("project_id", project.id);
+          
+        if (storesError) throw storesError;
+        setStoreCount(storesCount);
+        
+        // Fetch pictures count linked to this project's stores
+        const { data: stores, error: storesListError } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("project_id", project.id);
+          
+        if (storesListError) throw storesListError;
+        
+        if (stores && stores.length > 0) {
+          const storeIds = stores.map(store => store.id);
+          const { count: photosCount, error: photosError } = await supabase
+            .from("pictures")
+            .select("id", { count: 'exact' })
+            .in("store_id", storeIds);
+            
+          if (photosError) throw photosError;
+          setPictureCount(photosCount);
+        } else {
+          setPictureCount(0);
+        }
+      } catch (error: any) {
+        console.error("Error fetching project stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProjectStats();
+  }, [project.id]);
   
   const handleToggleProjectStatus = async () => {
     try {
@@ -86,6 +126,24 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <span>
                 {new Date(project.created_at).toLocaleDateString()}
               </span>
+            </div>
+          </div>
+          
+          {/* Project Statistics */}
+          <div className="pt-2 border-t mt-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <StoreIcon size={14} />
+                <span>Stores:</span>
+              </span>
+              <span>{isLoading ? '...' : storeCount !== null ? storeCount : '-'}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Image size={14} />
+                <span>Pictures:</span>
+              </span>
+              <span>{isLoading ? '...' : pictureCount !== null ? pictureCount : '-'}</span>
             </div>
           </div>
         </div>
