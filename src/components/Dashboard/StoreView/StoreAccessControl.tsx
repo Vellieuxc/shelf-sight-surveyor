@@ -1,63 +1,68 @@
 
 import React from "react";
-import { NavigateFunction } from "react-router-dom";
-import { type ToastAPI } from "@/hooks/use-toast";
-import { UserProfile } from "@/contexts/auth/types";
-import { Store } from "@/types";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface StoreAccessControlProps {
-  store: Store | null;
-  isLoading: boolean;
-  profile: UserProfile | null;
-  navigate: NavigateFunction;
-  toast: ToastAPI;
-  children: React.ReactNode;
+  storeId: string;
+  creatorId: string;
+  currentUserId: string;
 }
 
-const StoreAccessControl: React.FC<StoreAccessControlProps> = ({ 
-  store, 
-  isLoading, 
-  profile,
-  navigate,
-  toast,
-  children 
+const StoreAccessControl: React.FC<StoreAccessControlProps> = ({
+  storeId,
+  creatorId,
+  currentUserId,
 }) => {
-  const isCrew = profile?.role === "crew";
-  const isBoss = profile?.role === "boss";
-
-  // For crew users who are not bosses, check if they created this store
-  React.useEffect(() => {
-    if (!isLoading && store && isCrew && !isBoss && profile && store.created_by !== profile.id) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have access to this store",
-        variant: "destructive"
-      });
-      navigate("/dashboard");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const handleDeleteStore = async () => {
+    if (!window.confirm("Are you sure you want to delete this store? This action cannot be undone.")) {
+      return;
     }
-  }, [store, isLoading, isCrew, isBoss, profile, navigate, toast]);
 
-  if (isLoading) {
-    return <div className="container px-4 py-8">Loading store data...</div>;
-  }
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .delete()
+        .eq("id", storeId);
 
-  if (!store) {
+      if (error) throw error;
+
+      toast({
+        title: "Store deleted",
+        description: "The store has been deleted successfully.",
+      });
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to delete store: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (creatorId === currentUserId) {
     return (
-      <div className="container px-4 py-8">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4">Store not found</h2>
-          <Button 
-            onClick={() => navigate("/dashboard")}
-          >
-            Back to Dashboard
-          </Button>
-        </div>
-      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+        onClick={handleDeleteStore}
+      >
+        <X size={16} className="mr-1" />
+        <span>Delete Store</span>
+      </Button>
     );
   }
 
-  return <>{children}</>;
+  return null;
 };
 
 export default StoreAccessControl;

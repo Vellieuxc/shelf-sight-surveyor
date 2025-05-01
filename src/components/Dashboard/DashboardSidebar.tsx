@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
-import { LogOut, LayoutDashboard, PlusCircle, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,20 +9,19 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import UserProfile from "../Auth/UserProfile";
 import { Project } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import NewProjectDialog from "./Sidebar/NewProjectDialog";
 import ProjectsList from "./Sidebar/ProjectsList";
 import SidebarHeader from "./Sidebar/SidebarHeader";
+import SidebarNavigation from "./Sidebar/SidebarNavigation";
 
 export function DashboardSidebar() {
-  const { signOut, user, profile } = useAuth();
+  const { signOut, profile } = useAuth();
   const location = useLocation();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -31,7 +29,7 @@ export function DashboardSidebar() {
 
   useEffect(() => {
     const fetchProjects = async () => {
-      if (!user) return;
+      if (!profile) return;
       
       try {
         const { data, error } = await supabase
@@ -49,11 +47,7 @@ export function DashboardSidebar() {
     };
 
     fetchProjects();
-  }, [user]);
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  }, [profile]);
 
   const getActiveProjectId = () => {
     const match = location.pathname.match(/\/projects\/([^/]+)/);
@@ -67,6 +61,10 @@ export function DashboardSidebar() {
   // Check user roles
   const isCrewMember = profile?.role === "crew";
   const isBoss = profile?.role === "boss";
+  
+  const handleNewProjectClick = () => {
+    setIsNewProjectDialogOpen(true);
+  };
 
   return (
     <Sidebar>
@@ -76,41 +74,12 @@ export function DashboardSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
-                  <Link to="/dashboard">
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              {/* Show Users Management link only for Boss users */}
-              {isBoss && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive("/dashboard/users")}>
-                    <Link to="/dashboard/users">
-                      <Users />
-                      <span>Users</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              
-              {/* Only show New Project button if not a crew member or is a boss */}
-              {(!isCrewMember || isBoss) && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    tooltip="Create New Project" 
-                    onClick={() => setIsNewProjectDialogOpen(true)}
-                  >
-                    <PlusCircle />
-                    <span>New Project</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
+            <SidebarNavigation 
+              location={location} 
+              isBoss={isBoss} 
+              isCrewMember={isCrewMember}
+              onNewProjectClick={handleNewProjectClick}
+            />
           </SidebarGroupContent>
         </SidebarGroup>
 

@@ -1,8 +1,9 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
+import StoreDataFetcher from "./StoreDataFetcher";
+import { toast } from "@/hooks/use-toast";
 import StoreView from "./index";
 
 interface StoreViewContainerProps {
@@ -10,18 +11,38 @@ interface StoreViewContainerProps {
 }
 
 const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
+
   return (
-    <StoreView 
-      storeId={storeId} 
-      navigate={navigate}
-      toast={toast}
-      user={user}
-      profile={profile}
-    />
+    <StoreDataFetcher
+      storeId={storeId}
+      userId={user.id}
+      onError={(message) => {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+      }}
+      onLoading={(loading) => setIsLoading(loading)}
+    >
+      {(storeData, picturesData) => (
+        <StoreView 
+          store={storeData} 
+          pictures={picturesData} 
+          isLoading={isLoading}
+          userId={user.id} 
+        />
+      )}
+    </StoreDataFetcher>
   );
 };
 
