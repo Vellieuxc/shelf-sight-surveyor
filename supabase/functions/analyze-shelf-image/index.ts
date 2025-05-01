@@ -66,7 +66,7 @@ serve(async (req) => {
                 text: "This is a picture of a retail store shelf. Please analyze the products visible and extract the following information structured as a JSON array:\n\n" +
                       "1. sku_name: The name of each product\n" +
                       "2. brand: The brand name\n" +
-                      "3. sku_count: Approximate number of units visible for each product\n" +
+                      "3. sku_count: Number of product facings visible (how many products are facing front on the shelf, not total units)\n" +
                       "4. sku_price: The current price of the product\n" +
                       "5. sku_price_pre_promotion: Original price before promotion (only if a promotion is visible)\n" +
                       "6. sku_price_post_promotion: Price after promotion (only if a promotion is visible)\n" +
