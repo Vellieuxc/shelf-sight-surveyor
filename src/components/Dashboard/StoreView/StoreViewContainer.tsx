@@ -34,11 +34,12 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
       }}
       onLoading={(loading) => setIsLoading(loading)}
     >
-      {(storeData, picturesData) => (
+      {(data) => (
         <StoreView 
-          store={storeData} 
-          pictures={picturesData} 
-          isLoading={isLoading}
+          store={data.store} 
+          pictures={data.pictures} 
+          isLoading={data.isLoading} 
+          isProjectClosed={data.isProjectClosed}
           userId={user.id} 
         />
       )}
