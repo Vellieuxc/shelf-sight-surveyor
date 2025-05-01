@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Route, Routes, useParams, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute";
