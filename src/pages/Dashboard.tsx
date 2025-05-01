@@ -6,11 +6,18 @@ import MainLayout from "@/components/Layout/MainLayout";
 import ProjectsList from "@/components/Dashboard/ProjectsList";
 import StoresList from "@/components/Dashboard/StoresList";
 import ImageAnalyzer from "@/components/Dashboard/ImageAnalyzer";
+import StoreView from "@/components/Dashboard/StoreView";
 
 const StoresRoute = () => {
   const { projectId } = useParams<{ projectId: string }>();
   if (!projectId) return <Navigate to="/dashboard" />;
   return <StoresList projectId={projectId} />;
+};
+
+const StoreViewRoute = () => {
+  const { storeId } = useParams<{ storeId: string }>();
+  if (!storeId) return <Navigate to="/dashboard" />;
+  return <StoreView storeId={storeId} />;
 };
 
 const AnalyzeRoute = () => {
@@ -26,6 +33,7 @@ const Dashboard = () => {
         <Routes>
           <Route index element={<ProjectsList />} />
           <Route path="projects/:projectId/stores" element={<StoresRoute />} />
+          <Route path="stores/:storeId" element={<StoreViewRoute />} />
           <Route path="stores/:storeId/analyze" element={<AnalyzeRoute />} />
         </Routes>
       </MainLayout>

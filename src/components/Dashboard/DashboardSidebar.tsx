@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, LayoutDashboard, Store, PlusCircle } from "lucide-react";
+import { LogOut, LayoutDashboard, Store, PlusCircle, Folder, FolderOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Project } from "@/types";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function DashboardSidebar() {
   const { signOut, user } = useAuth();
@@ -36,9 +38,37 @@ export function DashboardSidebar() {
     country: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("created_at", { ascending: false });
+          
+        if (error) throw error;
+        setProjects(data || []);
+      } catch (error: any) {
+        console.error("Error fetching projects:", error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [user]);
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const isProjectActive = (projectId: string) => {
+    return location.pathname.includes(`/projects/${projectId}`);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -74,6 +104,9 @@ export function DashboardSidebar() {
       toast.success("Project created successfully!");
       setIsNewProjectDialogOpen(false);
       setNewProject({ title: "", description: "", category: "", country: "" });
+      
+      // Add the new project to the list
+      setProjects([data, ...projects]);
       
       // Redirect to the new project's stores page
       navigate(`/dashboard/projects/${data.id}/stores`);
@@ -117,6 +150,32 @@ export function DashboardSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <ScrollArea className="h-[300px]">
+              <SidebarMenu>
+                {isLoading ? (
+                  <div className="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
+                ) : projects.length === 0 ? (
+                  <div className="px-4 py-2 text-sm text-muted-foreground">No projects found</div>
+                ) : (
+                  projects.map((project) => (
+                    <SidebarMenuItem key={project.id}>
+                      <SidebarMenuButton asChild isActive={isProjectActive(project.id)}>
+                        <Link to={`/dashboard/projects/${project.id}/stores`}>
+                          {isProjectActive(project.id) ? <FolderOpen /> : <Folder />}
+                          <span className="truncate">{project.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))
+                )}
+              </SidebarMenu>
+            </ScrollArea>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
