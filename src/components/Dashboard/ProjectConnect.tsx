@@ -79,9 +79,6 @@ const ProjectConnect: React.FC = () => {
                   onChange={(e) => setProjectId(e.target.value)}
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  The ID looks like: 123e4567-e89b-12d3-a456-426614174000
-                </p>
               </div>
             </div>
           </CardContent>
