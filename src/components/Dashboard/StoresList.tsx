@@ -11,6 +11,7 @@ import AddStoreDialog from "./AddStoreDialog";
 import StoreCard from "./StoreCard";
 import StoreCardSkeleton from "./StoreCardSkeleton";
 import EmptyStoresState from "./EmptyStoresState";
+import { toast } from "sonner";
 
 interface StoresListProps {
   projectId?: string;
@@ -20,7 +21,7 @@ interface StoresListProps {
 const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onStoreSelect }) => {
   const { projectId: paramProjectId } = useParams<{ projectId: string }>();
   const projectId = propProjectId || paramProjectId;
-  const { toast } = useToast();
+  const { toast: hookToast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
@@ -44,7 +45,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
       
       setStores(data || []);
     } catch (error: any) {
-      toast({
+      hookToast({
         title: "Error fetching stores",
         description: error.message || "Could not load stores. Please try again.",
         variant: "destructive",
@@ -57,6 +58,37 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
   useEffect(() => {
     fetchStores();
   }, [projectId]);
+  
+  const handleDeleteStore = async (storeId: string) => {
+    if (!confirm("Are you sure you want to delete this store? This will delete all associated data.")) {
+      return;
+    }
+    
+    try {
+      // First delete all pictures associated with the store
+      const { error: picturesError } = await supabase
+        .from("pictures")
+        .delete()
+        .eq("store_id", storeId);
+      
+      if (picturesError) throw picturesError;
+      
+      // Then delete the store
+      const { error: storeError } = await supabase
+        .from("stores")
+        .delete()
+        .eq("id", storeId);
+      
+      if (storeError) throw storeError;
+      
+      toast.success("Store deleted successfully");
+      
+      // Refresh the store list
+      fetchStores();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete store. Please try again.");
+    }
+  };
   
   const filteredStores = stores.filter(store => 
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -87,6 +119,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
             key={store.id} 
             store={store} 
             onSelect={onStoreSelect}
+            onDeleteStore={handleDeleteStore}
           />
         ))}
       </div>

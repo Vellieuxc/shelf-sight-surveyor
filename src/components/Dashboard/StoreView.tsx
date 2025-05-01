@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Store, Picture } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { transformAnalysisData } from "@/utils/dataTransformers";
 import StoreHeader from "./StoreHeader";
@@ -20,7 +19,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const [store, setStore] = useState<Store | null>(null);
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [showAddPictureUI, setShowAddPictureUI] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -96,6 +95,10 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
     // This would be implemented later - placeholder for now
   };
 
+  const handleAddPictureClick = () => {
+    setShowAddPictureUI(true);
+  };
+
   if (isLoading) {
     return <div className="container px-4 py-8">Loading store data...</div>;
   }
@@ -128,7 +131,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       <PictureGrid 
         pictures={pictures}
         onDeletePicture={handleDeletePicture}
-        onUploadClick={() => setIsUploadDialogOpen(true)}
+        onUploadClick={handleAddPictureClick}
       />
     </div>
   );

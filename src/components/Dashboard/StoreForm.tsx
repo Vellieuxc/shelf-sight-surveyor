@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, Image as ImageIcon } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Store name must be at least 2 characters"),
@@ -14,6 +15,7 @@ const formSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters"),
   country: z.string().min(2, "Country must be at least 2 characters"),
   google_map_pin: z.string().optional(),
+  store_image: z.any().optional(),
 });
 
 export type StoreFormValues = z.infer<typeof formSchema>;
@@ -27,6 +29,8 @@ interface StoreFormProps {
 }
 
 const StoreForm: React.FC<StoreFormProps> = ({ onSubmit, isSubmitting, onCancel }) => {
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,9 +42,27 @@ const StoreForm: React.FC<StoreFormProps> = ({ onSubmit, isSubmitting, onCancel 
     },
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      form.setValue("store_image", file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFormSubmit = async (values: StoreFormValues) => {
+    await onSubmit(values);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -119,6 +141,60 @@ const StoreForm: React.FC<StoreFormProps> = ({ onSubmit, isSubmitting, onCancel 
               <FormLabel>Google Maps Link (Optional)</FormLabel>
               <FormControl>
                 <Input placeholder="Paste Google Maps URL" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="store_image"
+          render={() => (
+            <FormItem>
+              <FormLabel>Store Image (Optional)</FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  {imagePreview && (
+                    <div className="relative w-full h-40 mb-2">
+                      <img 
+                        src={imagePreview}
+                        alt="Store Preview" 
+                        className="w-full h-full object-contain bg-muted rounded-md"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center">
+                    <label 
+                      htmlFor="store_image" 
+                      className="cursor-pointer flex items-center justify-center px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Select Image
+                      <input
+                        id="store_image"
+                        name="store_image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {imagePreview && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="ml-2"
+                        onClick={() => {
+                          form.setValue("store_image", undefined);
+                          setImagePreview(null);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

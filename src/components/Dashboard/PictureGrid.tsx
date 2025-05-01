@@ -3,7 +3,7 @@ import React from "react";
 import { Picture } from "@/types";
 import PictureCard from "./PictureCard";
 import { Button } from "@/components/ui/button";
-import { Camera } from "lucide-react";
+import { Camera, Upload } from "lucide-react";
 
 interface PictureGridProps {
   pictures: Picture[];
@@ -15,15 +15,23 @@ const PictureGrid: React.FC<PictureGridProps> = ({ pictures, onDeletePicture, on
   if (pictures.length === 0) {
     return (
       <div className="col-span-full text-center py-12">
-        <p className="text-muted-foreground">No pictures uploaded yet.</p>
-        <Button 
-          variant="outline" 
-          className="mt-4"
-          onClick={onUploadClick}
-        >
-          <Camera size={16} className="mr-2" />
-          Upload First Picture
-        </Button>
+        <p className="text-muted-foreground mb-4">No pictures uploaded yet.</p>
+        <div className="flex justify-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onUploadClick}
+          >
+            <Upload size={16} className="mr-2" />
+            Upload First Picture
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={onUploadClick}
+          >
+            <Camera size={16} className="mr-2" />
+            Take First Picture
+          </Button>
+        </div>
       </div>
     );
   }
