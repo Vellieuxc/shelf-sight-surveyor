@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, LayoutDashboard, PlusCircle } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -64,8 +64,9 @@ export function DashboardSidebar() {
     setProjects([newProject, ...projects]);
   };
 
-  // Check if user is crew role
+  // Check user roles
   const isCrewMember = profile?.role === "crew";
+  const isBoss = profile?.role === "boss";
 
   return (
     <Sidebar>
@@ -84,8 +85,21 @@ export function DashboardSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {/* Only show New Project button if not a crew member */}
-              {!isCrewMember && (
+              
+              {/* Show Users Management link only for Boss users */}
+              {isBoss && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/dashboard/users")}>
+                    <Link to="/dashboard/users">
+                      <Users />
+                      <span>Users</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              
+              {/* Only show New Project button if not a crew member or is a boss */}
+              {(!isCrewMember || isBoss) && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     tooltip="Create New Project" 

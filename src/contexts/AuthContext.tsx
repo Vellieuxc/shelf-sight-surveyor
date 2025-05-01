@@ -15,6 +15,7 @@ interface AuthContextType {
     firstName?: string;
     lastName?: string;
     role: UserRole;
+    isBlocked?: boolean;
   } | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -72,12 +73,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error fetching user profile:", error);
         setProfile(null);
       } else {
+        // Check if user is blocked
+        if (data.is_blocked) {
+          toast.error("Your account has been blocked. Please contact an administrator.");
+          await signOut();
+          return;
+        }
+        
         setProfile({
           id: data.id,
           email: data.email,
           firstName: data.first_name,
           lastName: data.last_name,
-          role: data.role as UserRole
+          role: data.role as UserRole,
+          isBlocked: data.is_blocked
         });
       }
     } catch (error) {
@@ -101,6 +110,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(data.session);
       
       if (data.user) {
+        // Before navigating, check if the user is blocked
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("is_blocked")
+          .eq("id", data.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Error checking if user is blocked:", profileError);
+        } else if (profileData.is_blocked) {
+          toast.error("Your account has been blocked. Please contact an administrator.");
+          await supabase.auth.signOut();
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+          return;
+        }
+        
         fetchUserProfile(data.user.id);
         toast.success("Signed in successfully");
         navigate("/dashboard");

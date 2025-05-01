@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
   const { profile } = useAuth();
   const isConsultant = profile?.role === "consultant";
   const isCrew = profile?.role === "crew";
+  const isBoss = profile?.role === "boss";
   
   const [searchTerm, setSearchTerm] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
@@ -48,13 +50,14 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
       setProject(projectData);
       
       // Then fetch the stores - for crew users, only fetch stores they created
+      // Boss users can see all stores
       let storesQuery = supabase
         .from("stores")
         .select("*")
         .eq("project_id", projectId);
         
-      // If user is crew, filter to only show their stores
-      if (isCrew && profile) {
+      // If user is crew and not boss, filter to only show their stores
+      if (isCrew && !isBoss && profile) {
         storesQuery = storesQuery.eq("created_by", profile.id);
       }
       
@@ -82,8 +85,8 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
   }, [projectId]);
   
   const handleDeleteStore = async (storeId: string) => {
-    // Prevent deletion if project is closed and user is not a consultant
-    if (project?.is_closed && !isConsultant) {
+    // Prevent deletion if project is closed and user is not a consultant or boss
+    if (project?.is_closed && !isConsultant && !isBoss) {
       toast.error("Cannot delete stores in a closed project");
       return;
     }
@@ -169,7 +172,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          {(!project?.is_closed || isConsultant) && (
+          {(!project?.is_closed || isConsultant || isBoss) && (
             <Button className="whitespace-nowrap" onClick={() => setShowAddStoreDialog(true)}>
               <Plus size={16} className="mr-2" />
               Add Store
@@ -178,7 +181,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
         </div>
       </div>
       
-      {project?.is_closed && !isConsultant && (
+      {project?.is_closed && !isConsultant && !isBoss && (
         <div className="bg-muted text-muted-foreground text-sm p-3 rounded-md">
           This project is currently closed. Contact a consultant to make changes.
         </div>

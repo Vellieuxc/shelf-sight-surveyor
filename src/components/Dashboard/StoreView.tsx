@@ -24,6 +24,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const navigate = useNavigate();
   const isConsultant = profile?.role === "consultant";
   const isCrew = profile?.role === "crew";
+  const isBoss = profile?.role === "boss";
 
   const fetchStoreAndPictures = async () => {
     try {
@@ -36,8 +37,8 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
 
       if (storeError) throw storeError;
       
-      // For crew users, check if they created this store
-      if (isCrew && profile && storeData.created_by !== profile.id) {
+      // For crew users who are not bosses, check if they created this store
+      if (isCrew && !isBoss && profile && storeData.created_by !== profile.id) {
         toast.error("You don't have access to this store");
         navigate("/dashboard");
         return;
@@ -50,14 +51,14 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         setIsProjectClosed(!!storeData.projects.is_closed);
       }
 
-      // Fetch pictures for this store - for crew users, only fetch pictures they uploaded
+      // Fetch pictures for this store - for crew users who are not bosses, only fetch pictures they uploaded
       let picturesQuery = supabase
         .from("pictures")
         .select("*")
         .eq("store_id", storeId);
         
-      // If user is crew, filter to only show their pictures
-      if (isCrew && profile) {
+      // If user is crew and not boss, filter to only show their pictures
+      if (isCrew && !isBoss && profile) {
         picturesQuery = picturesQuery.eq("uploaded_by", profile.id);
       }
       
@@ -92,7 +93,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   }, [storeId]);
 
   const handleDeletePicture = async (pictureId: string) => {
-    if (isProjectClosed && !isConsultant) {
+    if (isProjectClosed && !isConsultant && !isBoss) {
       toast.error("Cannot delete pictures in a closed project");
       return;
     }
@@ -118,7 +119,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   };
 
   const handleSynthesizeStore = () => {
-    if (isProjectClosed && !isConsultant) {
+    if (isProjectClosed && !isConsultant && !isBoss) {
       toast.error("Cannot synthesize data in a closed project");
       return;
     }
@@ -150,13 +151,13 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       />
 
       <div className="flex justify-end mb-6">
-        {(!isProjectClosed || isConsultant) && (
+        {(!isProjectClosed || isConsultant || isBoss) && (
           <PictureUpload 
             storeId={storeId} 
             onPictureUploaded={fetchStoreAndPictures} 
           />
         )}
-        {isProjectClosed && !isConsultant && (
+        {isProjectClosed && !isConsultant && !isBoss && (
           <div className="text-sm text-muted-foreground">
             This project is closed. Contact a consultant to make changes.
           </div>
@@ -166,7 +167,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       <PictureGrid 
         pictures={pictures}
         onDeletePicture={handleDeletePicture}
-        allowEditing={!isProjectClosed || isConsultant}
+        allowEditing={!isProjectClosed || isConsultant || isBoss}
       />
     </div>
   );

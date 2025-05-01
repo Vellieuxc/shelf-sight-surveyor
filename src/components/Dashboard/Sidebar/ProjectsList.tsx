@@ -22,11 +22,16 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects, isLoading, active
   const [filteredProjects, setFilteredProjects] = useState<Project[]>(projects);
   const { profile } = useAuth();
   const isCrew = profile?.role === "crew";
+  const isBoss = profile?.role === "boss";
   
   useEffect(() => {
     // For crew users, we need to filter projects to only show ones where they have stores
-    const filterProjectsForCrewUser = async () => {
-      if (isCrew && profile) {
+    // Boss users can see all projects
+    const filterProjectsForUser = async () => {
+      if (isBoss) {
+        // Boss can see all projects
+        setFilteredProjects(projects);
+      } else if (isCrew && profile) {
         try {
           // Get all stores created by this crew user
           const { data: storesData, error: storesError } = await supabase
@@ -53,8 +58,8 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects, isLoading, active
       }
     };
     
-    filterProjectsForCrewUser();
-  }, [projects, profile, isCrew]);
+    filterProjectsForUser();
+  }, [projects, profile, isCrew, isBoss]);
   
   const isProjectActive = (projectId: string) => {
     return activeProjectId === projectId;

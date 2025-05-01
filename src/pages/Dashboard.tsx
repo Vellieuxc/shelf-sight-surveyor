@@ -8,6 +8,7 @@ import StoresList from "@/components/Dashboard/StoresList";
 import ImageAnalyzer from "@/components/Dashboard/ImageAnalyzer";
 import StoreView from "@/components/Dashboard/StoreView";
 import ProjectConnect from "@/components/Dashboard/ProjectConnect";
+import UsersManagement from "@/components/Dashboard/UsersManagement";
 import { useAuth } from "@/contexts/AuthContext";
 
 const StoresRoute = () => {
@@ -30,15 +31,30 @@ const AnalyzeRoute = () => {
 
 const DashboardContent = () => {
   const { profile } = useAuth();
+  const isBoss = profile?.role === "boss";
+  const isCrew = profile?.role === "crew";
   
   // For crew members, show the ProjectConnect component by default
-  if (profile?.role === "crew") {
+  if (isCrew && !isBoss) {
     return (
       <Routes>
         <Route index element={<ProjectConnect />} />
         <Route path="projects/:projectId/stores" element={<StoresRoute />} />
         <Route path="stores/:storeId" element={<StoreViewRoute />} />
         <Route path="stores/:storeId/analyze" element={<AnalyzeRoute />} />
+      </Routes>
+    );
+  }
+  
+  // For boss users, include access to the users management page
+  if (isBoss) {
+    return (
+      <Routes>
+        <Route index element={<ProjectsList />} />
+        <Route path="projects/:projectId/stores" element={<StoresRoute />} />
+        <Route path="stores/:storeId" element={<StoreViewRoute />} />
+        <Route path="stores/:storeId/analyze" element={<AnalyzeRoute />} />
+        <Route path="users" element={<UsersManagement />} />
       </Routes>
     );
   }
