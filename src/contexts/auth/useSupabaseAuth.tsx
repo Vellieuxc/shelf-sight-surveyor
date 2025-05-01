@@ -1,190 +1,53 @@
 
-import { useState, useEffect } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { UserProfile } from "./types";
-import { UserRole } from "@/types";
+import { useAuthState } from "./hooks/useAuthState";
+import { 
+  handleSignIn as authSignIn,
+  handleSignUp as authSignUp,
+  handleSignOut as authSignOut
+} from "./utils/authUtils";
 
 export const useSupabaseAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
-
-  // Handle fetching the user profile from the database
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        setProfile(null);
-      } else {
-        // Check if user is blocked
-        if (data.is_blocked) {
-          toast.error("Your account has been blocked. Please contact an administrator.");
-          await signOut();
-          return;
-        }
-        
-        setProfile({
-          id: data.id,
-          email: data.email,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          role: data.role as UserRole,
-          isBlocked: data.is_blocked
-        });
-      }
-    } catch (error) {
-      console.error("Unexpected error fetching profile:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Check if a user is blocked
-  const checkIfUserIsBlocked = async (userId: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_blocked")
-        .eq("id", userId)
-        .single();
-          
-      if (error) {
-        console.error("Error checking if user is blocked:", error);
-        return false;
-      }
-      
-      return !!data.is_blocked;
-    } catch (error) {
-      console.error("Unexpected error checking blocked status:", error);
-      return false;
-    }
-  };
-
-  // Set up auth listeners
-  const setupAuthListeners = () => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        // Use setTimeout to avoid Supabase auth recursion
-        setTimeout(() => {
-          fetchUserProfile(currentSession.user.id);
-        }, 0);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return subscription;
-  };
-
-  // Initialize auth on component mount
-  useEffect(() => {
-    const subscription = setupAuthListeners();
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const { user, session, profile, isLoading, setProfile } = useAuthState();
 
   // Handle user sign in
   const signIn = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { success, user: signedInUser } = await authSignIn(email, password);
       
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      setUser(data.user);
-      setSession(data.session);
-      
-      if (data.user) {
-        // Before navigating, check if the user is blocked
-        const isBlocked = await checkIfUserIsBlocked(data.user.id);
-          
-        if (isBlocked) {
-          toast.error("Your account has been blocked. Please contact an administrator.");
-          await supabase.auth.signOut();
-          setUser(null);
-          setSession(null);
-          setProfile(null);
-          return;
-        }
-        
-        fetchUserProfile(data.user.id);
-        toast.success("Signed in successfully");
+      if (success && signedInUser) {
         navigate("/dashboard");
       }
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign in");
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Sign in error:", error);
     }
   };
 
   // Handle user sign up
   const signUp = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      toast.success("Sign up successful! Please check your email for verification.");
+      const { success, user: signedUpUser } = await authSignUp(email, password);
       
       // For development, we can auto-sign in
-      if (data.user) {
-        setUser(data.user);
-        setSession(data.session);
-        fetchUserProfile(data.user.id);
+      if (success && signedUpUser) {
         navigate("/dashboard");
       }
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign up");
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Sign up error:", error);
     }
   };
 
   // Handle user sign out
   const signOut = async () => {
     try {
-      setIsLoading(true);
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      toast.success("Signed out successfully");
-      navigate("/auth");
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign out");
-    } finally {
-      setIsLoading(false);
+      const success = await authSignOut();
+      if (success) {
+        navigate("/auth");
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
     }
   };
 
