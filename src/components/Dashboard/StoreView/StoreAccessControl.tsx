@@ -2,13 +2,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Profile } from "@/contexts/auth/types";
+import { UserProfile } from "@/contexts/auth/types";
 import { Store } from "@/types";
 
 interface StoreAccessControlProps {
   store: Store | null;
   isLoading: boolean;
-  profile: Profile | null;
+  profile: UserProfile | null;
   children: React.ReactNode;
 }
 
