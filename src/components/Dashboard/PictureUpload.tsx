@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -95,7 +96,10 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !user) return;
+    if (!selectedFile || !user) {
+      toast.error("Missing file or user information");
+      return;
+    }
     
     setIsUploading(true);
     
@@ -122,6 +126,10 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       const { data: publicUrlData } = supabase.storage
         .from('pictures')
         .getPublicUrl(filePath);
+      
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        throw new Error("Failed to get public URL for uploaded image");
+      }
       
       // Save picture metadata to database
       const { error: dbError } = await supabase

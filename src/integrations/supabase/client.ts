@@ -23,38 +23,34 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Create a function to ensure the pictures storage bucket exists
 export const ensurePicturesBucketExists = async () => {
   try {
-    // First try to upload a small test file to see if the bucket exists and is accessible
-    // This is more reliable than checking if the bucket exists since permissions might prevent listing buckets
-    const testBlob = new Blob(['test'], { type: 'text/plain' });
-    const { error: uploadError } = await supabase.storage
-      .from('pictures')
-      .upload(`test-${Date.now()}.txt`, testBlob, { upsert: true });
+    // Check if the bucket already exists by listing buckets
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
-    if (!uploadError) {
-      console.info('Pictures bucket is accessible');
-      return; // Bucket exists and is accessible
+    if (listError) {
+      console.error('Error listing buckets:', listError.message);
+      throw new Error(`Failed to check if pictures bucket exists: ${listError.message}`);
     }
     
-    // If upload failed with a 404 or bucket not found message, the bucket likely doesn't exist
-    if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('404')) {
-      console.warn('Pictures bucket not found, attempting to create it');
-      // If bucket doesn't exist, try to create it
-      const { data: newBucket, error: createError } = await supabase.storage.createBucket('pictures', {
-        public: true,
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-        fileSizeLimit: 5242880 // 5MB
-      });
-      
-      if (createError) {
-        console.error('Unable to create pictures bucket:', createError.message);
-        throw new Error(`Failed to create pictures bucket: ${createError.message}`);
-      } else {
-        console.info('Created pictures bucket successfully');
-      }
+    const picturesBucketExists = buckets?.some(bucket => bucket.name === 'pictures');
+    
+    if (picturesBucketExists) {
+      console.info('Pictures bucket already exists');
+      return; // Bucket exists
+    }
+    
+    console.warn('Pictures bucket not found, attempting to create it');
+    // If bucket doesn't exist, try to create it
+    const { data: newBucket, error: createError } = await supabase.storage.createBucket('pictures', {
+      public: true,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+      fileSizeLimit: 5242880 // 5MB
+    });
+    
+    if (createError) {
+      console.error('Unable to create pictures bucket:', createError.message);
+      throw new Error(`Failed to create pictures bucket: ${createError.message}`);
     } else {
-      // Some other error occurred
-      console.error('Error accessing pictures bucket:', uploadError.message);
-      throw new Error(`Error accessing pictures bucket: ${uploadError.message}`);
+      console.info('Created pictures bucket successfully');
     }
   } catch (error) {
     console.error('Error with pictures bucket:', error);
