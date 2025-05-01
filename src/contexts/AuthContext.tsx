@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.email,
           firstName: data.first_name,
           lastName: data.last_name,
-          role: data.role
+          role: data.role as UserRole
         });
       }
     } catch (error) {
