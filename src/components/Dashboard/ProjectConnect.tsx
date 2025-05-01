@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Key } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ProjectConnect: React.FC = () => {
   const [projectId, setProjectId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,28 +23,65 @@ const ProjectConnect: React.FC = () => {
       return;
     }
     
+    if (!user) {
+      toast.error("You must be logged in to connect to a project");
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       // Check if the project exists
-      const { data, error } = await supabase
+      const { data: project, error: projectError } = await supabase
         .from("projects")
         .select("id, title")
         .eq("id", projectId)
         .maybeSingle();
         
-      if (error) {
-        toast.error("Error connecting to project: " + error.message);
+      if (projectError) {
+        toast.error("Error checking project: " + projectError.message);
         return;
       }
       
-      if (!data) {
+      if (!project) {
         toast.error("Project not found. Please check the ID and try again.");
         return;
       }
       
-      toast.success(`Connected to project: ${data.title}`);
-      navigate(`/dashboard/projects/${data.id}/stores`);
+      // Check if the user is already a member of this project
+      const { data: existingMembership, error: membershipError } = await supabase
+        .from("project_members")
+        .select("id")
+        .eq("project_id", project.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+        
+      if (membershipError) {
+        toast.error("Error checking project membership: " + membershipError.message);
+        return;
+      }
+      
+      // If not already a member, add the user to the project
+      if (!existingMembership) {
+        const { error: addMemberError } = await supabase
+          .from("project_members")
+          .insert({
+            project_id: project.id,
+            user_id: user.id
+          });
+          
+        if (addMemberError) {
+          toast.error("Error joining project: " + addMemberError.message);
+          return;
+        }
+        
+        toast.success(`Successfully connected to project: ${project.title}`);
+      } else {
+        toast.success(`Connected to project: ${project.title}`);
+      }
+      
+      // Navigate to the project
+      navigate(`/dashboard/projects/${project.id}/stores`);
     } catch (error: any) {
       toast.error("Failed to connect to project: " + error.message);
     } finally {
