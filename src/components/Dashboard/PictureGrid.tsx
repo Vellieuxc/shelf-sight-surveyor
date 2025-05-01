@@ -1,59 +1,21 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Picture } from "@/types";
 import PictureCard from "./PictureCard";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PictureGridProps {
   pictures: Picture[];
   onDeletePicture: (id: string) => void;
   allowEditing?: boolean;
+  creatorMap?: Record<string, string>;
 }
 
-const PictureGrid: React.FC<PictureGridProps> = ({ pictures, onDeletePicture, allowEditing = true }) => {
-  const [creatorMap, setCreatorMap] = useState<Record<string, string>>({});
-  
-  useEffect(() => {
-    const fetchCreators = async () => {
-      if (pictures.length === 0) return;
-      
-      // Get unique creator IDs
-      const creatorIds = [...new Set(pictures.map(pic => pic.uploaded_by))];
-      
-      // Fetch creator information
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, email")
-        .in("id", creatorIds);
-        
-      if (error) {
-        console.error("Error fetching creator information:", error);
-        return;
-      }
-      
-      // Create a map of creator IDs to names
-      const creators: Record<string, string> = {};
-      data?.forEach(profile => {
-        if (profile.first_name && profile.last_name) {
-          creators[profile.id] = `${profile.first_name} ${profile.last_name}`;
-        } else {
-          creators[profile.id] = profile.email;
-        }
-      });
-      
-      // For any missing creator, use the UUID as part of email-like format
-      creatorIds.forEach(id => {
-        if (!creators[id]) {
-          creators[id] = `${id}@user.id`;
-        }
-      });
-      
-      setCreatorMap(creators);
-    };
-    
-    fetchCreators();
-  }, [pictures]);
-
+const PictureGrid: React.FC<PictureGridProps> = ({ 
+  pictures, 
+  onDeletePicture, 
+  allowEditing = true,
+  creatorMap = {} 
+}) => {
   if (pictures.length === 0) {
     return (
       <div className="text-center p-8 border border-dashed rounded-lg">

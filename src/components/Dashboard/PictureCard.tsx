@@ -3,10 +3,13 @@ import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ExternalLink, Info, Calendar, User, Microscope } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { Trash2, Microscope } from "lucide-react";
+import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import PictureMetadata from "./PictureMetadata";
+import PictureCreatorInfo from "./PictureCreatorInfo";
+import PictureAnalysisBadge from "./PictureAnalysisBadge";
 
 interface PictureCardProps {
   picture: Picture;
@@ -15,11 +18,15 @@ interface PictureCardProps {
   createdByName?: string;
 }
 
-const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelete = true, createdByName }) => {
+const PictureCard: React.FC<PictureCardProps> = ({ 
+  picture, 
+  onDelete, 
+  allowDelete = true, 
+  createdByName 
+}) => {
   const [creator, setCreator] = useState<string>(createdByName || "");
   const uploadDate = new Date(picture.created_at);
-  const formattedDate = formatDistanceToNow(uploadDate, { addSuffix: true });
-  const exactDate = format(uploadDate, "PPP"); // Localized date format
+  const exactDate = format(uploadDate, "PPP");
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
 
   useEffect(() => {
@@ -66,27 +73,14 @@ const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelet
         />
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-white">{formattedDate}</span>
-            {hasAnalysis && (
-              <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full flex items-center gap-1">
-                <Info size={10} />
-                Analyzed
-              </span>
-            )}
+            <span className="text-xs text-white">{format(uploadDate, "MMM d, yyyy")}</span>
+            <PictureAnalysisBadge hasAnalysis={hasAnalysis} />
           </div>
         </div>
       </CardContent>
       <div className="p-2 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1" title={exactDate}>
-          <Calendar size={12} />
-          <span>Created: {formattedDate}</span>
-        </div>
-        {creator && (
-          <div className="flex items-center gap-1 mt-1">
-            <User size={12} />
-            <span>By: {creator}</span>
-          </div>
-        )}
+        <PictureMetadata createdAt={picture.created_at} exactDate={exactDate} />
+        <PictureCreatorInfo creator={creator} />
       </div>
       <CardFooter className="flex justify-between p-2 pt-0">
         <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`}>
