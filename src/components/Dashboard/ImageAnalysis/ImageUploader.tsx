@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Camera, Upload, Trash, Sparkles } from "lucide-react";
 
@@ -23,10 +23,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 }) => {
   return (
     <Card className="card-shadow">
-      <CardHeader>
-        <CardTitle>Upload Image</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="flex flex-col items-center">
           {selectedImage ? (
             <div className="relative w-full">
