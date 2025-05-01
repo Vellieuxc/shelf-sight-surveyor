@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
 
@@ -32,10 +32,7 @@ export const useImageAnalyzer = ({ selectedImage, currentPictureId }: UseImageAn
         }
       });
 
-      if (error) {
-        console.error("Error analyzing image:", error);
-        throw error;
-      }
+      if (error) throw error;
       
       console.log("Response received:", data);
       
@@ -43,7 +40,7 @@ export const useImageAnalyzer = ({ selectedImage, currentPictureId }: UseImageAn
         setAnalysisData(data.data);
         toast({
           title: "Analysis Complete",
-          description: "Image has been successfully analyzed.",
+          description: "Image has been successfully analyzed."
         });
 
         // If we have a pictureId, update the analysis data in the database
@@ -81,7 +78,7 @@ export const useImageAnalyzer = ({ selectedImage, currentPictureId }: UseImageAn
         
         toast({
           title: "Retrying Analysis",
-          description: `Attempt ${retryCount + 1} of ${maxRetries}...`,
+          description: `Attempt ${retryCount + 1} of ${maxRetries}...`
         });
         
         // Wait a moment before retrying

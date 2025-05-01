@@ -1,5 +1,5 @@
 
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { AnalysisData } from "@/types";
 
 export const useDataExport = () => {
@@ -36,7 +36,7 @@ export const useDataExport = () => {
     
     toast({
       title: "Export Complete",
-      description: "Analysis data has been exported to CSV.",
+      description: "Analysis data has been exported to CSV."
     });
   };
 
