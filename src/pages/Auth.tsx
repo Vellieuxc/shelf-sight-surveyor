@@ -1,9 +1,8 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthForm from "@/components/Auth/AuthForm";
 import MainLayout from "@/components/Layout/MainLayout";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();

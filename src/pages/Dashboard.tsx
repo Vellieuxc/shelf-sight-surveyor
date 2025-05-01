@@ -8,7 +8,7 @@ import ImageAnalyzer from "@/components/Dashboard/ImageAnalyzer";
 import StoreView from "@/components/Dashboard/StoreView";
 import ProjectConnect from "@/components/Dashboard/ProjectConnect";
 import UsersManagement from "@/components/Dashboard/UsersManagement";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 const StoresRoute = () => {
   const { projectId } = useParams<{ projectId: string }>();
