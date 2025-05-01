@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, ExternalLink, Info, Calendar, User } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PictureCardProps {
   picture: Picture;
@@ -15,10 +16,43 @@ interface PictureCardProps {
 }
 
 const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelete = true, createdByName }) => {
+  const [creator, setCreator] = useState<string>(createdByName || "");
   const uploadDate = new Date(picture.created_at);
   const formattedDate = formatDistanceToNow(uploadDate, { addSuffix: true });
   const exactDate = format(uploadDate, "PPP"); // Localized date format
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
+
+  useEffect(() => {
+    // Only fetch the creator if it wasn't provided as prop
+    if (!createdByName) {
+      const fetchCreator = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, email")
+            .eq("id", picture.uploaded_by)
+            .maybeSingle();
+            
+          if (error) throw error;
+          
+          if (data) {
+            if (data.first_name && data.last_name) {
+              setCreator(`${data.first_name} ${data.last_name}`);
+            } else {
+              setCreator(data.email);
+            }
+          } else {
+            setCreator("Unknown user");
+          }
+        } catch (error) {
+          console.error("Error fetching picture creator:", error);
+          setCreator("Unknown user");
+        }
+      };
+      
+      fetchCreator();
+    }
+  }, [picture.uploaded_by, createdByName]);
 
   return (
     <Card className="overflow-hidden">
@@ -45,10 +79,10 @@ const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelet
           <Calendar size={12} />
           <span>Created: {formattedDate}</span>
         </div>
-        {createdByName && (
+        {creator && (
           <div className="flex items-center gap-1 mt-1">
             <User size={12} />
-            <span>By: {createdByName}</span>
+            <span>By: {creator}</span>
           </div>
         )}
       </div>
