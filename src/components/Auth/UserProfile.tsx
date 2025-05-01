@@ -1,7 +1,6 @@
 
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { UserRole } from "@/types";
 
@@ -19,22 +18,31 @@ const getRoleBadgeStyle = (role: UserRole) => {
 };
 
 const UserProfile = () => {
-  const { profile, signOut, isLoading } = useAuth();
+  const { profile } = useAuth();
 
   if (!profile) {
     return null;
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2">
       <HoverCard>
         <HoverCardTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent/50">
+          <div className="flex items-center gap-2 cursor-pointer">
             <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-primary">
               {profile.firstName ? profile.firstName[0] : profile.email[0].toUpperCase()}
             </div>
-            <span className="hidden md:inline-block">{profile.email}</span>
-          </Button>
+            <div className="flex flex-col">
+              <span className="font-medium truncate max-w-[140px]">
+                {profile.firstName && profile.lastName
+                  ? `${profile.firstName} ${profile.lastName}`
+                  : profile.email}
+              </span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeStyle(profile.role)}`}>
+                {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+              </span>
+            </div>
+          </div>
         </HoverCardTrigger>
         <HoverCardContent className="w-80">
           <div className="flex flex-col space-y-2">
@@ -44,17 +52,9 @@ const UserProfile = () => {
                 : profile.email}
             </h4>
             <p className="text-sm text-muted-foreground">{profile.email}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className={`text-xs px-2 py-1 rounded-full ${getRoleBadgeStyle(profile.role)}`}>
-                {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
-              </span>
-            </div>
           </div>
         </HoverCardContent>
       </HoverCard>
-      <Button variant="outline" onClick={signOut} disabled={isLoading}>
-        {isLoading ? "Signing out..." : "Sign out"}
-      </Button>
     </div>
   );
 };
