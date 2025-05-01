@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, MapPin } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Store } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AddStoreDialog from "./AddStoreDialog";
+import StoreCard from "./StoreCard";
+import StoreCardSkeleton from "./StoreCardSkeleton";
+import EmptyStoresState from "./EmptyStoresState";
 
 interface StoresListProps {
   projectId?: string;
@@ -61,6 +63,36 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
     store.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderStoresList = () => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((n) => (
+            <StoreCardSkeleton key={n} />
+          ))}
+        </div>
+      );
+    }
+    
+    if (filteredStores.length === 0) {
+      return (
+        <EmptyStoresState onAddStore={() => setShowAddStoreDialog(true)} />
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredStores.map((store) => (
+          <StoreCard 
+            key={store.id} 
+            store={store} 
+            onSelect={onStoreSelect}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -82,84 +114,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
         </div>
       </div>
       
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((n) => (
-            <Card key={n} className="card-shadow overflow-hidden">
-              <div className="h-40 bg-muted animate-pulse" />
-              <CardHeader>
-                <div className="h-6 w-3/4 bg-muted animate-pulse mb-2 rounded-md" />
-                <div className="h-4 w-full bg-muted animate-pulse rounded-md" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-4 w-full bg-muted animate-pulse rounded-md" />
-                  <div className="h-4 w-3/4 bg-muted animate-pulse rounded-md" />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <div className="h-9 w-full bg-muted animate-pulse rounded-md" />
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : filteredStores.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No stores found. Create one?</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => setShowAddStoreDialog(true)}
-          >
-            <Plus size={16} className="mr-2" />
-            Add New Store
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredStores.map((store) => (
-            <Card key={store.id} className="card-shadow overflow-hidden">
-              {store.store_image && (
-                <div className="h-40 overflow-hidden">
-                  <img 
-                    src={store.store_image} 
-                    alt={store.name} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <CardHeader>
-                <CardTitle className="text-lg">{store.name}</CardTitle>
-                <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <MapPin size={16} className="shrink-0 mt-0.5" />
-                  <span>{store.address}</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span>{store.type}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Pictures:</span>
-                    <span>0</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => onStoreSelect && onStoreSelect(store.id)}
-                >
-                  View Store
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+      {renderStoresList()}
       
       <AddStoreDialog 
         open={showAddStoreDialog}
