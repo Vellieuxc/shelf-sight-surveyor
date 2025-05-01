@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,10 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Picture, Store } from "@/types";
 import StoreHeader from "../StoreHeader";
 import PictureGrid from "../PictureGrid";
-import EmptyStatesState from "../EmptyStoresState";
+import EmptyStoresState from "../EmptyStoresState";
 import UploadDialog from "../UploadDialog";
 import CameraDialog from "../CameraDialog";
 import StoreAccessControl from "./StoreAccessControl";
+import StoreActions from "./StoreActions";
 
 interface StoreViewProps {
   store: Store | null;
@@ -84,6 +84,7 @@ const StoreView: React.FC<StoreViewProps> = ({
     }
   };
   
+  // FIX: Corrected the function signature to match what CameraDialog expects
   const handleCapture = async (file: File, preview: string) => {
     await handleFileUpload(file);
   };
@@ -129,7 +130,6 @@ const StoreView: React.FC<StoreViewProps> = ({
         
         <StoreAccessControl 
           storeId={store.id} 
-          creatorId={store.created_by} 
           currentUserId={userId} 
         />
       </div>
@@ -172,9 +172,9 @@ const StoreView: React.FC<StoreViewProps> = ({
         </div>
 
         {pictures.length === 0 ? (
-          <EmptyStatesState
-            description="Upload pictures for this store to analyze them."
-            showAction={false}
+          // FIX: Updated to use onAddStore prop that EmptyStoresState expects
+          <EmptyStoresState
+            onAddStore={() => setIsUploadDialogOpen(true)}
           />
         ) : (
           <PictureGrid 
