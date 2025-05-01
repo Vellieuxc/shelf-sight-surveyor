@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
 import StoreDataFetcher from "./StoreDataFetcher";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import StoreView from "./index";
 
 interface StoreViewContainerProps {
@@ -14,6 +14,7 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   
   if (!user) {
     navigate("/auth");
