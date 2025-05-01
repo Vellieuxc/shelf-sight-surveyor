@@ -1,4 +1,4 @@
 
-import AnalysisResults from './index';
+import AnalysisResultsComponent from './AnalysisResultsContainer';
 
-export default AnalysisResults;
+export default AnalysisResultsComponent;
