@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Store, Picture } from "@/types";
+import { Store, Picture, AnalysisData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, Trash2, Image, LayoutDashboard } from "lucide-react";
@@ -46,7 +46,18 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
           .order("created_at", { ascending: false });
 
         if (picturesError) throw picturesError;
-        setPictures(picturesData || []);
+        
+        // Transform the data to match our Picture type
+        const transformedPictures: Picture[] = (picturesData || []).map(pic => ({
+          id: pic.id,
+          store_id: pic.store_id,
+          uploaded_by: pic.uploaded_by,
+          image_url: pic.image_url,
+          created_at: pic.created_at,
+          analysis_data: Array.isArray(pic.analysis_data) ? pic.analysis_data : []
+        }));
+        
+        setPictures(transformedPictures);
       } catch (error: any) {
         console.error("Error fetching data:", error.message);
         toast.error("Failed to load store data");
@@ -93,7 +104,8 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         .insert({
           store_id: storeId,
           uploaded_by: user.id,
-          image_url: publicUrlData.publicUrl
+          image_url: publicUrlData.publicUrl,
+          analysis_data: []
         });
       
       if (dbError) throw dbError;
@@ -106,7 +118,18 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         .order("created_at", { ascending: false });
       
       if (refreshError) throw refreshError;
-      setPictures(refreshedPictures || []);
+      
+      // Transform the data to match our Picture type
+      const transformedPictures: Picture[] = (refreshedPictures || []).map(pic => ({
+        id: pic.id,
+        store_id: pic.store_id,
+        uploaded_by: pic.uploaded_by,
+        image_url: pic.image_url,
+        created_at: pic.created_at,
+        analysis_data: Array.isArray(pic.analysis_data) ? pic.analysis_data : []
+      }));
+      
+      setPictures(transformedPictures);
       
       toast.success("Picture uploaded successfully!");
       setIsUploadDialogOpen(false);

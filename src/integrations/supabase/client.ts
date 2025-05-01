@@ -19,3 +19,27 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     }
   }
 });
+
+// Create a function to ensure the pictures storage bucket exists
+export const ensurePicturesBucketExists = async () => {
+  try {
+    // Check if bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const picturesBucket = buckets?.find(bucket => bucket.name === 'pictures');
+    
+    if (!picturesBucket) {
+      // Create the bucket if it doesn't exist
+      await supabase.storage.createBucket('pictures', {
+        public: true,
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+        fileSizeLimit: 5242880 // 5MB
+      });
+      console.log('Created pictures bucket');
+    }
+  } catch (error) {
+    console.error('Error ensuring pictures bucket exists:', error);
+  }
+};
+
+// Call this function when the app starts
+ensurePicturesBucketExists();

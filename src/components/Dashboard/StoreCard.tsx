@@ -9,9 +9,10 @@ import { Link } from "react-router-dom";
 interface StoreCardProps {
   store: Store;
   onDeleteStore?: (storeId: string) => void;
+  onSelect?: (storeId: string) => void;
 }
 
-const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore }) => {
+const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore, onSelect }) => {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -37,6 +38,7 @@ const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore }) => {
           variant="outline" 
           size="sm" 
           asChild
+          onClick={onSelect ? () => onSelect(store.id) : undefined}
         >
           <Link to={`/dashboard/stores/${store.id}`}>
             <Eye className="mr-2 h-4 w-4" />
