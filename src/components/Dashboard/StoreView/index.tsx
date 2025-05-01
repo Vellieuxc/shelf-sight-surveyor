@@ -9,15 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Picture, Store } from "@/types";
 import StoreHeader from "../StoreHeader";
 import PictureGrid from "../PictureGrid";
-import EmptyStoresState from "../EmptyStoresState";
+import EmptyStatesState from "../EmptyStoresState";
 import UploadDialog from "../UploadDialog";
 import CameraDialog from "../CameraDialog";
-import StoreActions from "./StoreActions";
+import StoreAccessControl from "./StoreAccessControl";
 
 interface StoreViewProps {
-  store: Store;
+  store: Store | null;
   pictures: Picture[];
   isLoading: boolean;
+  isProjectClosed: boolean;
   userId: string;
 }
 
@@ -25,6 +26,7 @@ const StoreView: React.FC<StoreViewProps> = ({
   store,
   pictures,
   isLoading,
+  isProjectClosed,
   userId
 }) => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -32,6 +34,8 @@ const StoreView: React.FC<StoreViewProps> = ({
   const { toast } = useToast();
   
   const handleFileUpload = async (file: File) => {
+    if (!store) return;
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -58,7 +62,7 @@ const StoreView: React.FC<StoreViewProps> = ({
           {
             store_id: store.id,
             image_url: imageUrl,
-            created_by: userId,
+            uploaded_by: userId,
           },
         ]);
       
@@ -80,28 +84,38 @@ const StoreView: React.FC<StoreViewProps> = ({
     }
   };
   
-  const handleCapture = async (imageBlobUrl: string) => {
-    try {
-      // Convert blob URL to file
-      const response = await fetch(imageBlobUrl);
-      const blob = await response.blob();
-      
-      const file = new File([blob], `captured-${Date.now()}.jpeg`, { type: 'image/jpeg' });
-      
-      await handleFileUpload(file);
-      
-      toast({
-        title: "Image captured",
-        description: "The image has been captured successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Capture failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const handleCapture = async (file: File, preview: string) => {
+    await handleFileUpload(file);
   };
+
+  // Handle the case when store is null
+  if (!store && !isLoading) {
+    return (
+      <div className="container py-6">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold mb-2">Store not found</h2>
+          <p className="text-muted-foreground mb-4">
+            The store you're looking for doesn't exist or you don't have access to it.
+          </p>
+          <Link to="/dashboard">
+            <Button>Back to Dashboard</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !store) {
+    return (
+      <div className="container py-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-32 bg-gray-200 rounded mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-6 space-y-8">
@@ -113,7 +127,7 @@ const StoreView: React.FC<StoreViewProps> = ({
           </Button>
         </Link>
         
-        <StoreActions 
+        <StoreAccessControl 
           storeId={store.id} 
           creatorId={store.created_by} 
           currentUserId={userId} 
@@ -121,7 +135,15 @@ const StoreView: React.FC<StoreViewProps> = ({
       </div>
 
       <Card className="p-6">
-        <StoreHeader store={store} />
+        <StoreHeader 
+          store={store}
+          onSynthesizeStore={() => {
+            toast({
+              title: "Synthesizing store data",
+              description: "This feature is coming soon.",
+            });
+          }}
+        />
       </Card>
 
       <div className="space-y-4">
@@ -150,13 +172,21 @@ const StoreView: React.FC<StoreViewProps> = ({
         </div>
 
         {pictures.length === 0 ? (
-          <EmptyStoresState
-            title="No pictures yet"
+          <EmptyStatesState
             description="Upload pictures for this store to analyze them."
             showAction={false}
           />
         ) : (
-          <PictureGrid pictures={pictures} storeId={store.id} />
+          <PictureGrid 
+            pictures={pictures} 
+            onDeletePicture={(id) => {
+              // Placeholder for delete functionality
+              toast({
+                title: "Delete picture",
+                description: "This feature is coming soon.",
+              });
+            }}
+          />
         )}
       </div>
 

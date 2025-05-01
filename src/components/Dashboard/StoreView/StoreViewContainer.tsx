@@ -23,7 +23,6 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
   return (
     <StoreDataFetcher
       storeId={storeId}
-      userId={user.id}
       onError={(message) => {
         toast({
           title: "Error",

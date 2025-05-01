@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/auth";
 
 interface StoreDataFetcherProps {
   storeId: string;
+  userId?: string; // Make userId optional
+  onError?: (message: string) => void;
+  onLoading?: (loading: boolean) => void;
   children: (data: {
     store: Store | null;
     pictures: Picture[];
@@ -16,7 +19,13 @@ interface StoreDataFetcherProps {
   }) => React.ReactNode;
 }
 
-const StoreDataFetcher: React.FC<StoreDataFetcherProps> = ({ storeId, children }) => {
+const StoreDataFetcher: React.FC<StoreDataFetcherProps> = ({ 
+  storeId, 
+  userId,
+  children,
+  onError,
+  onLoading
+}) => {
   const [store, setStore] = useState<Store | null>(null);
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,13 +84,20 @@ const StoreDataFetcher: React.FC<StoreDataFetcherProps> = ({ storeId, children }
       setPictures(transformedPictures);
     } catch (error: any) {
       console.error("Error fetching data:", error.message);
-      toast({
-        title: "Loading Error",
-        description: "Failed to load store data",
-        variant: "destructive"
-      });
+      if (onError) {
+        onError("Failed to load store data");
+      } else {
+        toast({
+          title: "Loading Error",
+          description: "Failed to load store data",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
+      if (onLoading) {
+        onLoading(false);
+      }
     }
   };
 
