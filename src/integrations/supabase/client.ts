@@ -23,12 +23,21 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Create a function to ensure the pictures storage bucket exists
 export const ensurePicturesBucketExists = async () => {
   try {
-    // First check if we can access the bucket (this will tell us if it exists)
-    const { data: bucketExists, error: bucketCheckError } = await supabase
-      .storage
-      .getBucket('pictures');
+    // First try to upload a small test file to see if the bucket exists and is accessible
+    // This is more reliable than checking if the bucket exists since permissions might prevent listing buckets
+    const testBlob = new Blob(['test'], { type: 'text/plain' });
+    const { error: uploadError } = await supabase.storage
+      .from('pictures')
+      .upload(`test-${Date.now()}.txt`, testBlob, { upsert: true });
     
-    if (!bucketExists) {
+    if (!uploadError) {
+      console.info('Pictures bucket is accessible');
+      return; // Bucket exists and is accessible
+    }
+    
+    // If upload failed with a 404, the bucket likely doesn't exist
+    if (uploadError.message.includes('Bucket not found') || uploadError.statusCode === 404) {
+      console.warn('Pictures bucket not found, attempting to create it');
       // If bucket doesn't exist, try to create it
       const { data: newBucket, error: createError } = await supabase.storage.createBucket('pictures', {
         public: true,
@@ -37,22 +46,22 @@ export const ensurePicturesBucketExists = async () => {
       });
       
       if (createError) {
-        console.warn('Unable to create pictures bucket:', createError.message);
-        console.info('This may be expected if you don\'t have permission to create buckets.');
-        console.info('The bucket might already exist but requires admin access to view.');
-        // We don't throw here because the bucket might exist but the user doesn't have permission to check
-        // We'll let the upload attempt fail if that's the case
+        console.error('Unable to create pictures bucket:', createError.message);
+        throw new Error(`Failed to create pictures bucket: ${createError.message}`);
       } else {
         console.info('Created pictures bucket successfully');
       }
     } else {
-      console.info('Pictures bucket already exists');
+      // Some other error occurred
+      console.error('Error accessing pictures bucket:', uploadError.message);
+      throw new Error(`Error accessing pictures bucket: ${uploadError.message}`);
     }
   } catch (error) {
-    console.warn('Error checking or creating pictures bucket:', error);
-    // We don't throw because we want the app to continue even if we can't confirm the bucket
+    console.error('Error with pictures bucket:', error);
+    // Rethrow the error so it can be handled by the caller
+    throw error;
   }
 };
 
-// Call this function when the app starts
-ensurePicturesBucketExists();
+// Don't call this function automatically on import
+// Instead, it will be called explicitly before uploads

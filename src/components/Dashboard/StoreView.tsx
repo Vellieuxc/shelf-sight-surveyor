@@ -19,7 +19,6 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const [store, setStore] = useState<Store | null>(null);
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showAddPictureUI, setShowAddPictureUI] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -95,10 +94,6 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
     // This would be implemented later - placeholder for now
   };
 
-  const handleAddPictureClick = () => {
-    setShowAddPictureUI(true);
-  };
-
   if (isLoading) {
     return <div className="container px-4 py-8">Loading store data...</div>;
   }
@@ -131,7 +126,6 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       <PictureGrid 
         pictures={pictures}
         onDeletePicture={handleDeletePicture}
-        onUploadClick={handleAddPictureClick}
       />
     </div>
   );
