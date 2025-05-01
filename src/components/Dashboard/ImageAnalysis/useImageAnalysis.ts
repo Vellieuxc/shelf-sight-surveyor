@@ -165,7 +165,7 @@ export const useImageAnalysis = (storeId?: string) => {
     if (!analysisData) return;
 
     // Create CSV content
-    let csvContent = "SKU Name,Brand,Count,Price,Pre-Promotion Price,Post-Promotion Price,Empty Space %\n";
+    let csvContent = "SKU Name,Brand,Count,Price,Position,Pre-Promotion Price,Post-Promotion Price,Empty Space %\n";
     
     analysisData.forEach(item => {
       csvContent += [
@@ -173,6 +173,7 @@ export const useImageAnalysis = (storeId?: string) => {
         `"${item.brand || ''}"`,
         item.sku_count || '',
         item.sku_price || '',
+        `"${item.sku_position || ''}"`,
         item.sku_price_pre_promotion || '',
         item.sku_price_post_promotion || '',
         item.empty_space_estimate || ''

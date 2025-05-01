@@ -55,6 +55,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                   <TableHead>Brand</TableHead>
                   <TableHead>Count</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Position</TableHead>
                   {analysisData.some(item => item.sku_price_pre_promotion) && (
                     <TableHead>Pre-Promo</TableHead>
                   )}
@@ -77,6 +78,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         : formatPrice(item.sku_price)
                       }
                     </TableCell>
+                    <TableCell>{item.sku_position || "-"}</TableCell>
                     {analysisData.some(item => item.sku_price_pre_promotion) && (
                       <TableCell>
                         {item.sku_price_pre_promotion 

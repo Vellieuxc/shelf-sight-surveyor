@@ -70,7 +70,8 @@ serve(async (req) => {
                       "4. sku_price: The current price of the product\n" +
                       "5. sku_price_pre_promotion: Original price before promotion (only if a promotion is visible)\n" +
                       "6. sku_price_post_promotion: Price after promotion (only if a promotion is visible)\n" +
-                      "7. empty_space_estimate: For empty shelf areas, estimate the percentage of empty space (create a separate entry with sku_name 'Empty' and this field)\n\n" +
+                      "7. sku_position: Position on the shelf (Top, Middle, or Bottom)\n" +
+                      "8. empty_space_estimate: For empty shelf areas, estimate the percentage of empty space (create a separate entry with sku_name 'Empty' and this field)\n\n" +
                       "Please return your results ONLY as a clean, properly formatted JSON array with no additional text. Each object should only include fields that are relevant (don't include empty fields)."
               },
               {

@@ -45,6 +45,7 @@ export type AnalysisData = {
   sku_price: number;
   sku_price_pre_promotion?: number;
   sku_price_post_promotion?: number;
+  sku_position?: string; // Top, Middle, or Bottom
   empty_space_estimate?: number; // For empty shelves estimation (percentage)
 }
 

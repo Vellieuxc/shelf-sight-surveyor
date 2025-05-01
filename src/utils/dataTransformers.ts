@@ -17,6 +17,7 @@ export const transformAnalysisData = (data: any[]): AnalysisData[] => {
       sku_price: Number(obj.sku_price || 0),
       sku_price_pre_promotion: obj.sku_price_pre_promotion ? Number(obj.sku_price_pre_promotion) : undefined,
       sku_price_post_promotion: obj.sku_price_post_promotion ? Number(obj.sku_price_post_promotion) : undefined,
+      sku_position: obj.sku_position ? String(obj.sku_position) : undefined,
       empty_space_estimate: obj.empty_space_estimate ? Number(obj.empty_space_estimate) : undefined
     };
   });
