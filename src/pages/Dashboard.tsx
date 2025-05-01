@@ -5,7 +5,7 @@ import MainLayout from "@/components/Layout/MainLayout";
 import ProjectsList from "@/components/Dashboard/ProjectsList";
 import StoresList from "@/components/Dashboard/StoresList";
 import ImageAnalyzer from "@/components/Dashboard/ImageAnalyzer";
-import StoreView from "@/components/Dashboard/StoreView";
+import StoreViewContainer from "@/components/Dashboard/StoreView/StoreViewContainer";
 import ProjectConnect from "@/components/Dashboard/ProjectConnect";
 import UsersManagement from "@/components/Dashboard/UsersManagement";
 import { useAuth } from "@/contexts/auth";
@@ -25,7 +25,7 @@ const AnalyzeRoute = () => {
 const StoreViewRoute = () => {
   const { storeId } = useParams<{ storeId: string }>();
   if (!storeId) return <Navigate to="/dashboard" />;
-  return <StoreView storeId={storeId} />;
+  return <StoreViewContainer storeId={storeId} />;
 };
 
 const DashboardContent = () => {

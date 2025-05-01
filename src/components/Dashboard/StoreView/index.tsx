@@ -1,8 +1,9 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth";
+import { NavigateFunction } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
+import { Toast } from "@/hooks/use-toast";
+import { UserProfile } from "@/contexts/auth/types";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "../StoreHeader";
 import PictureGrid from "../PictureGrid";
@@ -12,12 +13,13 @@ import StoreAccessControl from "./StoreAccessControl";
 
 interface StoreViewProps {
   storeId: string;
+  navigate: NavigateFunction;
+  toast: Toast;
+  user: User | null;
+  profile: UserProfile | null;
 }
 
-const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
-  const { user, profile } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+const StoreView: React.FC<StoreViewProps> = ({ storeId, navigate, toast, user, profile }) => {
   const isConsultant = profile?.role === "consultant";
   const isCrew = profile?.role === "crew";
   const isBoss = profile?.role === "boss";
@@ -65,6 +67,8 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
           store={store} 
           isLoading={isLoading} 
           profile={profile}
+          navigate={navigate}
+          toast={toast}
         >
           <div className="container px-4 py-8">
             {store && (

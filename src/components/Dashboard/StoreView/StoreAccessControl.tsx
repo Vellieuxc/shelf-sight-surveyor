@@ -1,14 +1,17 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { NavigateFunction } from "react-router-dom";
+import { Toast } from "@/hooks/use-toast";
 import { UserProfile } from "@/contexts/auth/types";
 import { Store } from "@/types";
+import { Button } from "@/components/ui/button";
 
 interface StoreAccessControlProps {
   store: Store | null;
   isLoading: boolean;
   profile: UserProfile | null;
+  navigate: NavigateFunction;
+  toast: Toast;
   children: React.ReactNode;
 }
 
@@ -16,10 +19,10 @@ const StoreAccessControl: React.FC<StoreAccessControlProps> = ({
   store, 
   isLoading, 
   profile,
+  navigate,
+  toast,
   children 
 }) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const isCrew = profile?.role === "crew";
   const isBoss = profile?.role === "boss";
 
@@ -44,12 +47,11 @@ const StoreAccessControl: React.FC<StoreAccessControlProps> = ({
       <div className="container px-4 py-8">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4">Store not found</h2>
-          <button 
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          <Button 
             onClick={() => navigate("/dashboard")}
           >
             Back to Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     );
