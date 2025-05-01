@@ -312,23 +312,23 @@ const UsersManagement = () => {
           <div className="flex flex-col gap-4 py-4">
             <div className="flex justify-between gap-2">
               <Button 
-                variant={selectedRole === "crew" ? "default" : "outline"}
+                variant={selectedRole === UserRole.CREW ? "default" : "outline"}
                 className="flex-1"
-                onClick={() => setSelectedRole("crew")}
+                onClick={() => setSelectedRole(UserRole.CREW)}
               >
                 Crew
               </Button>
               <Button 
-                variant={selectedRole === "consultant" ? "default" : "outline"}
+                variant={selectedRole === UserRole.CONSULTANT ? "default" : "outline"}
                 className="flex-1"
-                onClick={() => setSelectedRole("consultant")}
+                onClick={() => setSelectedRole(UserRole.CONSULTANT)}
               >
                 Consultant
               </Button>
               <Button 
-                variant={selectedRole === "boss" ? "default" : "outline"}
+                variant={selectedRole === UserRole.BOSS ? "default" : "outline"}
                 className="flex-1"
-                onClick={() => setSelectedRole("boss")}
+                onClick={() => setSelectedRole(UserRole.BOSS)}
               >
                 Boss
               </Button>

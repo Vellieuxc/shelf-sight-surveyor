@@ -11,6 +11,7 @@ export type User = {
   role: UserRole;
   firstName?: string;
   lastName?: string;
+  isBlocked?: boolean;
 }
 
 export type Project = {
