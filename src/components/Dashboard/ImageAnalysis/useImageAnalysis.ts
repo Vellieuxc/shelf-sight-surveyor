@@ -2,10 +2,13 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
+import { AnalysisData } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
 export const useImageAnalysis = (storeId?: string) => {
   const [searchParams] = useSearchParams();
   const pictureId = searchParams.get("pictureId");
+  const { toast } = useToast();
   
   // Load picture data if pictureId is provided
   const { 
@@ -49,6 +52,21 @@ export const useImageAnalysis = (storeId?: string) => {
   
   // Wrap the export function to use our local analysisData
   const exportToExcel = () => handleExportToExcel(analysisData);
+
+  // Handle updating analysis data
+  const handleUpdateAnalysisData = (updatedData: AnalysisData[]) => {
+    // Update local state
+    if (picturePictureId) {
+      setPictureAnalysisData(updatedData);
+    } else {
+      setAnalysisData(updatedData);
+    }
+
+    toast({
+      title: "Data Updated",
+      description: "Analysis data has been updated successfully."
+    });
+  };
   
   return {
     selectedImage,
@@ -59,6 +77,7 @@ export const useImageAnalysis = (storeId?: string) => {
     handleImageUpload,
     handleResetImage,
     handleAnalyzeImage,
-    handleExportToExcel: exportToExcel
+    handleExportToExcel: exportToExcel,
+    handleUpdateAnalysisData
   };
 };

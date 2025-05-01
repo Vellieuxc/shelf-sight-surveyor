@@ -1,13 +1,14 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, Trash, Sparkles } from "lucide-react";
+import { Upload, RefreshCw, X } from "lucide-react";
+import { AnalysisData } from "@/types";
 
 interface ImageUploaderProps {
   selectedImage: string | null;
   isAnalyzing: boolean;
-  analysisData: any | null;
+  analysisData: AnalysisData[] | null;
   onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAnalyze: () => void;
   onResetImage: () => void;
@@ -19,80 +20,62 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   analysisData,
   onImageUpload,
   onAnalyze,
-  onResetImage
+  onResetImage,
 }) => {
   return (
     <Card className="card-shadow">
-      <CardContent className="pt-6">
-        <div className="flex flex-col items-center">
+      <CardHeader>
+        <CardTitle>Upload Image for Analysis</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col items-center justify-center">
           {selectedImage ? (
             <div className="relative w-full">
-              <img 
-                src={selectedImage} 
-                alt="Selected Store Shelf" 
-                className="w-full h-auto rounded-md"
+              <img
+                src={selectedImage}
+                alt="Selected shelf"
+                className="w-full h-auto rounded-md border border-muted"
               />
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                className="absolute top-2 right-2"
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute top-2 right-2 bg-white/80 hover:bg-white"
                 onClick={onResetImage}
               >
-                <Trash size={16} />
+                <X className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-muted-foreground/20 rounded-md p-12 w-full text-center">
-              <div className="flex flex-col items-center space-y-4">
-                <Camera size={48} className="text-muted-foreground" />
-                <div className="space-y-2">
-                  <p className="text-lg font-medium">Upload a shelf image</p>
-                  <p className="text-sm text-muted-foreground">
-                    Take a picture or upload from your device
-                  </p>
-                </div>
-                <div className="flex gap-4">
-                  <label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={onImageUpload}
-                    />
-                    <Button variant="outline" className="cursor-pointer" asChild>
-                      <div>
-                        <Upload size={16} className="mr-2" />
-                        Upload
-                      </div>
-                    </Button>
-                  </label>
-                  <Button className="cursor-pointer">
-                    <Camera size={16} className="mr-2" />
-                    Take Photo
-                  </Button>
-                </div>
-              </div>
+            <div className="border-dashed border-2 border-muted-foreground/25 rounded-lg p-12 text-center w-full cursor-pointer hover:bg-accent/50 transition-colors">
+              <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <p className="font-medium">Upload an image</p>
+                <p className="text-sm text-muted-foreground">
+                  Supported formats: JPG, PNG
+                </p>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={onImageUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
           )}
         </div>
       </CardContent>
       {selectedImage && (
-        <CardFooter className="flex justify-center">
+        <CardFooter>
           <Button
-            disabled={isAnalyzing || !selectedImage}
             onClick={onAnalyze}
             className="w-full"
+            disabled={isAnalyzing || !selectedImage}
           >
-            {isAnalyzing ? (
-              <>Analyzing... <span className="ml-2 animate-spin">⏳</span></>
-            ) : analysisData ? (
-              <>View Results</>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Analyze Image with AI
-              </>
-            )}
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isAnalyzing ? "animate-spin" : ""}`}
+            />
+            {analysisData ? "Re-analyze" : "Analyze Image"}
           </Button>
         </CardFooter>
       )}

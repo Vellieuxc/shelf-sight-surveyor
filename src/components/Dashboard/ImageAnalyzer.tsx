@@ -17,7 +17,8 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
     handleImageUpload,
     handleResetImage,
     handleAnalyzeImage,
-    handleExportToExcel
+    handleExportToExcel,
+    handleUpdateAnalysisData
   } = useImageAnalysis(storeId);
 
   return (
@@ -41,6 +42,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
           isAnalyzing={isAnalyzing}
           analysisData={analysisData}
           onExportToExcel={handleExportToExcel}
+          onUpdateAnalysisData={handleUpdateAnalysisData}
         />
       </div>
     </div>
