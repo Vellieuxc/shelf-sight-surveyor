@@ -16,7 +16,7 @@ interface AnalysisResultsContainerProps {
   onUpdateAnalysisData?: (updatedData: AnalysisData[]) => void;
 }
 
-export const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
+const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
   isLoading,
   isAnalyzing,
   analysisData,
@@ -107,7 +107,7 @@ export const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> =
           <AnalysisEmptyState />
         )}
       </CardContent>
-      {analysisData && !editMode && (
+      {analysisData && (
         <CardFooter className="flex justify-between">
           <Button 
             variant="outline" 
@@ -134,5 +134,4 @@ export const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> =
   );
 };
 
-// Add default export
 export default AnalysisResultsContainer;
