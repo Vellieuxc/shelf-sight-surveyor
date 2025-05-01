@@ -14,35 +14,7 @@ export const useSupabaseAuth = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        // Use setTimeout to avoid Supabase auth recursion
-        setTimeout(() => {
-          fetchUserProfile(currentSession.user.id);
-        }, 0);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
+  // Handle fetching the user profile from the database
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -78,6 +50,63 @@ export const useSupabaseAuth = () => {
     }
   };
 
+  // Check if a user is blocked
+  const checkIfUserIsBlocked = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_blocked")
+        .eq("id", userId)
+        .single();
+          
+      if (error) {
+        console.error("Error checking if user is blocked:", error);
+        return false;
+      }
+      
+      return !!data.is_blocked;
+    } catch (error) {
+      console.error("Unexpected error checking blocked status:", error);
+      return false;
+    }
+  };
+
+  // Set up auth listeners
+  const setupAuthListeners = () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        // Use setTimeout to avoid Supabase auth recursion
+        setTimeout(() => {
+          fetchUserProfile(currentSession.user.id);
+        }, 0);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return subscription;
+  };
+
+  // Initialize auth on component mount
+  useEffect(() => {
+    const subscription = setupAuthListeners();
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Handle user sign in
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -93,15 +122,9 @@ export const useSupabaseAuth = () => {
       
       if (data.user) {
         // Before navigating, check if the user is blocked
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("is_blocked")
-          .eq("id", data.user.id)
-          .single();
+        const isBlocked = await checkIfUserIsBlocked(data.user.id);
           
-        if (profileError) {
-          console.error("Error checking if user is blocked:", profileError);
-        } else if (profileData.is_blocked) {
+        if (isBlocked) {
           toast.error("Your account has been blocked. Please contact an administrator.");
           await supabase.auth.signOut();
           setUser(null);
@@ -121,6 +144,7 @@ export const useSupabaseAuth = () => {
     }
   };
 
+  // Handle user sign up
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -147,6 +171,7 @@ export const useSupabaseAuth = () => {
     }
   };
 
+  // Handle user sign out
   const signOut = async () => {
     try {
       setIsLoading(true);
