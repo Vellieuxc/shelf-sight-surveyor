@@ -47,15 +47,32 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
 
         if (picturesError) throw picturesError;
         
-        // Transform the data to match our Picture type
-        const transformedPictures: Picture[] = (picturesData || []).map(pic => ({
-          id: pic.id,
-          store_id: pic.store_id,
-          uploaded_by: pic.uploaded_by,
-          image_url: pic.image_url,
-          created_at: pic.created_at,
-          analysis_data: Array.isArray(pic.analysis_data) ? pic.analysis_data : []
-        }));
+        // Transform the data to match our Picture type with proper AnalysisData typing
+        const transformedPictures: Picture[] = (picturesData || []).map(pic => {
+          // Ensure analysis_data is properly typed as AnalysisData[]
+          let typedAnalysisData: AnalysisData[] = [];
+          
+          if (Array.isArray(pic.analysis_data)) {
+            typedAnalysisData = pic.analysis_data.map(item => ({
+              sku_name: String(item.sku_name || ''),
+              brand: String(item.brand || ''),
+              sku_count: Number(item.sku_count || 0),
+              sku_price: Number(item.sku_price || 0),
+              sku_price_pre_promotion: item.sku_price_pre_promotion ? Number(item.sku_price_pre_promotion) : undefined,
+              sku_price_post_promotion: item.sku_price_post_promotion ? Number(item.sku_price_post_promotion) : undefined,
+              empty_space_estimate: item.empty_space_estimate ? Number(item.empty_space_estimate) : undefined
+            }));
+          }
+          
+          return {
+            id: pic.id,
+            store_id: pic.store_id,
+            uploaded_by: pic.uploaded_by,
+            image_url: pic.image_url,
+            created_at: pic.created_at,
+            analysis_data: typedAnalysisData
+          };
+        });
         
         setPictures(transformedPictures);
       } catch (error: any) {
@@ -119,15 +136,32 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       
       if (refreshError) throw refreshError;
       
-      // Transform the data to match our Picture type
-      const transformedPictures: Picture[] = (refreshedPictures || []).map(pic => ({
-        id: pic.id,
-        store_id: pic.store_id,
-        uploaded_by: pic.uploaded_by,
-        image_url: pic.image_url,
-        created_at: pic.created_at,
-        analysis_data: Array.isArray(pic.analysis_data) ? pic.analysis_data : []
-      }));
+      // Transform the data to match our Picture type with proper typing
+      const transformedPictures: Picture[] = (refreshedPictures || []).map(pic => {
+        // Ensure analysis_data is properly typed as AnalysisData[]
+        let typedAnalysisData: AnalysisData[] = [];
+        
+        if (Array.isArray(pic.analysis_data)) {
+          typedAnalysisData = pic.analysis_data.map(item => ({
+            sku_name: String(item.sku_name || ''),
+            brand: String(item.brand || ''),
+            sku_count: Number(item.sku_count || 0),
+            sku_price: Number(item.sku_price || 0),
+            sku_price_pre_promotion: item.sku_price_pre_promotion ? Number(item.sku_price_pre_promotion) : undefined,
+            sku_price_post_promotion: item.sku_price_post_promotion ? Number(item.sku_price_post_promotion) : undefined,
+            empty_space_estimate: item.empty_space_estimate ? Number(item.empty_space_estimate) : undefined
+          }));
+        }
+        
+        return {
+          id: pic.id,
+          store_id: pic.store_id,
+          uploaded_by: pic.uploaded_by,
+          image_url: pic.image_url,
+          created_at: pic.created_at,
+          analysis_data: typedAnalysisData
+        };
+      });
       
       setPictures(transformedPictures);
       
