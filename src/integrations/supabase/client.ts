@@ -23,18 +23,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Check if the pictures bucket exists (for verification only, not creation)
 export const verifyPicturesBucketExists = async () => {
   try {
-    // Simplified verification approach
-    // Instead of checking bucket listing (which might have permission issues),
-    // we'll try to get bucket details directly for "pictures"
+    // Get bucket details directly for "pictures"
     const { data: bucketInfo, error } = await supabase.storage
       .getBucket('pictures');
     
     if (error) {
-      // If there's an error other than "not found", log it
-      console.error('Error verifying pictures bucket:', error.message);
+      // Log detailed error information for debugging
+      console.error('Error verifying pictures bucket:', error.message, 'Code:', error.code);
       
       // Check if error is specifically that the bucket wasn't found
-      if (error.message.includes('not found')) {
+      if (error.message.includes('not found') || error.code === '404') {
         throw new Error('Pictures bucket not found. Please contact an administrator.');
       }
       
