@@ -9,16 +9,196 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      pictures: {
+        Row: {
+          analysis_data: Json | null
+          created_at: string
+          id: string
+          image_url: string
+          last_edited_at: string | null
+          last_edited_by: string | null
+          store_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          analysis_data?: Json | null
+          created_at?: string
+          id?: string
+          image_url: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          store_id: string
+          uploaded_by: string
+        }
+        Update: {
+          analysis_data?: Json | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          store_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pictures_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      project_members: {
+        Row: {
+          id: string
+          joined_at: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          category: string | null
+          country: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_closed: boolean
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          country?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_closed?: boolean
+          title: string
+        }
+        Update: {
+          category?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_closed?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          address: string
+          country: string
+          created_at: string
+          created_by: string
+          google_map_pin: string | null
+          id: string
+          name: string
+          project_id: string
+          store_image: string | null
+          type: string
+        }
+        Insert: {
+          address: string
+          country: string
+          created_at?: string
+          created_by: string
+          google_map_pin?: string | null
+          id?: string
+          name: string
+          project_id: string
+          store_image?: string | null
+          type: string
+        }
+        Update: {
+          address?: string
+          country?: string
+          created_at?: string
+          created_by?: string
+          google_map_pin?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          store_image?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: { role_to_check: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
+      is_project_member: {
+        Args: { project_id_to_check: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "crew" | "consultant" | "boss"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +313,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["crew", "consultant", "boss"],
+    },
   },
 } as const

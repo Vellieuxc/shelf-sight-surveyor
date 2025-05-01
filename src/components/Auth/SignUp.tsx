@@ -1,102 +1,97 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+
+const signUpFormSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
+  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters long" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type SignUpFormValues = z.infer<typeof signUpFormSchema>;
 
 const SignUp: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const { signUp, isLoading } = useAuth();
+  
+  const form = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpFormSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setLoading(true);
-
-    try {
-      // Here we would connect to Supabase for actual signup
-      // For now, we'll just simulate a successful signup
-      setTimeout(() => {
-        toast({
-          title: "Account created!",
-          description: "Please check your email for verification.",
-        });
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-      }, 1000);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create account.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = async (values: SignUpFormValues) => {
+    await signUp(values.email, values.password);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sign Up</CardTitle>
-        <CardDescription>Create a new account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="signup-email">Email</Label>
-            <Input
-              id="signup-email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="signup-password">Password</Label>
-            <Input
-              id="signup-password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account..." : "Sign Up"}
+    <div className="space-y-6 bg-white p-6 rounded-lg shadow">
+      <div className="space-y-2 text-center">
+        <h2 className="text-2xl font-bold">Sign Up</h2>
+        <p className="text-sm text-muted-foreground">Create your StoreVisitor account</p>
+      </div>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="email@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="********" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="********" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating account..." : "Create Account"}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </Form>
+    </div>
   );
 };
 
