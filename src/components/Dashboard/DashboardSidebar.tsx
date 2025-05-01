@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, LayoutDashboard, Store, PlusCircle, Folder, FolderOpen } from "lucide-react";
+import { LogOut, LayoutDashboard, PlusCircle } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,34 +10,22 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import UserProfile from "../Auth/UserProfile";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import NewProjectDialog from "./Sidebar/NewProjectDialog";
+import ProjectsList from "./Sidebar/ProjectsList";
+import SidebarHeader from "./Sidebar/SidebarHeader";
 
 export function DashboardSidebar() {
   const { signOut, user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
-  const [newProject, setNewProject] = useState({
-    title: "",
-    description: "",
-    category: "",
-    country: ""
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,66 +55,19 @@ export function DashboardSidebar() {
     return location.pathname === path;
   };
 
-  const isProjectActive = (projectId: string) => {
-    return location.pathname.includes(`/projects/${projectId}`);
+  const getActiveProjectId = () => {
+    const match = location.pathname.match(/\/projects\/([^/]+)/);
+    return match ? match[1] : undefined;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setNewProject((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newProject.title || !newProject.country) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from("projects")
-        .insert({
-          title: newProject.title,
-          description: newProject.description || null,
-          category: newProject.category || null,
-          country: newProject.country,
-          created_by: user?.id
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      toast.success("Project created successfully!");
-      setIsNewProjectDialogOpen(false);
-      setNewProject({ title: "", description: "", category: "", country: "" });
-      
-      // Add the new project to the list
-      setProjects([data, ...projects]);
-      
-      // Redirect to the new project's stores page
-      navigate(`/dashboard/projects/${data.id}/stores`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create project");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleProjectCreated = (newProject: Project) => {
+    setProjects([newProject, ...projects]);
   };
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b">
-        <div className="flex items-center gap-2 px-4 py-2">
-          <Link to="/dashboard" className="flex items-center space-x-2">
-            <Store className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-xl">StoreVisitor</span>
-          </Link>
-        </div>
-      </SidebarHeader>
+      <SidebarHeader />
+      
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -156,29 +97,15 @@ export function DashboardSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
           <SidebarGroupContent>
-            <ScrollArea className="h-[300px]">
-              <SidebarMenu>
-                {isLoading ? (
-                  <div className="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
-                ) : projects.length === 0 ? (
-                  <div className="px-4 py-2 text-sm text-muted-foreground">No projects found</div>
-                ) : (
-                  projects.map((project) => (
-                    <SidebarMenuItem key={project.id}>
-                      <SidebarMenuButton asChild isActive={isProjectActive(project.id)}>
-                        <Link to={`/dashboard/projects/${project.id}/stores`}>
-                          {isProjectActive(project.id) ? <FolderOpen /> : <Folder />}
-                          <span className="truncate">{project.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))
-                )}
-              </SidebarMenu>
-            </ScrollArea>
+            <ProjectsList 
+              projects={projects} 
+              isLoading={isLoading} 
+              activeProjectId={getActiveProjectId()} 
+            />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      
       <SidebarFooter className="border-t p-4 space-y-4">
         <UserProfile />
         <Button 
@@ -191,67 +118,13 @@ export function DashboardSidebar() {
         </Button>
       </SidebarFooter>
 
-      <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Fill in the details for your new project. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateProject}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  value={newProject.title}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={newProject.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  value={newProject.category}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="country">Country *</Label>
-                <Input
-                  id="country"
-                  name="country"
-                  value={newProject.country}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsNewProjectDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Project"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <NewProjectDialog 
+        open={isNewProjectDialogOpen} 
+        onOpenChange={setIsNewProjectDialogOpen} 
+        onProjectCreated={handleProjectCreated}
+      />
     </Sidebar>
   );
 }
+
+export default DashboardSidebar;
