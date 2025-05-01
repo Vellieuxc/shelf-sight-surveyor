@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, LayoutDashboard, PlusCircle } from "lucide-react";
 import {
