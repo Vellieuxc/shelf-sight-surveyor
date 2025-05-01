@@ -77,8 +77,7 @@ serve(async (req) => {
                 type: "image",
                 source: {
                   type: "url",
-                  url: imageUrl,
-                  media_type: "image/jpeg"
+                  url: imageUrl
                 }
               }
             ]
