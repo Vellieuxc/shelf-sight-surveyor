@@ -35,27 +35,29 @@ const ProjectConnect: React.FC = () => {
       const { data, error } = await supabase
         .rpc('connect_to_project', { 
           project_id_param: projectId 
-        })
-        .single();
+        });
         
       if (error) {
         toast.error("Error connecting to project: " + error.message);
         return;
       }
       
-      if (!data || !data.project_id) {
+      // Extract the first result from the array if it exists
+      const result = data?.[0];
+      
+      if (!result || !result.project_id) {
         toast.error("Project not found. Please check the ID and try again.");
         return;
       }
       
-      if (data.already_member) {
-        toast.success(`Connected to project: ${data.project_title}`);
+      if (result.already_member) {
+        toast.success(`Connected to project: ${result.project_title}`);
       } else {
-        toast.success(`Successfully connected to project: ${data.project_title}`);
+        toast.success(`Successfully connected to project: ${result.project_title}`);
       }
       
       // Navigate to the project
-      navigate(`/dashboard/projects/${data.project_id}/stores`);
+      navigate(`/dashboard/projects/${result.project_id}/stores`);
     } catch (error: any) {
       toast.error("Failed to connect to project: " + error.message);
     } finally {
