@@ -10,7 +10,7 @@ interface UploadDialogProps {
   imagePreview: string | null;
   isUploading: boolean;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onUpload: () => void;
+  onUpload: (file?: File) => void | Promise<void>;
 }
 
 const UploadDialog: React.FC<UploadDialogProps> = ({
@@ -62,7 +62,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             Cancel
           </Button>
           <Button 
-            onClick={onUpload} 
+            onClick={() => onUpload()} 
             disabled={isUploading || !selectedFile}
           >
             {isUploading ? "Uploading..." : "Upload"}

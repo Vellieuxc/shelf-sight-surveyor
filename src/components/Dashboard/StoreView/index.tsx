@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,7 @@ const StoreView: React.FC<StoreViewProps> = ({
         
         <StoreAccessControl 
           storeId={store.id} 
+          creatorId={store.created_by}
           currentUserId={userId} 
         />
       </div>
@@ -172,7 +174,6 @@ const StoreView: React.FC<StoreViewProps> = ({
         </div>
 
         {pictures.length === 0 ? (
-          // FIX: Updated to use onAddStore prop that EmptyStoresState expects
           <EmptyStoresState
             onAddStore={() => setIsUploadDialogOpen(true)}
           />
