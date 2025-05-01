@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Store, Picture } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { transformAnalysisData } from "@/utils/dataTransformers";
 import StoreHeader from "./StoreHeader";
@@ -23,6 +22,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const [isProjectClosed, setIsProjectClosed] = useState(false);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const isConsultant = profile?.role === "consultant";
   const isCrew = profile?.role === "crew";
   const isBoss = profile?.role === "boss";
@@ -40,7 +40,11 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       
       // For crew users who are not bosses, check if they created this store
       if (isCrew && !isBoss && profile && storeData.created_by !== profile.id) {
-        toast.error("You don't have access to this store");
+        toast({
+          title: "Access Denied",
+          description: "You don't have access to this store",
+          variant: "destructive"
+        });
         navigate("/dashboard");
         return;
       }
@@ -83,7 +87,11 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       setPictures(transformedPictures);
     } catch (error: any) {
       console.error("Error fetching data:", error.message);
-      toast.error("Failed to load store data");
+      toast({
+        title: "Loading Error",
+        description: "Failed to load store data",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +103,11 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
 
   const handleDeletePicture = async (pictureId: string) => {
     if (isProjectClosed && !isConsultant && !isBoss) {
-      toast.error("Cannot delete pictures in a closed project");
+      toast({
+        title: "Action Denied",
+        description: "Cannot delete pictures in a closed project",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -112,20 +124,34 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       // Update pictures state
       setPictures(pictures.filter(pic => pic.id !== pictureId));
       
-      toast.success("Picture deleted successfully!");
+      toast({
+        title: "Picture Deleted",
+        description: "Picture deleted successfully!"
+      });
     } catch (error: any) {
       console.error("Error deleting picture:", error.message);
-      toast.error("Failed to delete picture");
+      toast({
+        title: "Deletion Error",
+        description: "Failed to delete picture",
+        variant: "destructive"
+      });
     }
   };
 
   const handleSynthesizeStore = () => {
     if (isProjectClosed && !isConsultant && !isBoss) {
-      toast.error("Cannot synthesize data in a closed project");
+      toast({
+        title: "Access Denied",
+        description: "Cannot synthesize data in a closed project",
+        variant: "destructive"
+      });
       return;
     }
     
-    toast.info("Synthesizing store data...");
+    toast({
+      title: "Processing",
+      description: "Synthesizing store data..."
+    });
     // This would be implemented later - placeholder for now
   };
 

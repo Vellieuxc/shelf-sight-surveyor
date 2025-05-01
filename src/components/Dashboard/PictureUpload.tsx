@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { Camera, Upload } from "lucide-react";
 import CameraDialog from "./CameraDialog";
@@ -21,6 +21,7 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -32,7 +33,11 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
         setImagePreview(previewUrl);
       } catch (error) {
         console.error("Failed to create preview:", error);
-        toast.error("Failed to create image preview");
+        toast({
+          title: "Preview Error",
+          description: "Failed to create image preview", 
+          variant: "destructive"
+        });
       }
     }
   };
@@ -46,7 +51,11 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
 
   const handleUpload = async () => {
     if (!selectedFile || !user) {
-      toast.error("Missing file or user information");
+      toast({
+        title: "Upload Error",
+        description: "Missing file or user information",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -92,7 +101,10 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       
       if (dbError) throw dbError;
       
-      toast.success("Picture uploaded successfully!");
+      toast({
+        title: "Upload Successful", 
+        description: "Picture uploaded successfully!"
+      });
       setIsUploadDialogOpen(false);
       setSelectedFile(null);
       setImagePreview(null);
@@ -100,7 +112,11 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       
     } catch (error: any) {
       console.error("Error uploading picture:", error.message);
-      toast.error(`Failed to upload picture: ${error.message}`);
+      toast({
+        title: "Upload Failed",
+        description: `Failed to upload picture: ${error.message}`,
+        variant: "destructive"
+      });
     } finally {
       setIsUploading(false);
     }

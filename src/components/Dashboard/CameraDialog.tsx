@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Camera } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { getFileFromCanvas } from "@/utils/imageUtils";
 
 interface CameraDialogProps {
@@ -13,6 +13,7 @@ interface CameraDialogProps {
 }
 
 const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCapture }) => {
+  const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -40,7 +41,11 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
         streamRef.current = stream;
       }
     } catch (err) {
-      toast.error("Failed to access camera. Please check your permissions.");
+      toast({
+        title: "Camera Error",
+        description: "Failed to access camera. Please check your permissions.",
+        variant: "destructive"
+      });
       console.error("Error accessing camera:", err);
       onOpenChange(false);
     }
@@ -80,11 +85,19 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
             };
             reader.readAsDataURL(file);
           } else {
-            toast.error("Failed to capture image");
+            toast({
+              title: "Capture Failed",
+              description: "Failed to capture image",
+              variant: "destructive"
+            });
           }
         } catch (err) {
           console.error("Error capturing image:", err);
-          toast.error("Failed to process captured image");
+          toast({
+            title: "Processing Error",
+            description: "Failed to process captured image",
+            variant: "destructive"
+          });
         }
       }
     }
