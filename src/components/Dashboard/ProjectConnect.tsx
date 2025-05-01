@@ -29,21 +29,20 @@ const ProjectConnect: React.FC = () => {
         .from("projects")
         .select("id, title")
         .eq("id", projectId)
-        .single();
+        .maybeSingle();
         
       if (error) {
-        if (error.code === "PGRST116") {
-          toast.error("Project not found. Please check the ID and try again.");
-        } else {
-          toast.error("Error connecting to project: " + error.message);
-        }
+        toast.error("Error connecting to project: " + error.message);
         return;
       }
       
-      if (data) {
-        toast.success(`Connected to project: ${data.title}`);
-        navigate(`/dashboard/projects/${data.id}/stores`);
+      if (!data) {
+        toast.error("Project not found. Please check the ID and try again.");
+        return;
       }
+      
+      toast.success(`Connected to project: ${data.title}`);
+      navigate(`/dashboard/projects/${data.id}/stores`);
     } catch (error: any) {
       toast.error("Failed to connect to project: " + error.message);
     } finally {
