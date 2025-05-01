@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
   const { toast: hookToast } = useToast();
   const { profile } = useAuth();
   const isConsultant = profile?.role === "consultant";
+  const isCrew = profile?.role === "crew";
   
   const [searchTerm, setSearchTerm] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
@@ -47,12 +47,19 @@ const StoresList: React.FC<StoresListProps> = ({ projectId: propProjectId, onSto
       if (projectError) throw projectError;
       setProject(projectData);
       
-      // Then fetch the stores
-      const { data, error } = await supabase
+      // Then fetch the stores - for crew users, only fetch stores they created
+      let storesQuery = supabase
         .from("stores")
         .select("*")
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false });
+        .eq("project_id", projectId);
+        
+      // If user is crew, filter to only show their stores
+      if (isCrew && profile) {
+        storesQuery = storesQuery.eq("created_by", profile.id);
+      }
+      
+      // Order by creation date (newest first)
+      const { data, error } = await storesQuery.order("created_at", { ascending: false });
         
       if (error) {
         throw error;

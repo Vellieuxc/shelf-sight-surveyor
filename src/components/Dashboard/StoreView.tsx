@@ -23,6 +23,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const isConsultant = profile?.role === "consultant";
+  const isCrew = profile?.role === "crew";
 
   const fetchStoreAndPictures = async () => {
     try {
@@ -34,6 +35,14 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         .single();
 
       if (storeError) throw storeError;
+      
+      // For crew users, check if they created this store
+      if (isCrew && profile && storeData.created_by !== profile.id) {
+        toast.error("You don't have access to this store");
+        navigate("/dashboard");
+        return;
+      }
+      
       setStore(storeData);
       
       // Check if the project is closed
@@ -41,11 +50,18 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         setIsProjectClosed(!!storeData.projects.is_closed);
       }
 
-      // Fetch pictures for this store
-      const { data: picturesData, error: picturesError } = await supabase
+      // Fetch pictures for this store - for crew users, only fetch pictures they uploaded
+      let picturesQuery = supabase
         .from("pictures")
         .select("*")
-        .eq("store_id", storeId)
+        .eq("store_id", storeId);
+        
+      // If user is crew, filter to only show their pictures
+      if (isCrew && profile) {
+        picturesQuery = picturesQuery.eq("uploaded_by", profile.id);
+      }
+      
+      const { data: picturesData, error: picturesError } = await picturesQuery
         .order("created_at", { ascending: false });
 
       if (picturesError) throw picturesError;

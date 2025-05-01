@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Folder, FolderOpen } from "lucide-react";
 import { 
@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -17,6 +19,42 @@ interface ProjectsListProps {
 }
 
 const ProjectsList: React.FC<ProjectsListProps> = ({ projects, isLoading, activeProjectId }) => {
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>(projects);
+  const { profile } = useAuth();
+  const isCrew = profile?.role === "crew";
+  
+  useEffect(() => {
+    // For crew users, we need to filter projects to only show ones where they have stores
+    const filterProjectsForCrewUser = async () => {
+      if (isCrew && profile) {
+        try {
+          // Get all stores created by this crew user
+          const { data: storesData, error: storesError } = await supabase
+            .from("stores")
+            .select("project_id")
+            .eq("created_by", profile.id);
+            
+          if (storesError) throw storesError;
+          
+          // Extract unique project IDs
+          const projectIds = [...new Set(storesData?.map(store => store.project_id) || [])];
+          
+          // Filter projects to only show those where the user has created stores
+          setFilteredProjects(projects.filter(project => 
+            projectIds.includes(project.id)
+          ));
+        } catch (error) {
+          console.error("Error filtering projects for crew user:", error);
+          setFilteredProjects([]); // Show no projects on error
+        }
+      } else {
+        // For consultants and other roles, show all projects
+        setFilteredProjects(projects);
+      }
+    };
+    
+    filterProjectsForCrewUser();
+  }, [projects, profile, isCrew]);
   
   const isProjectActive = (projectId: string) => {
     return activeProjectId === projectId;
@@ -27,10 +65,10 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects, isLoading, active
       <SidebarMenu>
         {isLoading ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
-        ) : projects.length === 0 ? (
+        ) : filteredProjects.length === 0 ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">No projects found</div>
         ) : (
-          projects.map((project) => (
+          filteredProjects.map((project) => (
             <SidebarMenuItem key={project.id}>
               <SidebarMenuButton asChild isActive={isProjectActive(project.id)}>
                 <Link to={`/dashboard/projects/${project.id}/stores`}>
