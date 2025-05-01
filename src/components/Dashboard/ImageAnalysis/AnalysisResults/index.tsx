@@ -1,7 +1,7 @@
 
 import React from "react";
 import { AnalysisData } from "@/types";
-import { AnalysisResultsContainer } from "./AnalysisResultsContainer";
+import AnalysisResultsContainer from "./AnalysisResultsContainer";
 
 interface AnalysisResultsProps {
   isLoading: boolean;

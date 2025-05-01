@@ -133,3 +133,6 @@ export const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> =
     </Card>
   );
 };
+
+// Add default export
+export default AnalysisResultsContainer;
