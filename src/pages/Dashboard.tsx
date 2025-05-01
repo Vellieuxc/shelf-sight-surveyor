@@ -16,16 +16,16 @@ const StoresRoute = () => {
   return <StoresList projectId={projectId} />;
 };
 
-const StoreViewRoute = () => {
-  const { storeId } = useParams<{ storeId: string }>();
-  if (!storeId) return <Navigate to="/dashboard" />;
-  return <StoreView storeId={storeId} />;
-};
-
 const AnalyzeRoute = () => {
   const { storeId } = useParams<{ storeId: string }>();
   if (!storeId) return <Navigate to="/dashboard" />;
   return <ImageAnalyzer storeId={storeId} />;
+};
+
+const StoreViewRoute = () => {
+  const { storeId } = useParams<{ storeId: string }>();
+  if (!storeId) return <Navigate to="/dashboard" />;
+  return <StoreView storeId={storeId} />;
 };
 
 const DashboardContent = () => {
