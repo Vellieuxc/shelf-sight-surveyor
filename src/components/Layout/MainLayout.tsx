@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Camera } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { DashboardSidebar } from "@/components/Dashboard/DashboardSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 

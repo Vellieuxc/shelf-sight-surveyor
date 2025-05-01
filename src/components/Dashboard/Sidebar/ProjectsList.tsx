@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Folder, FolderOpen } from "lucide-react";
@@ -10,7 +9,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 interface ProjectsListProps {
   projects: Project[];

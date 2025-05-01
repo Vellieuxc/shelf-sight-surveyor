@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import StoreCard from "./StoreCard";
 import StoreCardSkeleton from "./StoreCardSkeleton";
 import EmptyStoresState from "./EmptyStoresState";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 interface StoresListProps {
   projectId?: string;

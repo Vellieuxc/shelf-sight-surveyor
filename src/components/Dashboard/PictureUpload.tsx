@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Camera, Upload } from "lucide-react";
 import CameraDialog from "./CameraDialog";
 import UploadDialog from "./UploadDialog";
