@@ -42,11 +42,13 @@ const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelet
               setCreator(data.email);
             }
           } else {
-            setCreator("Unknown user");
+            // Display uploader ID as email-like format when profile not found
+            setCreator(`${picture.uploaded_by}@user.id`);
           }
         } catch (error) {
           console.error("Error fetching picture creator:", error);
-          setCreator("Unknown user");
+          // Display uploader ID as email-like format on error
+          setCreator(`${picture.uploaded_by}@user.id`);
         }
       };
       

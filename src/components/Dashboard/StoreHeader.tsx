@@ -21,7 +21,7 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) =
           .from("profiles")
           .select("first_name, last_name, email")
           .eq("id", store.created_by)
-          .maybeSingle(); // Using maybeSingle instead of single to prevent error when no data is found
+          .maybeSingle();
         
         if (error) throw error;
         
@@ -32,11 +32,13 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) =
             setCreatorName(data.email);
           }
         } else {
-          setCreatorName("Unknown user"); // Fallback when no creator data is found
+          // Display creator ID as email-like format when profile not found
+          setCreatorName(`${store.created_by}@user.id`);
         }
       } catch (error) {
         console.error("Error fetching store creator:", error);
-        setCreatorName("Unknown user"); // Fallback on error
+        // Display creator ID as email-like format on error
+        setCreatorName(`${store.created_by}@user.id`);
       }
     };
     

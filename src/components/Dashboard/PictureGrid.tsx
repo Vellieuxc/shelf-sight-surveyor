@@ -41,6 +41,13 @@ const PictureGrid: React.FC<PictureGridProps> = ({ pictures, onDeletePicture, al
         }
       });
       
+      // For any missing creator, use the UUID as part of email-like format
+      creatorIds.forEach(id => {
+        if (!creators[id]) {
+          creators[id] = `${id}@user.id`;
+        }
+      });
+      
       setCreatorMap(creators);
     };
     
