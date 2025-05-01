@@ -23,23 +23,29 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Check if the pictures bucket exists (for verification only, not creation)
 export const verifyPicturesBucketExists = async () => {
   try {
-    // Check if the bucket exists by listing buckets
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    // Simplified verification approach
+    // Instead of checking bucket listing (which might have permission issues),
+    // we'll try to get bucket details directly for "pictures"
+    const { data: bucketInfo, error } = await supabase.storage
+      .getBucket('pictures');
     
-    if (listError) {
-      console.error('Error listing buckets:', listError.message);
-      throw new Error(`Failed to verify if pictures bucket exists: ${listError.message}`);
+    if (error) {
+      // If there's an error other than "not found", log it
+      console.error('Error verifying pictures bucket:', error.message);
+      
+      // Check if error is specifically that the bucket wasn't found
+      if (error.message.includes('not found') || error.code === '404') {
+        throw new Error('Pictures bucket not found. Please contact an administrator.');
+      }
+      
+      // For other errors, report them differently
+      throw new Error(`Failed to verify if pictures bucket exists: ${error.message}`);
     }
     
-    const picturesBucketExists = buckets?.some(bucket => bucket.name === 'pictures');
-    
-    if (!picturesBucketExists) {
-      console.error('Pictures bucket not found. It should have been created via SQL migration.');
-      throw new Error('Pictures bucket not found. Please contact an administrator.');
-    }
-    
+    // If we got this far, the bucket exists
+    console.log('Pictures bucket verified successfully');
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error verifying pictures bucket:', error);
     // Rethrow the error so it can be handled by the caller
     throw error;
