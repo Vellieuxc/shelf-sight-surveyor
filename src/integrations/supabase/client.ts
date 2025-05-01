@@ -23,21 +23,34 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Create a function to ensure the pictures storage bucket exists
 export const ensurePicturesBucketExists = async () => {
   try {
-    // Check if bucket exists
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const picturesBucket = buckets?.find(bucket => bucket.name === 'pictures');
+    // First check if we can access the bucket (this will tell us if it exists)
+    const { data: bucketExists, error: bucketCheckError } = await supabase
+      .storage
+      .getBucket('pictures');
     
-    if (!picturesBucket) {
-      // Create the bucket if it doesn't exist
-      await supabase.storage.createBucket('pictures', {
+    if (!bucketExists) {
+      // If bucket doesn't exist, try to create it
+      const { data: newBucket, error: createError } = await supabase.storage.createBucket('pictures', {
         public: true,
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
         fileSizeLimit: 5242880 // 5MB
       });
-      console.log('Created pictures bucket');
+      
+      if (createError) {
+        console.warn('Unable to create pictures bucket:', createError.message);
+        console.info('This may be expected if you don\'t have permission to create buckets.');
+        console.info('The bucket might already exist but requires admin access to view.');
+        // We don't throw here because the bucket might exist but the user doesn't have permission to check
+        // We'll let the upload attempt fail if that's the case
+      } else {
+        console.info('Created pictures bucket successfully');
+      }
+    } else {
+      console.info('Pictures bucket already exists');
     }
   } catch (error) {
-    console.error('Error ensuring pictures bucket exists:', error);
+    console.warn('Error checking or creating pictures bucket:', error);
+    // We don't throw because we want the app to continue even if we can't confirm the bucket
   }
 };
 

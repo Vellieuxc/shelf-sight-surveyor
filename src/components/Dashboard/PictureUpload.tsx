@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -6,6 +5,7 @@ import { Camera, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { ensurePicturesBucketExists } from "@/integrations/supabase/client";
 
 interface PictureUploadProps {
   storeId: string;
@@ -100,6 +100,9 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
     setIsUploading(true);
     
     try {
+      // Ensure the pictures bucket exists
+      await ensurePicturesBucketExists();
+      
       // Upload the file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -110,7 +113,10 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
         .from('pictures')
         .upload(filePath, selectedFile);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw new Error(`Failed to upload image: ${uploadError.message}`);
+      }
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
@@ -137,7 +143,7 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       
     } catch (error: any) {
       console.error("Error uploading picture:", error.message);
-      toast.error("Failed to upload picture");
+      toast.error(`Failed to upload picture: ${error.message}`);
     } finally {
       setIsUploading(false);
     }

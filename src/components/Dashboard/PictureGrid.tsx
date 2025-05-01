@@ -9,9 +9,15 @@ interface PictureGridProps {
   pictures: Picture[];
   onDeletePicture: (pictureId: string) => void;
   onUploadClick: () => void;
+  onCameraClick?: () => void;
 }
 
-const PictureGrid: React.FC<PictureGridProps> = ({ pictures, onDeletePicture, onUploadClick }) => {
+const PictureGrid: React.FC<PictureGridProps> = ({ 
+  pictures, 
+  onDeletePicture, 
+  onUploadClick,
+  onCameraClick 
+}) => {
   if (pictures.length === 0) {
     return (
       <div className="col-span-full text-center py-12">
@@ -26,7 +32,7 @@ const PictureGrid: React.FC<PictureGridProps> = ({ pictures, onDeletePicture, on
           </Button>
           <Button 
             variant="outline"
-            onClick={onUploadClick}
+            onClick={onCameraClick || onUploadClick}
           >
             <Camera size={16} className="mr-2" />
             Take First Picture

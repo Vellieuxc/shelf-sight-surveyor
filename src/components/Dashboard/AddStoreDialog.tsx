@@ -44,24 +44,33 @@ const AddStoreDialog: React.FC<AddStoreDialogProps> = ({ open, onOpenChange, onS
       
       // If there's a store image, upload it first
       if (values.store_image instanceof File) {
-        const file = values.store_image;
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `stores/thumbnails/${fileName}`;
-        
-        // Upload the file
-        const { error: uploadError } = await supabase.storage
-          .from('pictures')
-          .upload(filePath, file);
-        
-        if (uploadError) throw uploadError;
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('pictures')
-          .getPublicUrl(filePath);
+        try {
+          const file = values.store_image;
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `stores/thumbnails/${fileName}`;
           
-        storeImageUrl = publicUrlData.publicUrl;
+          // Upload the file
+          const { error: uploadError } = await supabase.storage
+            .from('pictures')
+            .upload(filePath, file);
+          
+          if (uploadError) {
+            console.error("Error uploading store image:", uploadError);
+            toast.error(`Error uploading image: ${uploadError.message}`);
+          } else {
+            // Get the public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('pictures')
+              .getPublicUrl(filePath);
+              
+            storeImageUrl = publicUrlData.publicUrl;
+          }
+        } catch (imageError: any) {
+          console.error("Error processing store image:", imageError);
+          toast.error(`Error processing image: ${imageError.message}`);
+          // Continue with store creation even if image upload fails
+        }
       }
       
       // Create the store record
