@@ -29,10 +29,10 @@ export const verifyPicturesBucketExists = async () => {
     
     if (error) {
       // Log detailed error information for debugging
-      console.error('Error verifying pictures bucket:', error.message, 'Code:', error.code);
+      console.error('Error verifying pictures bucket:', error.message);
       
       // Check if error is specifically that the bucket wasn't found
-      if (error.message.includes('not found') || error.code === '404') {
+      if (error.message.includes('not found')) {
         throw new Error('Pictures bucket not found. Please contact an administrator.');
       }
       
