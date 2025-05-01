@@ -15,6 +15,8 @@ export const useImageAnalysis = (storeId?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const [currentPictureId, setCurrentPictureId] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   // Load image and analysis data if pictureId is provided
   useEffect(() => {
@@ -78,6 +80,7 @@ export const useImageAnalysis = (storeId?: string) => {
     if (!selectedImage) return;
     
     setIsAnalyzing(true);
+    setRetryCount(0);
     
     try {
       console.log("Starting image analysis...");
@@ -85,7 +88,7 @@ export const useImageAnalysis = (storeId?: string) => {
       const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
         body: {
           imageUrl: selectedImage,
-          imageId: currentPictureId
+          imageId: currentPictureId || 'new-image'
         }
       });
 
@@ -96,7 +99,7 @@ export const useImageAnalysis = (storeId?: string) => {
       
       console.log("Response received:", data);
       
-      if (data.success && data.data) {
+      if (data && data.success && data.data) {
         setAnalysisData(data.data);
         toast({
           title: "Analysis Complete",
@@ -128,11 +131,29 @@ export const useImageAnalysis = (storeId?: string) => {
         console.error("Invalid response format:", data);
         throw new Error("Invalid response format from analysis function");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error analyzing image:", error);
+
+      // Check if we should retry
+      if (retryCount < maxRetries) {
+        setRetryCount(prev => prev + 1);
+        console.log(`Retrying analysis... Attempt ${retryCount + 1} of ${maxRetries}`);
+        
+        toast({
+          title: "Retrying Analysis",
+          description: `Attempt ${retryCount + 1} of ${maxRetries}...`,
+        });
+        
+        // Wait a moment before retrying
+        setTimeout(() => {
+          handleAnalyzeImage();
+        }, 2000);
+        return;
+      }
+      
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: "There was an issue connecting to the analysis service. Please try again later.",
         variant: "destructive"
       });
     } finally {

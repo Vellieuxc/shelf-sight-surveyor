@@ -5,12 +5,13 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 // Define proper CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
   console.log("Edge Function received request:", req.method);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests properly
   if (req.method === 'OPTIONS') {
@@ -29,13 +30,20 @@ serve(async (req) => {
     }
 
     console.log("Parsing request body");
-    const { imageUrl, imageId } = await req.json();
+    const requestData = await req.json().catch(error => {
+      console.error("Failed to parse request body:", error);
+      throw new Error("Invalid request body format");
+    });
+    
+    const { imageUrl, imageId } = requestData;
+    
     if (!imageUrl) {
       console.error("Image URL is required but was not provided");
       throw new Error("Image URL is required");
     }
 
     console.log(`Processing analysis for image: ${imageId}`);
+    console.log(`Image URL: ${imageUrl}`);
 
     // Make the request to the Anthropic API
     console.log("Sending request to Anthropic API");
@@ -80,9 +88,20 @@ serve(async (req) => {
     });
 
     console.log("Response received from Anthropic API");
+    console.log("Response status:", response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Claude API error:", errorData);
+      const errorText = await response.text().catch(() => "Failed to get error response text");
+      console.error("Claude API error response:", errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: errorText };
+      }
+      
+      console.error("Claude API error details:", errorData);
       throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
     }
 
@@ -95,11 +114,13 @@ serve(async (req) => {
       // Find JSON in Claude's response
       const textContent = data.content[0].text;
       console.log("Parsing Claude response as JSON");
+      console.log("Claude raw response:", textContent);
       
       // Use regex to extract JSON array from possible text
       const jsonMatch = textContent.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         analysisData = JSON.parse(jsonMatch[0]);
+        console.log("Successfully parsed JSON data from Claude's response");
       } else {
         console.error("Could not extract JSON data from Claude's response");
         throw new Error("Could not extract JSON data from Claude's response");
