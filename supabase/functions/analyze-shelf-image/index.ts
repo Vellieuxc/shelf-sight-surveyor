@@ -45,7 +45,7 @@ serve(async (req) => {
     console.log(`Processing analysis for image: ${imageId}`);
     console.log(`Image URL: ${imageUrl}`);
 
-    // Make the request to the Anthropic API
+    // Make the request to the Anthropic API with an improved prompt
     console.log("Sending request to Anthropic API");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -63,16 +63,23 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "This is a picture of a retail store shelf. Please analyze the products visible and extract the following information structured as a JSON array:\n\n" +
-                      "1. sku_name: The name of each product\n" +
-                      "2. brand: The brand name\n" +
-                      "3. sku_count: Number of product facings visible (how many products are facing front on the shelf, not total units)\n" +
-                      "4. sku_price: The current price of the product\n" +
-                      "5. sku_price_pre_promotion: Original price before promotion (only if a promotion is visible)\n" +
-                      "6. sku_price_post_promotion: Price after promotion (only if a promotion is visible)\n" +
+                text: "You are a retail merchandising expert analyzing a product shelf image. Please identify all products visible and extract the following information as precisely as possible in a JSON array:\n\n" +
+                      "1. sku_name: The full and exact product name including variant details, size, formulation, etc.\n" +
+                      "2. brand: The primary brand name only (do not include parent company or sub-brands here)\n" +
+                      "3. sku_count: Number of product facings visible (how many units of this exact product are facing front on the shelf, not total inventory)\n" +
+                      "4. sku_price: The current price shown on shelf labels (if visible). If not visible, omit this field.\n" +
+                      "5. sku_price_pre_promotion: Original price before promotion (only if a promotional price is visible)\n" +
+                      "6. sku_price_post_promotion: Price after promotion (only if a promotional price is visible)\n" +
                       "7. sku_position: Position on the shelf (Top, Middle, or Bottom)\n" +
-                      "8. empty_space_estimate: For empty shelf areas, estimate the percentage of empty space (create a separate entry with sku_name 'Empty' and this field)\n\n" +
-                      "Please return your results ONLY as a clean, properly formatted JSON array with no additional text. Each object should only include fields that are relevant (don't include empty fields)."
+                      "8. empty_space_estimate: For empty shelf areas, estimate the percentage of empty space\n\n" +
+                      "Additional guidelines:\n" +
+                      "- Focus on clearly visible products - only include products you can confidently identify\n" +
+                      "- For products with multiple facings of the same item, include them as a single entry with the appropriate sku_count\n" +
+                      "- If a product is partially obscured but clearly identifiable, include it\n" +
+                      "- For empty shelf areas, create entries with sku_name 'Empty Space' and the empty_space_estimate field\n" +
+                      "- If you cannot clearly read a price, it's better to omit that field than guess\n" +
+                      "- Do not make assumptions about products you cannot clearly see\n\n" +
+                      "Please return ONLY a properly formatted JSON array with no additional text. Each object should only include fields that you can identify with high confidence."
               },
               {
                 type: "image",
