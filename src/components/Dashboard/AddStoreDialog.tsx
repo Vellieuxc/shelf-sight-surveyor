@@ -1,14 +1,12 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
 import { Store } from "@/types";
 import StoreForm, { StoreFormValues } from "./StoreForm";
 import { toast } from "sonner";
-import { ensurePicturesBucketExists } from "@/integrations/supabase/client";
 
 interface AddStoreDialogProps {
   open: boolean;
@@ -37,8 +35,8 @@ const AddStoreDialog: React.FC<AddStoreDialogProps> = ({ open, onOpenChange, onS
     setIsSubmitting(true);
     
     try {
-      // Make sure the pictures bucket exists
-      await ensurePicturesBucketExists();
+      // Verify the pictures bucket exists
+      await verifyPicturesBucketExists();
       
       let storeImageUrl = null;
       

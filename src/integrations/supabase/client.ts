@@ -20,44 +20,28 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Create a function to ensure the pictures storage bucket exists
-export const ensurePicturesBucketExists = async () => {
+// Check if the pictures bucket exists (for verification only, not creation)
+export const verifyPicturesBucketExists = async () => {
   try {
-    // Check if the bucket already exists by listing buckets
+    // Check if the bucket exists by listing buckets
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
     if (listError) {
       console.error('Error listing buckets:', listError.message);
-      throw new Error(`Failed to check if pictures bucket exists: ${listError.message}`);
+      throw new Error(`Failed to verify if pictures bucket exists: ${listError.message}`);
     }
     
     const picturesBucketExists = buckets?.some(bucket => bucket.name === 'pictures');
     
-    if (picturesBucketExists) {
-      console.info('Pictures bucket already exists');
-      return; // Bucket exists
+    if (!picturesBucketExists) {
+      console.error('Pictures bucket not found. It should have been created via SQL migration.');
+      throw new Error('Pictures bucket not found. Please contact an administrator.');
     }
     
-    console.warn('Pictures bucket not found, attempting to create it');
-    // If bucket doesn't exist, try to create it
-    const { data: newBucket, error: createError } = await supabase.storage.createBucket('pictures', {
-      public: true,
-      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
-      fileSizeLimit: 5242880 // 5MB
-    });
-    
-    if (createError) {
-      console.error('Unable to create pictures bucket:', createError.message);
-      throw new Error(`Failed to create pictures bucket: ${createError.message}`);
-    } else {
-      console.info('Created pictures bucket successfully');
-    }
+    return true;
   } catch (error) {
-    console.error('Error with pictures bucket:', error);
+    console.error('Error verifying pictures bucket:', error);
     // Rethrow the error so it can be handled by the caller
     throw error;
   }
 };
-
-// Don't call this function automatically on import
-// Instead, it will be called explicitly before uploads

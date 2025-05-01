@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase, ensurePicturesBucketExists } from "@/integrations/supabase/client";
+import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Camera, Upload } from "lucide-react";
@@ -53,8 +52,8 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
     setIsUploading(true);
     
     try {
-      // Ensure the pictures bucket exists
-      await ensurePicturesBucketExists();
+      // Verify the pictures bucket exists
+      await verifyPicturesBucketExists();
       
       // Upload the file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
