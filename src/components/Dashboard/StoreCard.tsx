@@ -1,10 +1,13 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Store } from "@/types";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, Images } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 interface StoreCardProps {
   store: Store;
@@ -13,16 +16,58 @@ interface StoreCardProps {
 }
 
 const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore, onSelect }) => {
+  const [pictureCount, setPictureCount] = useState<number>(0);
+  const { profile } = useAuth();
+  
+  useEffect(() => {
+    const fetchPictureCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from("pictures")
+          .select("*", { count: "exact", head: true })
+          .eq("store_id", store.id);
+          
+        if (error) {
+          console.error("Error fetching picture count:", error);
+          return;
+        }
+        
+        if (count !== null) {
+          setPictureCount(count);
+        }
+      } catch (error) {
+        console.error("Error fetching picture count:", error);
+      }
+    };
+    
+    fetchPictureCount();
+  }, [store.id]);
+  
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="truncate">{store.name}</CardTitle>
-        <CardDescription className="truncate">{store.type}</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="truncate">{store.name}</CardTitle>
+            <CardDescription className="truncate">{store.type}</CardDescription>
+          </div>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Images size={14} />
+            <span>{pictureCount}</span>
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="flex-grow">
         <div className="space-y-2 text-sm">
           <p className="truncate">{store.address}</p>
           <p>{store.country}</p>
+          
+          {profile?.role === 'crew' && (
+            <div className="mt-4 pt-2 border-t border-dashed">
+              <p className="text-xs text-muted-foreground">Project Connect ID:</p>
+              <p className="text-xs font-mono bg-muted p-1 rounded mt-1">{store.project_id}</p>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
