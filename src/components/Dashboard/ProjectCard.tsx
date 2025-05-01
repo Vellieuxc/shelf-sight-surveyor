@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, FolderX, Store as StoreIcon, Image } from "lucide-react";
+import { Calendar, CheckCircle, FolderX, Store as StoreIcon, Image, Key } from "lucide-react";
 import { Project } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -146,6 +146,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <span>{isLoading ? '...' : pictureCount !== null ? pictureCount : '-'}</span>
             </div>
           </div>
+          
+          {/* Project Connect ID - Only for Consultants */}
+          {isConsultant && (
+            <div className="mt-3 pt-2 border-t border-dashed">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Key size={14} />
+                  <span>Project Connect ID:</span>
+                </span>
+              </div>
+              <p className="text-xs font-mono bg-muted p-1 rounded mt-1 select-all">{project.id}</p>
+              <p className="text-xs text-muted-foreground mt-1">Share this ID with crew members to connect</p>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-2">

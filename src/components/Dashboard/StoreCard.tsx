@@ -6,7 +6,6 @@ import { Store } from "@/types";
 import { Eye, Trash2, Images } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 
 interface StoreCardProps {
@@ -17,7 +16,6 @@ interface StoreCardProps {
 
 const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore, onSelect }) => {
   const [pictureCount, setPictureCount] = useState<number>(0);
-  const { profile } = useAuth();
   
   useEffect(() => {
     const fetchPictureCount = async () => {
@@ -61,13 +59,6 @@ const StoreCard: React.FC<StoreCardProps> = ({ store, onDeleteStore, onSelect })
         <div className="space-y-2 text-sm">
           <p className="truncate">{store.address}</p>
           <p>{store.country}</p>
-          
-          {profile?.role === 'crew' && (
-            <div className="mt-4 pt-2 border-t border-dashed">
-              <p className="text-xs text-muted-foreground">Project Connect ID:</p>
-              <p className="text-xs font-mono bg-muted p-1 rounded mt-1">{store.project_id}</p>
-            </div>
-          )}
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
