@@ -32,11 +32,39 @@ const StoreView: React.FC<StoreViewProps> = ({
 }) => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   
-  const handleFileUpload = async (file: File) => {
-    if (!store) return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      
+      try {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setImagePreview(event.target.result as string);
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error("Failed to create preview:", error);
+        toast({
+          title: "Preview Error",
+          description: "Failed to create image preview", 
+          variant: "destructive"
+        });
+      }
+    }
+  };
+  
+  const handleFileUpload = async (file?: File) => {
+    if (!file || !store) return;
     
+    setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -82,11 +110,17 @@ const StoreView: React.FC<StoreViewProps> = ({
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      setImagePreview(null);
+      setIsUploadDialogOpen(false);
     }
   };
   
-  // FIX: Corrected the function signature to match what CameraDialog expects
   const handleCapture = async (file: File, preview: string) => {
+    setSelectedFile(file);
+    setImagePreview(preview);
     await handleFileUpload(file);
   };
 
@@ -194,6 +228,10 @@ const StoreView: React.FC<StoreViewProps> = ({
       <UploadDialog
         open={isUploadDialogOpen}
         onOpenChange={setIsUploadDialogOpen}
+        selectedFile={selectedFile}
+        imagePreview={imagePreview}
+        isUploading={isUploading}
+        onFileChange={handleFileChange}
         onUpload={handleFileUpload}
       />
 
