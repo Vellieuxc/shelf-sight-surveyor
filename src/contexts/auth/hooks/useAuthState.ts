@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "../types";
@@ -14,43 +14,8 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Set up auth listeners
-  useEffect(() => {
-    const setupAuthListeners = () => {
-      // Listen for auth state changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, currentSession) => {
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-        }
-      );
-
-      // Check for existing session
-      supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          // Use setTimeout to avoid Supabase auth recursion
-          setTimeout(() => {
-            loadUserProfile(currentSession.user.id);
-          }, 0);
-        } else {
-          setIsLoading(false);
-        }
-      });
-
-      return subscription;
-    };
-
-    const subscription = setupAuthListeners();
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Load user profile
-  const loadUserProfile = async (userId: string) => {
+  // Load user profile - now a memoized callback
+  const loadUserProfile = useCallback(async (userId: string) => {
     try {
       setIsLoading(true);
       const userProfile = await fetchUserProfile(userId);
@@ -58,10 +23,7 @@ export const useAuthState = () => {
       if (userProfile) {
         // Check if user is blocked
         if (userProfile.isBlocked) {
-          await supabase.auth.signOut();
-          setUser(null);
-          setSession(null);
-          setProfile(null);
+          await handleBlockedUser();
           return;
         }
         
@@ -72,7 +34,54 @@ export const useAuthState = () => {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // Handle blocked user scenario
+  const handleBlockedUser = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+    } catch (error) {
+      console.error("Error signing out blocked user:", error);
+    }
   };
+
+  // Handle auth state change
+  const handleAuthChange = useCallback((currentSession: Session | null) => {
+    setSession(currentSession);
+    setUser(currentSession?.user ?? null);
+    
+    if (currentSession?.user) {
+      // Use setTimeout to avoid Supabase auth recursion
+      setTimeout(() => {
+        loadUserProfile(currentSession.user.id);
+      }, 0);
+    } else {
+      setIsLoading(false);
+    }
+  }, [loadUserProfile]);
+
+  // Set up auth listeners
+  useEffect(() => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_, currentSession) => {
+        handleAuthChange(currentSession);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      handleAuthChange(currentSession);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [handleAuthChange]);
 
   return {
     user,

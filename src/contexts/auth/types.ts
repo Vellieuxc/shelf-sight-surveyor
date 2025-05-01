@@ -2,6 +2,8 @@
 import { User, Session } from "@supabase/supabase-js";
 import { UserRole } from "@/types";
 
+export type { UserRole };
+
 export interface UserProfile {
   id: string;
   email: string;
