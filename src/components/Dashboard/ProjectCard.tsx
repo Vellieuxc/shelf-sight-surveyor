@@ -4,11 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, FolderX, Store as StoreIcon, Image, Key } from "lucide-react";
+import { Calendar, CheckCircle, FolderX, Store as StoreIcon, Image, Key, User } from "lucide-react";
 import { Project } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface ProjectCardProps {
   project: Project;
@@ -26,6 +27,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const isConsultant = profile?.role === "consultant";
   const [storeCount, setStoreCount] = useState<number | null>(null);
   const [pictureCount, setPictureCount] = useState<number | null>(null);
+  const [creatorName, setCreatorName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
@@ -61,6 +63,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         } else {
           setPictureCount(0);
         }
+        
+        // Fetch creator name
+        const { data: creatorData, error: creatorError } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, email")
+          .eq("id", project.created_by)
+          .single();
+          
+        if (!creatorError && creatorData) {
+          if (creatorData.first_name && creatorData.last_name) {
+            setCreatorName(`${creatorData.first_name} ${creatorData.last_name}`);
+          } else {
+            setCreatorName(creatorData.email);
+          }
+        }
       } catch (error: any) {
         console.error("Error fetching project stats:", error);
       } finally {
@@ -69,7 +86,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     };
     
     fetchProjectStats();
-  }, [project.id]);
+  }, [project.id, project.created_by]);
   
   const handleToggleProjectStatus = async () => {
     try {
@@ -97,6 +114,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       navigate(`/dashboard/projects/${project.id}/stores`);
     }
   };
+  
+  const formattedDate = format(new Date(project.created_at), "PPP");
 
   return (
     <Card className={`card-shadow ${project.is_closed ? "opacity-80" : ""}`}>
@@ -119,12 +138,23 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <span className="text-muted-foreground">Country:</span>
             <span>{project.country}</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Created:</span>
-            <div className="flex items-center gap-1">
-              <Calendar size={12} />
-              <span>
-                {new Date(project.created_at).toLocaleDateString()}
+          
+          {/* Creator and Creation Date */}
+          <div className="pt-2 border-t mt-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <User size={14} />
+                <span>Created by:</span>
+              </span>
+              <span>{creatorName || "Unknown"}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Calendar size={14} />
+                <span>Created on:</span>
+              </span>
+              <span title={formattedDate}>
+                {formattedDate}
               </span>
             </div>
           </div>

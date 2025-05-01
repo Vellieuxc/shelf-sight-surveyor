@@ -3,19 +3,21 @@ import React from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ExternalLink, Info } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Trash2, ExternalLink, Info, Calendar, User } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 
 interface PictureCardProps {
   picture: Picture;
   onDelete: () => void;
   allowDelete?: boolean;
+  createdByName?: string;
 }
 
-const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelete = true }) => {
+const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelete = true, createdByName }) => {
   const uploadDate = new Date(picture.created_at);
   const formattedDate = formatDistanceToNow(uploadDate, { addSuffix: true });
+  const exactDate = format(uploadDate, "PPP"); // Localized date format
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
 
   return (
@@ -38,7 +40,19 @@ const PictureCard: React.FC<PictureCardProps> = ({ picture, onDelete, allowDelet
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between p-2">
+      <div className="p-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1" title={exactDate}>
+          <Calendar size={12} />
+          <span>Created: {formattedDate}</span>
+        </div>
+        {createdByName && (
+          <div className="flex items-center gap-1 mt-1">
+            <User size={12} />
+            <span>By: {createdByName}</span>
+          </div>
+        )}
+      </div>
+      <CardFooter className="flex justify-between p-2 pt-0">
         <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`}>
           <Button variant="ghost" size="sm">
             <ExternalLink className="mr-1 h-4 w-4" />

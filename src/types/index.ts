@@ -33,6 +33,8 @@ export type Store = {
   country: string;
   google_map_pin?: string;
   store_image?: string;
+  created_at: string;
+  created_by: string;
 }
 
 export type AnalysisData = {

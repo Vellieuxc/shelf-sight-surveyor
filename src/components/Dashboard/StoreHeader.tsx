@@ -1,8 +1,10 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Store } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Calendar, User } from "lucide-react";
+import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StoreHeaderProps {
   store: Store;
@@ -10,6 +12,36 @@ interface StoreHeaderProps {
 }
 
 const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) => {
+  const [creatorName, setCreatorName] = useState<string>("");
+  
+  useEffect(() => {
+    const fetchCreator = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, email")
+          .eq("id", store.created_by)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          if (data.first_name && data.last_name) {
+            setCreatorName(`${data.first_name} ${data.last_name}`);
+          } else {
+            setCreatorName(data.email);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching store creator:", error);
+      }
+    };
+    
+    fetchCreator();
+  }, [store.created_by]);
+  
+  const creationDate = format(new Date(store.created_at), "PPP");
+  
   return (
     <div className="mb-8">
       {store.store_image && (
@@ -29,6 +61,19 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) =
             <span className="mr-2">{store.type}</span>
             <span>•</span>
             <span className="ml-2">{store.address}</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground mt-2">
+            <div className="flex items-center gap-1">
+              <Calendar size={12} />
+              <span>Created on {creationDate}</span>
+            </div>
+            {creatorName && (
+              <div className="flex items-center gap-1">
+                <User size={12} />
+                <span>Created by {creatorName}</span>
+              </div>
+            )}
           </div>
         </div>
         
