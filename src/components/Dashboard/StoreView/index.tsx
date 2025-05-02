@@ -10,6 +10,7 @@ import StoreNotFound from "./StoreNotFound";
 import StoreLoading from "./StoreLoading";
 import StoreNavigation from "./StoreNavigation";
 import StorePicturesSection from "./StorePicturesSection";
+import StoreActions from "./StoreActions";
 import { useFileUpload } from "./hooks/useFileUpload";
 
 interface StoreViewProps {
@@ -31,6 +32,7 @@ const StoreView: React.FC<StoreViewProps> = ({
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const { toast } = useToast();
   
+  // Handle upload functionality
   const { 
     selectedFile, 
     imagePreview, 
@@ -40,7 +42,7 @@ const StoreView: React.FC<StoreViewProps> = ({
     handleCapture
   } = useFileUpload(store, userId);
 
-  // Handle the case when store is null
+  // Handle not found and loading states
   if (!store && !isLoading) {
     return <StoreNotFound />;
   }
@@ -48,6 +50,13 @@ const StoreView: React.FC<StoreViewProps> = ({
   if (isLoading || !store) {
     return <StoreLoading />;
   }
+
+  const handleSynthesizeStore = () => {
+    toast({
+      title: "Synthesizing store data",
+      description: "This feature is coming soon.",
+    });
+  };
 
   return (
     <div className="container py-6 space-y-8">
@@ -61,20 +70,28 @@ const StoreView: React.FC<StoreViewProps> = ({
       <Card className="p-6">
         <StoreHeader 
           store={store}
-          onSynthesizeStore={() => {
-            toast({
-              title: "Synthesizing store data",
-              description: "This feature is coming soon.",
-            });
-          }}
+          onSynthesizeStore={handleSynthesizeStore}
         />
       </Card>
 
-      <StorePicturesSection 
-        pictures={pictures}
-        onUploadClick={() => setIsUploadDialogOpen(true)}
-        onCaptureClick={() => setIsCameraDialogOpen(true)}
-      />
+      <div className="flex justify-between items-start mb-6">
+        <StoreActions 
+          storeId={store.id}
+          isProjectClosed={isProjectClosed}
+          onAnalyze={() => {}}
+        />
+        
+        <div className="flex gap-2">
+          <StorePicturesSection 
+            pictures={pictures}
+            onUploadClick={() => setIsUploadDialogOpen(true)}
+            onCaptureClick={() => setIsCameraDialogOpen(true)}
+            isProjectClosed={isProjectClosed}
+            isConsultant={false}
+            isBoss={false}
+          />
+        </div>
+      </div>
 
       <UploadDialog
         open={isUploadDialogOpen}

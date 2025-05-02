@@ -11,11 +11,12 @@ interface StoreViewContainerProps {
 }
 
 const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
+  // Redirect if not authenticated
   if (!user) {
     navigate("/auth");
     return null;
