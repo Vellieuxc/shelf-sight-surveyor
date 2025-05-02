@@ -8,26 +8,33 @@ schemas = ["public", "storage"]
 
 [db]
 port = 54322
-shadow_port = 54320
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
+enabled = true
 port = 54324
-smtp_port = 54325
-pop3_port = 54326
 
 [storage]
 enabled = true
 
 [auth]
 enabled = true
+site_url = "http://localhost:3000"
+
+[analytics]
+enabled = false
 
 [realtime]
 enabled = true
 
+# Enable Edge Functions
 [functions]
-[functions.analyze-shelf-image]
-verify_jwt = false
+enabled = true
+serve_port = 54325
 
+[functions.store-summary]
+verify_jwt = true

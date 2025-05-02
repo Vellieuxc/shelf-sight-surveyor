@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +10,9 @@ import StoreLoading from "./StoreLoading";
 import StoreNavigation from "./StoreNavigation";
 import StorePicturesSection from "./StorePicturesSection";
 import StoreActions from "./StoreActions";
+import StoreSummary from "./StoreSummary";
 import { useFileUpload } from "./hooks/useFileUpload";
+import { useAuth } from "@/contexts/auth";
 
 interface StoreViewProps {
   store: Store | null;
@@ -31,6 +32,10 @@ const StoreView: React.FC<StoreViewProps> = ({
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
+  
+  // Check if user is consultant or boss to show the summary
+  const canViewSummary = profile?.role === 'consultant' || profile?.role === 'boss';
   
   // Handle upload functionality
   const { 
@@ -82,15 +87,27 @@ const StoreView: React.FC<StoreViewProps> = ({
         />
         
         <div className="flex gap-2">
+          
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
           <StorePicturesSection 
             pictures={pictures}
             onUploadClick={() => setIsUploadDialogOpen(true)}
             onCaptureClick={() => setIsCameraDialogOpen(true)}
             isProjectClosed={isProjectClosed}
-            isConsultant={false}
-            isBoss={false}
+            isConsultant={profile?.role === 'consultant'}
+            isBoss={profile?.role === 'boss'}
           />
         </div>
+
+        {canViewSummary && (
+          <div className="md:col-span-1">
+            <StoreSummary store={store} />
+          </div>
+        )}
       </div>
 
       <UploadDialog
