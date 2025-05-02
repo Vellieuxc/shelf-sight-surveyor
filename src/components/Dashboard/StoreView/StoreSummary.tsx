@@ -44,14 +44,21 @@ const StoreSummary: React.FC<StoreSummaryProps> = ({ store }) => {
     try {
       setIsLoading(true);
       
+      // Make sure we include the proper auth header by using the invoke method
       const { data, error } = await supabase.functions.invoke('store-summary', {
         body: { storeId: store.id }
       });
       
       if (error) {
-        throw new Error(error.message);
+        console.error("Failed to generate store summary:", error);
+        throw new Error(error.message || "Unknown error");
       }
       
+      if (!data) {
+        throw new Error("No data returned from summary function");
+      }
+      
+      console.log("Summary data received:", data);
       setSummaryData(data);
     } catch (error: any) {
       console.error("Failed to generate store summary:", error);
@@ -110,15 +117,15 @@ const StoreSummary: React.FC<StoreSummaryProps> = ({ store }) => {
               <h3 className="text-md font-medium">Position Distribution</h3>
               <div className="flex gap-2">
                 <div className="grow bg-blue-100 dark:bg-blue-900 h-8 rounded-sm flex items-center justify-center text-xs" 
-                     style={{ width: `${summaryData.summary.positionDistribution.Top * 100 / summaryData.summary.totalSKUCount}%` }}>
+                     style={{ width: `${summaryData.summary.positionDistribution.Top * 100 / Math.max(summaryData.summary.totalSKUCount, 1)}%` }}>
                   Top ({summaryData.summary.positionDistribution.Top})
                 </div>
                 <div className="grow bg-green-100 dark:bg-green-900 h-8 rounded-sm flex items-center justify-center text-xs"
-                     style={{ width: `${summaryData.summary.positionDistribution.Middle * 100 / summaryData.summary.totalSKUCount}%` }}>
+                     style={{ width: `${summaryData.summary.positionDistribution.Middle * 100 / Math.max(summaryData.summary.totalSKUCount, 1)}%` }}>
                   Middle ({summaryData.summary.positionDistribution.Middle})
                 </div>
                 <div className="grow bg-amber-100 dark:bg-amber-900 h-8 rounded-sm flex items-center justify-center text-xs"
-                     style={{ width: `${summaryData.summary.positionDistribution.Bottom * 100 / summaryData.summary.totalSKUCount}%` }}>
+                     style={{ width: `${summaryData.summary.positionDistribution.Bottom * 100 / Math.max(summaryData.summary.totalSKUCount, 1)}%` }}>
                   Bottom ({summaryData.summary.positionDistribution.Bottom})
                 </div>
               </div>

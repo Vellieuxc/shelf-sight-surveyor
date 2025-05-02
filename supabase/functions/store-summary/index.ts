@@ -88,6 +88,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Store found:", store.name, store.id);
+
     // Get all pictures for this store
     const { data: pictures, error: picturesError } = await supabase
       .from('pictures')
@@ -102,6 +104,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Found ${pictures?.length || 0} pictures for store ${store.id}`);
+
     // Process all analysis data from pictures
     const allAnalysisData = [];
     let totalSKUCount = 0;
@@ -109,13 +113,15 @@ serve(async (req) => {
     let positionData = { Top: 0, Middle: 0, Bottom: 0 };
     let totalEmptySpace = 0;
     let emptySpaceCount = 0;
-    let totalPictures = pictures.length;
+    let totalPictures = pictures?.length || 0;
     let picturesWithAnalysis = 0;
     
-    for (const picture of pictures) {
+    for (const picture of pictures || []) {
       if (picture.analysis_data && Array.isArray(picture.analysis_data)) {
         picturesWithAnalysis++;
         const analysisData = picture.analysis_data;
+        
+        console.log(`Processing ${analysisData.length} analysis items for picture ${picture.id}`);
         
         // Add all analysis data items to consolidated list
         allAnalysisData.push(...analysisData);
@@ -161,6 +167,8 @@ serve(async (req) => {
       .sort((a, b) => (b.count as number) - (a.count as number))
       .slice(0, 5);
     
+    console.log("Summary generated successfully");
+    
     // Create summary report
     const storeSummary = {
       store: {
@@ -177,8 +185,7 @@ serve(async (req) => {
         averageEmptySpace: `${averageEmptySpace}%`,
         positionDistribution: positionData,
         topBrands,
-      },
-      rawAnalysisData: allAnalysisData,
+      }
     };
 
     return new Response(

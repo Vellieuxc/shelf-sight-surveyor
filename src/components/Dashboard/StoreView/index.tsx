@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Store, Picture } from "@/types";
@@ -34,6 +34,7 @@ const StoreView: React.FC<StoreViewProps> = ({
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const summaryRef = useRef<HTMLDivElement>(null);
   
   // Check if user is consultant or boss to show the summary
   const canViewSummary = profile?.role === 'consultant' || profile?.role === 'boss';
@@ -57,20 +58,26 @@ const StoreView: React.FC<StoreViewProps> = ({
     return <StoreLoading />;
   }
 
-  // Pass the store id to StoreSummary component
+  // Handle synthesizing store data
   const handleSynthesizeStore = () => {
-    // Rather than showing a toast with "coming soon", we'll directly trigger
-    // the summary generation in the StoreSummary component
     if (canViewSummary && store) {
-      // The StoreSummary component will handle the actual data fetching
       toast({
         title: "Synthesizing store data",
         description: "Processing store information and analysis data...",
       });
       
-      // The 'generateSummary' function is exposed through a ref in StoreSummary
-      // but since we're using the component declaratively, we're relying on the
-      // user clicking the generate button in the StoreSummary component
+      // Scroll to the summary section
+      if (summaryRef.current) {
+        summaryRef.current.scrollIntoView({ behavior: "smooth" });
+        
+        // Find the generate summary button and click it programmatically
+        const generateButton = summaryRef.current.querySelector('button');
+        if (generateButton) {
+          setTimeout(() => {
+            generateButton.click();
+          }, 500);
+        }
+      }
     }
     else {
       toast({
@@ -122,7 +129,7 @@ const StoreView: React.FC<StoreViewProps> = ({
         </div>
 
         {canViewSummary && (
-          <div className="md:col-span-1">
+          <div className="md:col-span-1" ref={summaryRef}>
             <StoreSummary store={store} />
           </div>
         )}
