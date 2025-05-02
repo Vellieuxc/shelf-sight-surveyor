@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { useNavigate } from "react-router-dom";
@@ -27,41 +27,42 @@ export const useUserManagement = () => {
   }, [profile, navigate]);
 
   // Fetch users
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!profile || profile.role !== "boss") return;
+  const fetchUsers = useCallback(async () => {
+    if (!profile || profile.role !== "boss") return;
 
-      setIsLoading(true);
-      try {
-        // Get all profiles with role information
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .order("email", { ascending: true });
-          
-        if (error) throw error;
+    setIsLoading(true);
+    try {
+      // Get all profiles with role information
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("email", { ascending: true });
         
-        const mappedUsers = data.map((user: any) => ({
-          id: user.id,
-          email: user.email,
-          created_at: user.created_at || "Unknown",
-          role: user.role,
-          first_name: user.first_name || "",
-          last_name: user.last_name || "",
-          is_blocked: user.is_blocked || false,
-        }));
-        
-        setUsers(mappedUsers);
-      } catch (error: any) {
-        console.error("Error fetching users:", error.message);
-        toast.error("Failed to load users data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUsers();
+      if (error) throw error;
+      
+      const mappedUsers = data.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at || "Unknown",
+        role: user.role,
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        is_blocked: user.is_blocked || false,
+      }));
+      
+      setUsers(mappedUsers);
+    } catch (error: any) {
+      console.error("Error fetching users:", error.message);
+      toast.error("Failed to load users data");
+    } finally {
+      setIsLoading(false);
+    }
   }, [profile, navigate]);
+
+  // Load users on component mount
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Handle role change
   const handleRoleChange = async () => {
@@ -75,19 +76,19 @@ export const useUserManagement = () => {
       
       if (error) throw error;
       
-      // Update local state
-      setUsers(users.map(user => 
-        user.id === selectedUser.id 
-          ? { ...user, role: selectedRole } 
-          : user
-      ));
+      // Close dialog before state update to avoid UI issues
+      setShowRoleDialog(false);
+      setSelectedUser(null);
       
-      toast.success(`Changed ${selectedUser.email}'s role to ${selectedRole}`);
+      // Fetch fresh data instead of updating locally
+      await fetchUsers();
+      
+      toast.success(`Changed user's role to ${selectedRole}`);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
       toast.error("Failed to update user role");
-    } finally {
-      // Make sure dialog is closed after operation finishes
+      
+      // Still close dialog on error
       setShowRoleDialog(false);
       setSelectedUser(null);
     }
@@ -107,12 +108,12 @@ export const useUserManagement = () => {
       
       if (error) throw error;
       
-      // Update local state
-      setUsers(users.map(user => 
-        user.id === selectedUser.id 
-          ? { ...user, is_blocked: newBlockedStatus } 
-          : user
-      ));
+      // Close dialog before state update to avoid UI issues
+      setShowBlockDialog(false);
+      setSelectedUser(null);
+      
+      // Fetch fresh data instead of updating locally
+      await fetchUsers();
       
       toast.success(
         newBlockedStatus 
@@ -122,8 +123,8 @@ export const useUserManagement = () => {
     } catch (error: any) {
       console.error("Error updating user blocked status:", error.message);
       toast.error("Failed to update user status");
-    } finally {
-      // Make sure dialog is closed after operation finishes 
+      
+      // Still close dialog on error
       setShowBlockDialog(false);
       setSelectedUser(null);
     }

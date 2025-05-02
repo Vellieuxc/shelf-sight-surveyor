@@ -29,13 +29,21 @@ const UsersManagement = () => {
   } = useUserManagement();
 
   const handleRoleDialogOpenChange = (open: boolean) => {
-    setShowRoleDialog(open);
-    if (!open) setSelectedUser(null);
+    if (!open) {
+      // Only close dialog, don't reset selected user yet
+      setShowRoleDialog(false);
+    } else {
+      setShowRoleDialog(open);
+    }
   };
 
   const handleBlockDialogOpenChange = (open: boolean) => {
-    setShowBlockDialog(open);
-    if (!open) setSelectedUser(null);
+    if (!open) {
+      // Only close dialog, don't reset selected user yet
+      setShowBlockDialog(false);
+    } else {
+      setShowBlockDialog(open);
+    }
   };
 
   return (
