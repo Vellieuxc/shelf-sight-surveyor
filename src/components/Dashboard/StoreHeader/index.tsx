@@ -6,6 +6,7 @@ import StoreImage from "./StoreImage";
 import StoreInfo from "./StoreInfo";
 import SynthesizeButton from "./SynthesizeButton";
 import { useCreatorInfo } from "./useCreatorInfo";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StoreHeaderProps {
   store: Store;
@@ -15,15 +16,16 @@ interface StoreHeaderProps {
 const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) => {
   const { creatorName } = useCreatorInfo(store.created_by);
   const creationDate = format(new Date(store.created_at), "PPP");
+  const isMobile = useIsMobile();
   
   return (
-    <div className="mb-8">
+    <div className="mb-4 sm:mb-8">
       <StoreImage 
         imageUrl={store.store_image} 
         storeName={store.name} 
       />
       
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4">
         <StoreInfo 
           name={store.name}
           type={store.type}
@@ -32,7 +34,9 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) =
           creatorName={creatorName}
         />
         
-        <SynthesizeButton onSynthesizeStore={onSynthesizeStore} />
+        <div className={`${isMobile ? 'w-full' : ''}`}>
+          <SynthesizeButton onSynthesizeStore={onSynthesizeStore} />
+        </div>
       </div>
     </div>
   );

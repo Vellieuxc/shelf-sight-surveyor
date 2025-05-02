@@ -14,6 +14,7 @@ import StoreActions from "./StoreActions";
 import StoreSummary from "./StoreSummary";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useAuth } from "@/contexts/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StoreViewProps {
   store: Store | null;
@@ -35,6 +36,7 @@ const StoreView: React.FC<StoreViewProps> = ({
   const { toast } = useToast();
   const { profile } = useAuth();
   const summaryRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   
   // Check if user is consultant or boss to show the summary
   const canViewSummary = profile?.role === 'consultant' || profile?.role === 'boss';
@@ -89,7 +91,7 @@ const StoreView: React.FC<StoreViewProps> = ({
   };
 
   return (
-    <div className="container py-6 space-y-8">
+    <div className="container py-6 space-y-6 lg:space-y-8 px-4 sm:px-6">
       <StoreNavigation 
         projectId={store.project_id} 
         storeId={store.id} 
@@ -97,27 +99,23 @@ const StoreView: React.FC<StoreViewProps> = ({
         currentUserId={userId} 
       />
 
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <StoreHeader 
           store={store}
           onSynthesizeStore={handleSynthesizeStore}
         />
       </Card>
 
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
         <StoreActions 
           storeId={store.id}
           isProjectClosed={isProjectClosed}
           onAnalyze={() => {}}
         />
-        
-        <div className="flex gap-2">
-          
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2">
           <StorePicturesSection 
             pictures={pictures}
             onUploadClick={() => setIsUploadDialogOpen(true)}
@@ -129,7 +127,7 @@ const StoreView: React.FC<StoreViewProps> = ({
         </div>
 
         {canViewSummary && (
-          <div className="md:col-span-1" ref={summaryRef}>
+          <div className={`${isMobile ? 'mt-6' : ''}`} ref={summaryRef}>
             <StoreSummary store={store} />
           </div>
         )}

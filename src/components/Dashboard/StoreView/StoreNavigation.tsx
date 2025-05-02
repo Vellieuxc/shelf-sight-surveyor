@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import StoreAccessControl from "./StoreAccessControl";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StoreNavigationProps {
   projectId: string;
@@ -18,10 +19,12 @@ const StoreNavigation: React.FC<StoreNavigationProps> = ({
   creatorId,
   currentUserId
 }) => {
+  const isMobile = useIsMobile();
+  
   return (
-    <div className="flex items-center justify-between">
-      <Link to={`/dashboard/projects/${projectId}/stores`}>
-        <Button variant="outline" size="sm">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Link to={`/dashboard/projects/${projectId}/stores`} className="w-full sm:w-auto">
+        <Button variant="outline" size={isMobile ? "sm" : "default"} className="w-full sm:w-auto">
           <ArrowLeft size={16} className="mr-1" />
           <span>Back to Stores</span>
         </Button>

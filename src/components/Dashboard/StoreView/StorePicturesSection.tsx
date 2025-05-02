@@ -7,6 +7,7 @@ import PictureGrid from "../PictureGrid";
 import EmptyStoresState from "../EmptyStoresState";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StorePicturesSectionProps {
   pictures: Picture[];
@@ -27,6 +28,7 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
 }) => {
   const { toast } = useToast();
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
   
   // Determine permissions from props or use auth context
   const userIsConsultant = isConsultant || profile?.role === "consultant";
@@ -43,15 +45,15 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">Store Pictures</h2>
         {canModify && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             <Button
               onClick={onUploadClick}
               variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
+              size={isMobile ? "sm" : "default"}
+              className="flex items-center gap-1 flex-1 sm:flex-auto justify-center"
             >
               <Plus size={16} />
               <span>Upload</span>
@@ -59,8 +61,8 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
             <Button
               onClick={onCaptureClick}
               variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
+              size={isMobile ? "sm" : "default"}
+              className="flex items-center gap-1 flex-1 sm:flex-auto justify-center"
             >
               <Camera size={16} />
               <span>Capture</span>

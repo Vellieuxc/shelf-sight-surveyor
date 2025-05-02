@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PictureMetadata from "./PictureMetadata";
 import PictureCreatorInfo from "./PictureCreatorInfo";
 import PictureAnalysisBadge from "./PictureAnalysisBadge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PictureCardProps {
   picture: Picture;
@@ -28,6 +29,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
   const uploadDate = new Date(picture.created_at);
   const exactDate = format(uploadDate, "PPP");
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Only fetch the creator if it wasn't provided as prop
@@ -64,7 +66,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
   }, [picture.uploaded_by, createdByName]);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden flex flex-col h-full">
       <CardContent className="p-0 relative aspect-video">
         <img 
           src={picture.image_url} 
@@ -73,7 +75,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
         />
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-white">{format(uploadDate, "MMM d, yyyy")}</span>
+            <span className="text-xs text-white truncate">{format(uploadDate, "MMM d, yyyy")}</span>
             <PictureAnalysisBadge hasAnalysis={hasAnalysis} />
           </div>
         </div>
@@ -82,9 +84,9 @@ const PictureCard: React.FC<PictureCardProps> = ({
         <PictureMetadata createdAt={picture.created_at} exactDate={exactDate} />
         <PictureCreatorInfo creator={creator} />
       </div>
-      <CardFooter className="flex justify-between p-2 pt-0">
-        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`}>
-          <Button variant="ghost" size="sm">
+      <CardFooter className="flex flex-wrap sm:flex-nowrap justify-between p-2 pt-0 gap-2 mt-auto">
+        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="w-full sm:w-auto">
+          <Button variant="ghost" size={isMobile ? "sm" : "default"} className="w-full">
             <Microscope className="mr-1 h-4 w-4" />
             <span>Analyze</span>
           </Button>
@@ -92,8 +94,8 @@ const PictureCard: React.FC<PictureCardProps> = ({
         {allowDelete && (
           <Button 
             variant="ghost" 
-            size="sm" 
-            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90"
+            size={isMobile ? "sm" : "default"} 
+            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
             onClick={onDelete}
           >
             <Trash2 className="mr-1 h-4 w-4" />
