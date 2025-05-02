@@ -47,6 +47,9 @@ export type AnalysisData = {
   sku_price_post_promotion?: number;
   sku_position?: string; // Top, Middle, or Bottom
   empty_space_estimate?: number; // For empty shelves estimation (percentage)
+  sku_confidence?: string; // high, mid, or low confidence level
+  total_sku_facings?: number; // Summary field
+  quality_picture?: string; // Summary field for image quality assessment
 }
 
 export type Picture = {
