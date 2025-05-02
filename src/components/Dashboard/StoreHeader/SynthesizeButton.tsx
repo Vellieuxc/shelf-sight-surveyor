@@ -9,7 +9,11 @@ interface SynthesizeButtonProps {
 
 const SynthesizeButton: React.FC<SynthesizeButtonProps> = ({ onSynthesizeStore }) => {
   return (
-    <Button onClick={onSynthesizeStore} className="whitespace-nowrap">
+    <Button 
+      onClick={onSynthesizeStore} 
+      className="whitespace-nowrap"
+      variant="secondary"
+    >
       <Sparkles className="mr-2 h-4 w-4" />
       Synthesize Data
     </Button>
