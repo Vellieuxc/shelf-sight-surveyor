@@ -1,5 +1,6 @@
 
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 
 // Mock the Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
