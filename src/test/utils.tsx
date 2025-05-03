@@ -3,6 +3,8 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/auth';
+
+// Import jest-dom separately - don't try to re-export its types
 import '@testing-library/jest-dom';
 
 // Define a type for the wrapper options
@@ -30,7 +32,7 @@ const customRender = (
   });
 };
 
-// Re-export everything from testing-library
+// Re-export everything from testing-library/react
 export * from '@testing-library/react';
-export * from '@testing-library/jest-dom';
+// Don't re-export from jest-dom as it's not a module with exports
 export { customRender as render };
