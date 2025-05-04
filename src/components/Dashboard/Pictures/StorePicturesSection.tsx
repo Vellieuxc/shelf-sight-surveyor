@@ -73,7 +73,7 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
 
       {pictures.length === 0 ? (
         <EmptyPicturesState
-          onAddStore={canModify ? onUploadClick : undefined}
+          onAddPicture={canModify ? onUploadClick : undefined}
         />
       ) : (
         <PictureGrid 

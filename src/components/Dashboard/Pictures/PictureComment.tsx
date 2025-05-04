@@ -96,8 +96,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         user_id: user.id,
         content: comment,
         created_at: new Date().toISOString(),
-        user_name: profile?.first_name && profile?.last_name 
-          ? `${profile.first_name} ${profile.last_name}` 
+        user_name: profile?.firstName && profile?.lastName 
+          ? `${profile.firstName} ${profile.lastName}` 
           : user.email || "You"
       };
       
