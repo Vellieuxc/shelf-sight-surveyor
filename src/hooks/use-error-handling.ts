@@ -16,7 +16,13 @@ export function useErrorHandling(defaultContext?: Partial<ErrorContext>) {
         context: {
           ...defaultContext,
           ...options.context,
-        },
+          // Properly merge additionalData if provided in both places
+          additionalData: {
+            ...(defaultContext?.additionalData || {}),
+            ...(options.context?.additionalData || {}),
+            ...(options.additionalData || {})
+          }
+        }
       });
     },
     [defaultContext]

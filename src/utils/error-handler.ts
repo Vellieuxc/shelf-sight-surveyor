@@ -21,6 +21,10 @@ export interface ErrorOptions {
   useShadcnToast?: boolean; // Whether to use shadcn/ui toast or sonner
   context?: ErrorContext;
   retry?: () => Promise<void>; // Optional retry function
+  // Adding operation directly to ErrorOptions for backward compatibility
+  operation?: string;
+  // Adding additionalData directly to ErrorOptions for backward compatibility
+  additionalData?: Record<string, unknown>;
 }
 
 export interface FormattedError {
@@ -73,8 +77,18 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     toastVariant = "destructive",
     useShadcnToast = false, // Default to sonner for toast since it's used in auth
     context = { source: 'unknown', operation: 'unknown operation' },
-    retry
+    retry,
+    // Handle direct properties for backward compatibility
+    operation,
+    additionalData
   } = options;
+  
+  // Merge direct properties into context for backward compatibility
+  const finalContext = {
+    ...context,
+    operation: operation ?? context.operation,
+    additionalData: additionalData ?? context.additionalData
+  };
   
   // Extract error message
   const errorMessage = extractErrorMessage(error, fallbackMessage);
@@ -83,14 +97,14 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
   const errorWithContext = {
     message: errorMessage,
     originalError: error,
-    context
+    context: finalContext
   };
   
   // Log to console (with context)
   if (!silent) {
-    console.error(`Error in ${context.source} during ${context.operation}:`, error);
-    if (context.additionalData) {
-      console.error("Additional context:", context.additionalData);
+    console.error(`Error in ${finalContext.source} during ${finalContext.operation}:`, error);
+    if (finalContext.additionalData) {
+      console.error("Additional context:", finalContext.additionalData);
     }
   }
   
@@ -106,7 +120,7 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     // Handle different toast libraries
     if (useShadcnToast) {
       shadowToast({
-        title: `Error: ${context.operation}`,
+        title: `Error: ${finalContext.operation}`,
         description: errorMessage,
         variant: toastVariant
       });
@@ -134,14 +148,15 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
 export function handleDatabaseError(
   error: unknown, 
   operation: string, 
-  options: Omit<ErrorOptions, 'context'> = {}
+  options: Omit<ErrorOptions, "context"> = {}
 ): FormattedError {
   return handleError(error, {
     ...options,
     fallbackMessage: `Database operation failed: ${operation}`,
     context: {
       source: 'database',
-      operation
+      operation,
+      additionalData: options.additionalData
     }
   });
 }
@@ -152,14 +167,15 @@ export function handleDatabaseError(
 export function handleStorageError(
   error: unknown, 
   operation: string, 
-  options: Omit<ErrorOptions, 'context'> = {}
+  options: Omit<ErrorOptions, "context"> = {}
 ): FormattedError {
   return handleError(error, {
     ...options,
     fallbackMessage: `Storage operation failed: ${operation}`,
     context: {
       source: 'storage',
-      operation
+      operation,
+      additionalData: options.additionalData
     }
   });
 }
@@ -170,7 +186,7 @@ export function handleStorageError(
 export function handleAuthError(
   error: unknown, 
   operation: string, 
-  options: Omit<ErrorOptions, 'context'> = {}
+  options: Omit<ErrorOptions, "context"> = {}
 ): FormattedError {
   // Special handling for common auth errors to make them more user-friendly
   let friendlyMessage = '';
@@ -190,7 +206,8 @@ export function handleAuthError(
     ...(friendlyMessage && { fallbackMessage: friendlyMessage }),
     context: {
       source: 'auth',
-      operation
+      operation,
+      additionalData: options.additionalData
     }
   });
 }
