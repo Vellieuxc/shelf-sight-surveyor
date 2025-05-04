@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Plus } from "lucide-react";
 import { Picture } from "@/types";
-import { PictureGrid } from "./index";
+import PictureGrid from "./PictureGrid";
 import EmptyPicturesState from "./EmptyPicturesState";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
@@ -73,8 +73,7 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
 
       {pictures.length === 0 ? (
         <EmptyPicturesState
-          onAddPicture={canModify ? onUploadClick : undefined}
-          message="No store pictures available. Upload some to analyze this store."
+          onAddStore={canModify ? onUploadClick : undefined}
         />
       ) : (
         <PictureGrid 

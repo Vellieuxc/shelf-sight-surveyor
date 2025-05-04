@@ -17,6 +17,7 @@ import { Project } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import NewProjectDialog from "./Sidebar/NewProjectDialog";
 import ProjectsList from "./Sidebar/ProjectsList";
+import StoresList from "./Sidebar/StoresList";
 import SidebarHeader from "./Sidebar/SidebarHeader";
 import SidebarNavigation from "./Sidebar/SidebarNavigation";
 
@@ -51,6 +52,11 @@ export function DashboardSidebar() {
 
   const getActiveProjectId = () => {
     const match = location.pathname.match(/\/projects\/([^/]+)/);
+    return match ? match[1] : undefined;
+  };
+
+  const getActiveStoreId = () => {
+    const match = location.pathname.match(/\/stores\/([^/]+)/);
     return match ? match[1] : undefined;
   };
 
@@ -91,6 +97,13 @@ export function DashboardSidebar() {
               isLoading={isLoading} 
               activeProjectId={getActiveProjectId()} 
             />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Recent Stores</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <StoresList activeStoreId={getActiveStoreId()} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

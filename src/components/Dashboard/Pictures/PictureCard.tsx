@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { downloadImage } from "@/utils/imageUtils";
 import PictureMetadata from "./PictureMetadata";
 import PictureCreatorInfo from "./PictureCreatorInfo";
 import PictureAnalysisBadge from "./PictureAnalysisBadge";
+import PictureComment from "./PictureComment";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PictureCardProps {
@@ -26,6 +28,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
   createdByName 
 }) => {
   const [creator, setCreator] = useState<string>(createdByName || "");
+  const [showComments, setShowComments] = useState(false);
   const uploadDate = new Date(picture.created_at);
   const exactDate = format(uploadDate, "PPP");
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
@@ -78,7 +81,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden flex flex-col h-full">
+    <Card className="overflow-hidden flex flex-col">
       <CardContent className="p-0 relative aspect-video">
         <img 
           src={picture.image_url} 
@@ -96,7 +99,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
         <PictureMetadata createdAt={picture.created_at} exactDate={exactDate} />
         <PictureCreatorInfo creator={creator} />
       </div>
-      <CardFooter className="flex flex-wrap gap-2 p-2 pt-0 mt-auto">
+      <CardFooter className="flex flex-wrap gap-2 p-2 pt-0">
         <Button 
           variant="ghost" 
           size={isMobile ? "sm" : "default"}
@@ -125,7 +128,22 @@ const PictureCard: React.FC<PictureCardProps> = ({
             <span>Delete</span>
           </Button>
         )}
+        
+        <Button
+          variant="outline"
+          size={isMobile ? "sm" : "default"}
+          className="w-full"
+          onClick={() => setShowComments(!showComments)}
+        >
+          {showComments ? "Hide Comments" : "Show Comments"}
+        </Button>
       </CardFooter>
+      
+      {showComments && (
+        <div className="p-3 pt-0 border-t">
+          <PictureComment pictureId={picture.id} />
+        </div>
+      )}
     </Card>
   );
 };
