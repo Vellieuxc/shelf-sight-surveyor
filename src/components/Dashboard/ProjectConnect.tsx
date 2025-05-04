@@ -49,8 +49,8 @@ const ProjectConnect: React.FC = () => {
         return;
       }
       
-      // Ensure data exists and has at least one result
-      if (!data || !Array.isArray(data) || data.length === 0 || !data[0]) {
+      // Since we now know the data structure better, adjust the type checking
+      if (!data || !data[0]) {
         toast.error("Project not found. Please check the ID and try again.");
         return;
       }
