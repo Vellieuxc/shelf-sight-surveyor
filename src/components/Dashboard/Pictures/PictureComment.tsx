@@ -44,48 +44,51 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
     const fetchComments = async () => {
       try {
         setIsLoading(true);
+        console.log("Fetching comments for picture:", pictureId);
         
-        // Fetch comments for this picture
-        const { data: commentsData, error } = await supabase
+        // Fetch comments with user profiles in a single query using joins
+        const { data, error } = await supabase
           .from('picture_comments')
-          .select('*')
+          .select(`
+            *,
+            profiles:user_id (
+              first_name, 
+              last_name,
+              email
+            )
+          `)
           .eq('picture_id', pictureId)
           .order('created_at', { ascending: false });
         
         if (error) throw error;
         
-        // Initialize the array for processed comments
-        const commentsWithUser: Comment[] = [];
+        console.log("Comments data received:", data);
         
-        // Process each comment to add user information
-        for (const comment of (commentsData || [])) {
-          try {
-            const { data: userData } = await supabase
-              .from("profiles")
-              .select("first_name, last_name, email")
-              .eq("id", comment.user_id)
-              .single();
-            
-            let userName = "Unknown User";
-            if (userData) {
-              const profile = userData as UserProfile;
-              userName = profile.first_name && profile.last_name 
-                ? `${profile.first_name} ${profile.last_name}` 
-                : profile.email;
-            }
-            
-            commentsWithUser.push({ ...comment, user_name: userName });
-          } catch (userError) {
-            // If we can't get user info, still add the comment but with default name
-            commentsWithUser.push({ ...comment, user_name: "Unknown User" });
+        // Process the joined data
+        const commentsWithUser: Comment[] = (data || []).map(comment => {
+          let userName = "Unknown User";
+          
+          if (comment.profiles) {
+            const profile = comment.profiles as UserProfile;
+            userName = profile.first_name && profile.last_name 
+              ? `${profile.first_name} ${profile.last_name}` 
+              : profile.email || "Unknown User";
           }
-        }
+          
+          return {
+            ...comment,
+            user_name: userName
+          };
+        });
         
         setComments(commentsWithUser);
       } catch (error) {
-        handleDatabaseError(error, 'fetchComments', {
+        console.error("Error fetching comments:", error);
+        handleError(error, {
+          operation: 'fetchComments',
           fallbackMessage: "Failed to load comments",
-          additionalData: { pictureId }
+          additionalData: { pictureId },
+          showToast: true
         });
         // Set empty comments array to prevent eternal loading state
         setComments([]);

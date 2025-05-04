@@ -11,7 +11,7 @@ interface DialogsContainerProps {
   imagePreview: string | null;
   isUploading: boolean;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleUpload: () => void;  // Changed signature to match useImageHandlers
+  handleUpload: () => void;
   handleCaptureFromCamera: (file: File, preview: string) => void;
 }
 
@@ -27,6 +27,15 @@ const DialogsContainer: React.FC<DialogsContainerProps> = ({
   handleUpload,
   handleCaptureFromCamera
 }) => {
+  // This function will handle camera capture and open the upload dialog automatically
+  const handleCaptureImage = (file: File, previewUrl: string) => {
+    handleCaptureFromCamera(file, previewUrl);
+    // Close camera dialog
+    setIsCameraDialogOpen(false);
+    // Open upload dialog to confirm the upload
+    setIsUploadDialogOpen(true);
+  };
+
   return (
     <>
       <UploadDialog 
@@ -42,7 +51,7 @@ const DialogsContainer: React.FC<DialogsContainerProps> = ({
       <CameraDialog 
         open={isCameraDialogOpen}
         onOpenChange={setIsCameraDialogOpen}
-        onCapture={handleCaptureFromCamera}
+        onCapture={handleCaptureImage}
       />
     </>
   );
