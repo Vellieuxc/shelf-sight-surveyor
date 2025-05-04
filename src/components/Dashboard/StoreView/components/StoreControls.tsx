@@ -8,12 +8,16 @@ interface StoreControlsProps {
   store: Store;
   isProjectClosed: boolean;
   onSynthesizeStore: () => void;
+  onUploadClick?: () => void;
+  onCaptureClick?: () => void;
 }
 
 const StoreControls: React.FC<StoreControlsProps> = ({
   store,
   isProjectClosed,
   onSynthesizeStore,
+  onUploadClick,
+  onCaptureClick
 }) => {
   return (
     <>
@@ -28,7 +32,8 @@ const StoreControls: React.FC<StoreControlsProps> = ({
         <StoreActions 
           storeId={store.id}
           isProjectClosed={isProjectClosed}
-          onAnalyze={() => {}}
+          onUploadClick={onUploadClick}
+          onCaptureClick={onCaptureClick}
         />
       </div>
     </>
