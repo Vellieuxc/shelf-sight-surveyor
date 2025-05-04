@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,8 +10,11 @@ import { transformAnalysisData } from "@/utils/dataTransformers";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { StoreContent, StoreHeader, DialogsContainer, useImageHandlers } from "./components";
 
-const StoreView: React.FC = () => {
-  const { storeId } = useParams<{ storeId: string }>();
+interface StoreViewProps {
+  storeId: string;
+}
+
+const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -94,7 +96,7 @@ const StoreView: React.FC = () => {
     handleFileChange,
     handleCaptureFromCamera,
     handleUpload
-  } = useImageHandlers(storeId || '', refetchPictures);
+  } = useImageHandlers(storeId, refetchPictures);
   
   // Handle various UI interactions
   const handleSynthesizeStore = () => {
@@ -108,10 +110,6 @@ const StoreView: React.FC = () => {
   const handleCaptureClick = () => {
     setIsCameraDialogOpen(true);
   };
-
-  if (!storeId) {
-    return <div>Store ID is required</div>;
-  }
 
   if (storeLoading) {
     return <div>Loading store details...</div>;
