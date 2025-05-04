@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import StoreHeader from "@/components/Dashboard/StoreHeader";
-import PictureUpload from "@/components/Dashboard/PictureUpload";
 import { StorePicturesSection } from "@/components/Dashboard/Pictures";
 import { supabase } from "@/integrations/supabase/client";
 import { CameraDialog, UploadDialog } from "@/components/Dashboard/Dialogs";
@@ -12,7 +10,8 @@ import { useAuth } from "@/contexts/auth";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import OfflineStatus from "@/components/OfflineStatus";
 import OfflineImagesList from "@/components/Dashboard/OfflineImagesList";
-import { AnalysisData } from "@/types";
+import { AnalysisData, Picture } from "@/types";
+import { transformAnalysisData } from "@/utils/dataTransformers";
 
 const StoreView: React.FC = () => {
   const { storeId } = useParams<{ storeId: string }>();
@@ -46,7 +45,7 @@ const StoreView: React.FC = () => {
   
   // Fetch pictures
   const { 
-    data: pictures = [], 
+    data: picturesData = [], 
     isLoading: picturesLoading,
     refetch: refetchPictures
   } = useQuery({
@@ -61,15 +60,16 @@ const StoreView: React.FC = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      
-      // Transform the analysis_data to ensure it's an array of AnalysisData objects
-      return data.map(picture => ({
-        ...picture,
-        analysis_data: Array.isArray(picture.analysis_data) ? picture.analysis_data : []
-      }));
+      return data;
     },
     enabled: !!storeId
   });
+  
+  // Transform the pictures data to ensure proper typing
+  const pictures: Picture[] = picturesData.map(pic => ({
+    ...pic,
+    analysis_data: transformAnalysisData(Array.isArray(pic.analysis_data) ? pic.analysis_data : [])
+  }));
   
   // Auto-sync when coming online
   useEffect(() => {
@@ -78,7 +78,7 @@ const StoreView: React.FC = () => {
         refetchPictures();
       });
     }
-  }, [isOnline, pendingUploads]);
+  }, [isOnline, pendingUploads, refetchPictures]);
   
   // Handle file upload from user's device
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
