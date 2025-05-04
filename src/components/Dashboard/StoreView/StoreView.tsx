@@ -1,17 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import StoreHeader from "@/components/Dashboard/StoreHeader";
-import { StorePicturesSection } from "@/components/Dashboard/Pictures";
 import { supabase } from "@/integrations/supabase/client";
-import { CameraDialog, UploadDialog } from "@/components/Dashboard/Dialogs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
-import OfflineStatus from "@/components/OfflineStatus";
-import OfflineImagesList from "@/components/Dashboard/OfflineImagesList";
-import { AnalysisData, Picture } from "@/types";
+import { Picture } from "@/types";
 import { transformAnalysisData } from "@/utils/dataTransformers";
+import { useErrorHandling } from "@/hooks/use-error-handling";
+import { StoreContent, StoreHeader, DialogsContainer, useImageHandlers } from "./components";
 
 const StoreView: React.FC = () => {
   const { storeId } = useParams<{ storeId: string }>();
@@ -20,13 +18,21 @@ const StoreView: React.FC = () => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const { pendingUploads, isOnline, syncOfflineImages } = useOfflineMode();
+  const { handleError } = useErrorHandling({
+    source: 'ui',
+    componentName: 'StoreView'
+  });
 
   // Check user permissions
   const isConsultant = profile?.role === "consultant";
   const isBoss = profile?.role === "boss";
   
   // Fetch store data
-  const { data: store, isLoading: storeLoading } = useQuery({
+  const { 
+    data: store, 
+    isLoading: storeLoading,
+    error: storeError
+  } = useQuery({
     queryKey: ['store', storeId],
     queryFn: async () => {
       if (!storeId) throw new Error("Store ID is required");
@@ -80,125 +86,27 @@ const StoreView: React.FC = () => {
     }
   }, [isOnline, pendingUploads, refetchPictures]);
   
-  // Handle file upload from user's device
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      // setSelectedFile(file);
-      
-      try {
-        // const previewUrl = await createImagePreview(file);
-        // setImagePreview(previewUrl);
-      } catch (error) {
-        console.error("Failed to create preview:", error);
-        toast({
-          title: "Preview Error",
-          description: "Failed to create image preview", 
-          variant: "destructive"
-        });
-      }
-    }
-  };
+  // Use the image handlers custom hook
+  const {
+    selectedFile,
+    imagePreview,
+    isUploading,
+    handleFileChange,
+    handleCaptureFromCamera,
+    handleUpload
+  } = useImageHandlers(storeId || '', refetchPictures);
   
-  // Handle image captured from camera
-  const handleCaptureFromCamera = (file: File, previewUrl: string) => {
-    // setSelectedFile(file);
-    // setImagePreview(previewUrl);
-    setIsCameraDialogOpen(false);
+  // Handle various UI interactions
+  const handleSynthesizeStore = () => {
+    console.log("Synthesize store");
+  };
+
+  const handleUploadClick = () => {
     setIsUploadDialogOpen(true);
   };
-  
-  // Handle image upload to Supabase
-  const handleUpload = async () => {
-    // if (!selectedFile || !user) {
-    //   toast({
-    //     title: "Upload Error",
-    //     description: "Missing file or user information",
-    //     variant: "destructive"
-    //   });
-    //   return;
-    // }
-    
-    // setIsUploading(true);
-    
-    try {
-      // if (!isOnline) {
-      //   // Save the image locally if offline
-      //   await captureOfflineImage(
-      //     storeId, 
-      //     selectedFile,
-      //     selectedFile.name
-      //   );
-        
-      //   toast({
-      //     title: "Saved Offline", 
-      //     description: "Picture saved locally and will be uploaded when you're online."
-      //   });
-      //   setIsUploadDialogOpen(false);
-      //   setSelectedFile(null);
-      //   setImagePreview(null);
-      //   refetchPictures();
-      //   return;
-      // }
-      
-      // If online, proceed with normal upload flow
-      // await verifyPicturesBucketExists();
-      
-      // Upload the file to Supabase Storage
-      // const fileExt = selectedFile.name.split('.').pop();
-      // const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      // const filePath = `stores/${storeId}/${fileName}`;
-      
-      // Create a storage object
-      // const { error: uploadError } = await supabase.storage
-      //   .from('pictures')
-      //   .upload(filePath, selectedFile);
-      
-      // if (uploadError) {
-      //   console.error("Storage upload error:", uploadError);
-      //   throw new Error(`Failed to upload image: ${uploadError.message}`);
-      // }
-      
-      // Get the public URL
-      // const { data: publicUrlData } = supabase.storage
-      //   .from('pictures')
-      //   .getPublicUrl(filePath);
-      
-      // if (!publicUrlData || !publicUrlData.publicUrl) {
-      //   throw new Error("Failed to get public URL for uploaded image");
-      // }
-      
-      // Save picture metadata to database
-      // const { error: dbError } = await supabase
-      //   .from("pictures")
-      //   .insert({
-      //     store_id: storeId,
-      //     uploaded_by: user.id,
-      //     image_url: publicUrlData.publicUrl,
-      //     analysis_data: []
-      //   });
-      
-      // if (dbError) throw dbError;
-      
-      // toast({
-      //   title: "Upload Successful", 
-      //   description: "Picture uploaded successfully!"
-      // });
-      // setIsUploadDialogOpen(false);
-      // setSelectedFile(null);
-      // setImagePreview(null);
-      // refetchPictures();
-      
-    } catch (error: any) {
-      console.error("Error uploading picture:", error.message);
-      toast({
-        title: "Upload Failed",
-        description: `Failed to upload picture: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      // setIsUploading(false);
-    }
+
+  const handleCaptureClick = () => {
+    setIsCameraDialogOpen(true);
   };
 
   if (!storeId) {
@@ -207,6 +115,15 @@ const StoreView: React.FC = () => {
 
   if (storeLoading) {
     return <div>Loading store details...</div>;
+  }
+
+  if (storeError) {
+    handleError(storeError, {
+      fallbackMessage: "Failed to load store details",
+      operation: "fetchStore",
+      additionalData: { storeId }
+    });
+    return <div>Error loading store</div>;
   }
 
   if (!store) {
@@ -220,42 +137,32 @@ const StoreView: React.FC = () => {
     <div className="space-y-8">
       <StoreHeader 
         store={store} 
-        onSynthesizeStore={() => console.log("Synthesize store")}
+        onSynthesizeStore={handleSynthesizeStore}
       />
       
-      <OfflineStatus className="mt-4" />
-      
-      {/* Offline images list */}
-      <OfflineImagesList 
-        storeId={storeId} 
-        onSyncComplete={refetchPictures}
-      />
-      
-      {/* Store pictures section */}
-      <StorePicturesSection
+      <StoreContent 
+        store={store}
         pictures={pictures}
-        onUploadClick={() => setIsUploadDialogOpen(true)}
-        onCaptureClick={() => setIsCameraDialogOpen(true)}
+        storeId={storeId}
         isProjectClosed={isProjectClosed}
         isConsultant={isConsultant}
         isBoss={isBoss}
+        onUploadClick={handleUploadClick}
+        onCaptureClick={handleCaptureClick}
+        refetchPictures={refetchPictures}
       />
       
-      {/* Upload and camera dialogs */}
-      <UploadDialog
-        open={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
-        selectedFile={null}
-        imagePreview={null}
-        isUploading={false}
-        onFileChange={handleFileChange}
-        onUpload={handleUpload}
-      />
-      
-      <CameraDialog
-        open={isCameraDialogOpen}
-        onOpenChange={setIsCameraDialogOpen}
-        onCapture={handleCaptureFromCamera}
+      <DialogsContainer
+        isUploadDialogOpen={isUploadDialogOpen}
+        setIsUploadDialogOpen={setIsUploadDialogOpen}
+        isCameraDialogOpen={isCameraDialogOpen}
+        setIsCameraDialogOpen={setIsCameraDialogOpen}
+        selectedFile={selectedFile}
+        imagePreview={imagePreview}
+        isUploading={isUploading}
+        handleFileChange={handleFileChange}
+        handleUpload={handleUpload}
+        handleCaptureFromCamera={handleCaptureFromCamera}
       />
     </div>
   );
