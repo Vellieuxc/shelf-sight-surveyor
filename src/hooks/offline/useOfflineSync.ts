@@ -5,6 +5,9 @@ import { useToast } from '@/hooks/use-toast';
 import { OfflineImage } from './types';
 import { useOfflineStorage } from './useOfflineStorage';
 
+// Constants
+const BUCKET_NAME = 'pictures';
+
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [pendingUploads, setPendingUploads] = useState<number>(0);
@@ -61,11 +64,11 @@ export function useOfflineSync() {
   async function verifyPicturesBucketExists() {
     try {
       // Check if the 'pictures' bucket exists
-      const { data, error } = await supabase.storage.getBucket('pictures');
+      const { data, error } = await supabase.storage.getBucket(BUCKET_NAME);
       
       if (error || !data) {
         // Create the bucket if it doesn't exist
-        const { error: createError } = await supabase.storage.createBucket('pictures', {
+        const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
           public: false,
           fileSizeLimit: 10485760, // 10MB
         });
@@ -73,7 +76,7 @@ export function useOfflineSync() {
         if (createError) throw createError;
         
         // Configure bucket to allow public access to objects
-        const { error: updateError } = await supabase.storage.updateBucket('pictures', {
+        const { error: updateError } = await supabase.storage.updateBucket(BUCKET_NAME, {
           public: true,
         });
         
@@ -105,14 +108,14 @@ export function useOfflineSync() {
         
         // Upload image to storage
         const { error: uploadError } = await supabase.storage
-          .from('pictures')
+          .from(BUCKET_NAME)
           .upload(filePath, image.file);
         
         if (uploadError) throw uploadError;
         
         // Get the public URL
         const { data: publicUrlData } = supabase.storage
-          .from('pictures')
+          .from(BUCKET_NAME)
           .getPublicUrl(filePath);
         
         const imageUrl = publicUrlData.publicUrl;

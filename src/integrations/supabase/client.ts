@@ -13,27 +13,43 @@ export const supabase = createClient<Database>(
   supabaseAnonKey,
 );
 
+// Storage bucket constants
+export const PICTURES_BUCKET = 'pictures';
+
 // Verify that the pictures bucket exists, create it if it doesn't
 export const verifyPicturesBucketExists = async () => {
   try {
+    console.log("Verifying pictures bucket exists");
     // Check if the 'pictures' bucket exists
-    const { data, error } = await supabase.storage.getBucket('pictures');
+    const { data, error } = await supabase.storage.getBucket(PICTURES_BUCKET);
     
     if (error || !data) {
+      console.log("Pictures bucket does not exist, creating it");
       // Create the bucket if it doesn't exist
-      const { error: createError } = await supabase.storage.createBucket('pictures', {
+      const { error: createError } = await supabase.storage.createBucket(PICTURES_BUCKET, {
         public: false,
         fileSizeLimit: 10485760, // 10MB
       });
       
-      if (createError) throw createError;
+      if (createError) {
+        console.error("Failed to create pictures bucket:", createError);
+        throw createError;
+      }
       
+      console.log("Pictures bucket created, updating to public");
       // Configure bucket to allow public access to objects
-      const { error: updateError } = await supabase.storage.updateBucket('pictures', {
+      const { error: updateError } = await supabase.storage.updateBucket(PICTURES_BUCKET, {
         public: true,
       });
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Failed to update pictures bucket:", updateError);
+        throw updateError;
+      }
+      
+      console.log("Pictures bucket configured successfully");
+    } else {
+      console.log("Pictures bucket already exists");
     }
   } catch (error) {
     console.error('Error verifying pictures bucket:', error);

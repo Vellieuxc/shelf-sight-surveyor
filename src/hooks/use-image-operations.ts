@@ -5,16 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useErrorHandling } from "./use-error-handling";
 import { useAuth } from "@/contexts/auth";
 
+// Constants
+const BUCKET_NAME = 'pictures';
+
 interface UseImageOperationsProps {
   storeId?: string;
   onSuccess?: () => void;
-  bucketName?: string;
 }
 
 export const useImageOperations = ({
   storeId,
-  onSuccess,
-  bucketName = "store-pictures"
+  onSuccess
 }: UseImageOperationsProps = {}) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -81,18 +82,18 @@ export const useImageOperations = ({
     try {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${storeId}/${fileName}`;
+      const filePath = `stores/${storeId}/${fileName}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
-        .from(bucketName)
+        .from(BUCKET_NAME)
         .upload(filePath, selectedFile);
         
       if (uploadError) throw uploadError;
         
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from(bucketName)
+        .from(BUCKET_NAME)
         .getPublicUrl(filePath);
         
       if (!publicUrlData) throw new Error("Failed to get public URL");

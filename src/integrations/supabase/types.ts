@@ -224,12 +224,8 @@ export type Database = {
     }
     Functions: {
       connect_to_project: {
-        Args: { project_id_param: string }
-        Returns: {
-          project_id: string
-          project_title: string
-          already_member: boolean
-        }[]
+        Args: Record<PropertyKey, never> | { project_id_param: string }
+        Returns: undefined
       }
       create_picture_comments_function_if_not_exists: {
         Args: Record<PropertyKey, never>

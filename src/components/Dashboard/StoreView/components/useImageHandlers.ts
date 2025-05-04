@@ -6,6 +6,9 @@ import { useErrorHandling } from "@/hooks/use-error-handling";
 import { getFileFromCanvas } from "@/utils/imageUtils";
 import { useAuth } from "@/contexts/auth";
 
+// Constants
+const BUCKET_NAME = 'pictures';
+
 export const useImageHandlers = (storeId: string, refetchPictures: () => void) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -61,18 +64,18 @@ export const useImageHandlers = (storeId: string, refetchPictures: () => void) =
       // Generate a unique file name
       const fileExt = selectedFile.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${storeId}/${fileName}`;
+      const filePath = `stores/${storeId}/${fileName}`;
       
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("store-pictures")
+        .from(BUCKET_NAME)
         .upload(filePath, selectedFile);
       
       if (uploadError) throw uploadError;
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
-        .from("store-pictures")
+        .from(BUCKET_NAME)
         .getPublicUrl(filePath);
       
       if (!publicUrlData) throw new Error("Failed to get public URL");
