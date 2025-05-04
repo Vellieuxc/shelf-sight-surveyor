@@ -9,7 +9,14 @@ import {
 } from "./utils/authUtils";
 
 export const useSupabaseAuth = () => {
-  const navigate = useNavigate();
+  // Use navigate with a try-catch to handle cases where router context might not be available
+  let navigate;
+  try {
+    navigate = useNavigate();
+  } catch (error) {
+    console.warn("Router context not available for navigation");
+  }
+
   const { user, session, profile, isLoading, setProfile } = useAuthState();
 
   // Handle user sign in
@@ -17,7 +24,7 @@ export const useSupabaseAuth = () => {
     try {
       const { success, user: signedInUser } = await authSignIn(email, password);
       
-      if (success && signedInUser) {
+      if (success && signedInUser && navigate) {
         navigate("/dashboard");
       }
     } catch (error) {
@@ -31,7 +38,7 @@ export const useSupabaseAuth = () => {
       const { success, user: signedUpUser } = await authSignUp(email, password);
       
       // For development, we can auto-sign in
-      if (success && signedUpUser) {
+      if (success && signedUpUser && navigate) {
         navigate("/dashboard");
       }
     } catch (error) {
@@ -43,7 +50,7 @@ export const useSupabaseAuth = () => {
   const signOut = async () => {
     try {
       const success = await authSignOut();
-      if (success) {
+      if (success && navigate) {
         navigate("/auth");
       }
     } catch (error) {
