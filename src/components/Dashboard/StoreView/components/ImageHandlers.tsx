@@ -1,10 +1,5 @@
 
-import React, { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth";
-import { createImagePreview } from "@/utils/imageUtils";
-import { useOfflineMode } from "@/hooks/useOfflineMode";
-import { useErrorHandling } from "@/hooks/use-error-handling";
+import React from "react";
 import { useImageUploader } from "@/hooks/use-image-uploader";
 
 export interface ImageHandlersHook {
