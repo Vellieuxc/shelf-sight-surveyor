@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Store } from "@/types";
-import { createImagePreview, verifyPicturesBucketExists } from "@/utils/imageUtils";
+import { createImagePreview } from "@/utils/imageUtils";
 
 export const useFileUpload = (store: Store | null, userId: string) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -130,6 +130,35 @@ export const useFileUpload = (store: Store | null, userId: string) => {
       setIsUploading(false);
     }
   };
+
+  // We need to import this function since it's being used above
+  // but isn't exported from imageUtils
+  async function verifyPicturesBucketExists() {
+    try {
+      // Check if the 'pictures' bucket exists
+      const { data, error } = await supabase.storage.getBucket('pictures');
+      
+      if (error || !data) {
+        // Create the bucket if it doesn't exist
+        const { error: createError } = await supabase.storage.createBucket('pictures', {
+          public: false,
+          fileSizeLimit: 10485760, // 10MB
+        });
+        
+        if (createError) throw createError;
+        
+        // Configure bucket to allow public access to objects
+        const { error: updateError } = await supabase.storage.updateBucket('pictures', {
+          public: true,
+        });
+        
+        if (updateError) throw updateError;
+      }
+    } catch (error) {
+      console.error('Error verifying pictures bucket:', error);
+      throw error;
+    }
+  }
   
   return {
     selectedFile,
