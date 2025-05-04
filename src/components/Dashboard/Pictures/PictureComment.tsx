@@ -19,6 +19,7 @@ interface Comment {
   content: string;
   created_at: string;
   user_name?: string;
+  profiles?: UserProfile;
 }
 
 interface UserProfile {
@@ -68,7 +69,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         const commentsWithUser: Comment[] = (data || []).map(comment => {
           let userName = "Unknown User";
           
-          if (comment.profiles) {
+          // Add proper type checking for the profiles property
+          if (comment.profiles && typeof comment.profiles === 'object') {
             const profile = comment.profiles as UserProfile;
             userName = profile.first_name && profile.last_name 
               ? `${profile.first_name} ${profile.last_name}` 
