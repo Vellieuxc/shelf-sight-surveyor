@@ -30,18 +30,44 @@ export async function analyzeShelfImage(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
       
-      // Make the request with timeout handling
-      const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
+      // Track if we've aborted to handle cleanup properly
+      let isAborted = false;
+      
+      // Add abort listener
+      controller.signal.addEventListener('abort', () => {
+        isAborted = true;
+        console.log('Analysis request aborted due to timeout');
+      });
+      
+      // Make the request
+      const functionPromise = supabase.functions.invoke('analyze-shelf-image', {
         body: {
           imageUrl,
           imageId,
           includeConfidence
-        },
-        signal: controller.signal
+        }
       });
       
-      // Clear the timeout
+      // Create a wrapper promise that we can resolve/reject based on the abort signal
+      const result = await Promise.race([
+        functionPromise,
+        new Promise((_, reject) => {
+          controller.signal.addEventListener('abort', () => {
+            reject(new Error(`Analysis timed out after ${timeout}ms`));
+          });
+        })
+      ]);
+      
+      // Clear the timeout if we complete successfully
       clearTimeout(timeoutId);
+      
+      // If already aborted, throw error (should not reach here but just in case)
+      if (isAborted) {
+        throw new Error(`Analysis timed out after ${timeout}ms`);
+      }
+      
+      // Destructure result after we know we haven't aborted
+      const { data, error } = result as any;
       
       if (error) {
         console.error(`Error from edge function:`, error);
