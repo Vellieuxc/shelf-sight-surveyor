@@ -6,3 +6,4 @@ export * from './analysisService';
 export * from './api/index';
 export * from './api/projects';
 export * from './api/stores';
+export * from './api/pictures';

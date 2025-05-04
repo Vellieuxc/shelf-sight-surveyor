@@ -18,26 +18,34 @@ export class StoresService extends ApiService<'stores'> {
     super('stores');
   }
   
-  async getStores(projectId?: string) {
+  /**
+   * Get stores, optionally filtered by project ID
+   * @param projectId Optional project ID filter
+   * @returns Array of stores
+   */
+  async getStores(projectId?: string): Promise<Store[]> {
     if (projectId) {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      return data as Store[];
+      return this.query<Store>({ project_id: projectId });
     }
     
     return this.getAll<Store>();
   }
   
-  async getStore(id: string) {
+  /**
+   * Get a specific store by ID
+   * @param id Store ID
+   * @returns Store details
+   */
+  async getStore(id: string): Promise<Store> {
     return this.getById<Store>(id);
   }
   
-  async createStore(store: CreateStoreData) {
+  /**
+   * Create a new store
+   * @param store Store data
+   * @returns Created store
+   */
+  async createStore(store: CreateStoreData): Promise<Store> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
@@ -47,20 +55,20 @@ export class StoresService extends ApiService<'stores'> {
     });
   }
   
-  async getUserStores(userId: string, projectId?: string) {
-    let query = supabase
-      .from(this.tableName)
-      .select('*')
-      .eq('created_by', userId);
-      
+  /**
+   * Get stores created by a specific user
+   * @param userId User ID
+   * @param projectId Optional project ID filter
+   * @returns Array of user's stores
+   */
+  async getUserStores(userId: string, projectId?: string): Promise<Store[]> {
+    const filters: Record<string, any> = { created_by: userId };
+    
     if (projectId) {
-      query = query.eq('project_id', projectId);
+      filters.project_id = projectId;
     }
     
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data as Store[];
+    return this.query<Store>(filters);
   }
 }
 

@@ -15,15 +15,29 @@ export class ProjectsService extends ApiService<'projects'> {
     super('projects');
   }
   
-  async getProjects() {
+  /**
+   * Get all projects
+   * @returns Array of projects
+   */
+  async getProjects(): Promise<Project[]> {
     return this.getAll<Project>();
   }
   
-  async getProject(id: string) {
+  /**
+   * Get a specific project by ID
+   * @param id Project ID
+   * @returns Project details
+   */
+  async getProject(id: string): Promise<Project> {
     return this.getById<Project>(id);
   }
   
-  async createProject(project: CreateProjectData) {
+  /**
+   * Create a new project
+   * @param project Project data
+   * @returns Created project
+   */
+  async createProject(project: CreateProjectData): Promise<Project> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
@@ -33,12 +47,31 @@ export class ProjectsService extends ApiService<'projects'> {
     });
   }
   
-  async closeProject(id: string) {
-    return this.update<Project, { is_closed: boolean }>(id, { is_closed: true });
+  /**
+   * Close a project
+   * @param id Project ID
+   * @returns Updated project
+   */
+  async closeProject(id: string): Promise<Project> {
+    return this.update<Project>(id, { is_closed: true });
   }
   
-  async reopenProject(id: string) {
-    return this.update<Project, { is_closed: boolean }>(id, { is_closed: false });
+  /**
+   * Reopen a project
+   * @param id Project ID
+   * @returns Updated project
+   */
+  async reopenProject(id: string): Promise<Project> {
+    return this.update<Project>(id, { is_closed: false });
+  }
+  
+  /**
+   * Get projects by user ID
+   * @param userId User ID
+   * @returns Array of user's projects
+   */
+  async getUserProjects(userId: string): Promise<Project[]> {
+    return this.query<Project>({ created_by: userId });
   }
 }
 
