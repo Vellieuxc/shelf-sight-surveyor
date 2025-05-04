@@ -88,13 +88,23 @@ const StoreView: React.FC<StoreViewProps> = ({
       });
     }
   };
-
-  // Debug upload process
-  console.log("Upload dialog state:", { 
-    isUploadDialogOpen, 
-    selectedFile: selectedFile?.name, 
-    isUploading 
-  });
+  
+  // Handle upload button click
+  const handleUploadClick = () => {
+    setIsUploadDialogOpen(true);
+  };
+  
+  // Handle file upload with dialog close
+  const handleProcessUpload = () => {
+    handleFileUpload(() => setIsUploadDialogOpen(false));
+  };
+  
+  // Handle camera capture
+  const handleCameraCapture = (file: File, previewUrl: string) => {
+    handleCapture(file, previewUrl);
+    setIsCameraDialogOpen(false);
+    setIsUploadDialogOpen(true);
+  };
 
   return (
     <div className="container py-6 space-y-6 lg:space-y-8 px-4 sm:px-6">
@@ -124,7 +134,7 @@ const StoreView: React.FC<StoreViewProps> = ({
         <div className="lg:col-span-2">
           <StorePicturesSection 
             pictures={pictures}
-            onUploadClick={() => setIsUploadDialogOpen(true)}
+            onUploadClick={handleUploadClick}
             onCaptureClick={() => setIsCameraDialogOpen(true)}
             isProjectClosed={isProjectClosed}
             isConsultant={profile?.role === 'consultant'}
@@ -146,13 +156,13 @@ const StoreView: React.FC<StoreViewProps> = ({
         imagePreview={imagePreview}
         isUploading={isUploading}
         onFileChange={handleFileChange}
-        onUpload={handleFileUpload}
+        onUpload={handleProcessUpload}
       />
 
       <CameraDialog
         open={isCameraDialogOpen}
         onOpenChange={setIsCameraDialogOpen}
-        onCapture={handleCapture}
+        onCapture={handleCameraCapture}
       />
     </div>
   );

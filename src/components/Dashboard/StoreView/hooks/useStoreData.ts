@@ -1,10 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Store, Picture } from "@/types";
+import { Picture, Store } from "@/types";
 import { transformAnalysisData } from "@/utils/dataTransformers";
-import { useAuth } from "@/contexts/auth";
 
 interface UseStoreDataProps {
   storeId: string;
@@ -12,97 +10,75 @@ interface UseStoreDataProps {
   onLoading?: (loading: boolean) => void;
 }
 
-interface StoreDataResult {
-  store: Store | null;
-  pictures: Picture[];
-  isLoading: boolean;
-  isProjectClosed: boolean;
-}
-
-export const useStoreData = ({
-  storeId,
-  onError,
-  onLoading
-}: UseStoreDataProps): StoreDataResult => {
-  const [store, setStore] = useState<Store | null>(null);
-  const [pictures, setPictures] = useState<Picture[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProjectClosed, setIsProjectClosed] = useState(false);
-  const { profile } = useAuth();
-  const { toast } = useToast();
-  
-  const isCrew = profile?.role === "crew";
-  const isBoss = profile?.role === "boss";
-
-  useEffect(() => {
-    const fetchStoreAndPictures = async () => {
+export const useStoreData = ({ storeId, onError, onLoading }: UseStoreDataProps) => {
+  // Fetch store data
+  const { data: store, isLoading: storeLoading } = useQuery({
+    queryKey: ['store', storeId],
+    queryFn: async () => {
       try {
-        // Fetch store info
-        const { data: storeData, error: storeError } = await supabase
-          .from("stores")
-          .select("*, projects:project_id(is_closed)")
-          .eq("id", storeId)
+        const { data, error } = await supabase
+          .from('stores')
+          .select('*, projects:project_id(is_closed)')
+          .eq('id', storeId)
           .single();
-
-        if (storeError) throw storeError;
-        
-        setStore(storeData);
-        
-        // Check if the project is closed
-        if (storeData?.projects) {
-          setIsProjectClosed(!!storeData.projects.is_closed);
-        }
-
-        // Fetch pictures for this store
-        let picturesQuery = supabase
-          .from("pictures")
-          .select("*")
-          .eq("store_id", storeId);
           
-        // If user is crew and not boss, filter to only show their pictures
-        if (isCrew && !isBoss && profile) {
-          picturesQuery = picturesQuery.eq("uploaded_by", profile.id);
-        }
-        
-        const { data: picturesData, error: picturesError } = await picturesQuery
-          .order("created_at", { ascending: false });
-
-        if (picturesError) throw picturesError;
-        
-        // Transform the data to match our Picture type with proper AnalysisData typing
-        const transformedPictures: Picture[] = (picturesData || []).map(pic => {
-          return {
-            id: pic.id,
-            store_id: pic.store_id,
-            uploaded_by: pic.uploaded_by,
-            image_url: pic.image_url,
-            created_at: pic.created_at,
-            analysis_data: transformAnalysisData(pic.analysis_data as any[])
-          };
-        });
-        
-        setPictures(transformedPictures);
+        if (error) throw error;
+        return data;
       } catch (error: any) {
-        console.error("Error fetching data:", error.message);
-        if (onError) {
-          onError("Failed to load store data");
-        } else {
-          toast({
-            title: "Loading Error",
-            description: "Failed to load store data",
-            variant: "destructive"
-          });
-        }
-      } finally {
-        setIsLoading(false);
-        if (onLoading) {
-          onLoading(false);
-        }
+        onError?.(error.message || "Failed to fetch store data");
+        return null;
       }
-    };
-
-    fetchStoreAndPictures();
-  }, [storeId, isCrew, isBoss, profile, onError, onLoading]);
-
-  return { store, pictures, isLoading, isProjectClosed };
+    },
+    enabled: !!storeId
+  });
+  
+  // Fetch pictures
+  const { 
+    data: picturesData = [], 
+    isLoading: picturesLoading,
+    refetch: refetchPictures
+  } = useQuery({
+    queryKey: ['pictures', storeId],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('pictures')
+          .select('*')
+          .eq('store_id', storeId)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        return data;
+      } catch (error: any) {
+        onError?.(error.message || "Failed to fetch pictures");
+        return [];
+      }
+    },
+    enabled: !!storeId
+  });
+  
+  // Transform the pictures data to ensure proper typing
+  const pictures: Picture[] = picturesData.map(pic => ({
+    ...pic,
+    analysis_data: transformAnalysisData(Array.isArray(pic.analysis_data) ? pic.analysis_data : [])
+  }));
+  
+  // Determine loading state
+  const isLoading = storeLoading || picturesLoading;
+  
+  // Call onLoading callback when loading state changes
+  if (onLoading) {
+    onLoading(isLoading);
+  }
+  
+  // Determine if the project is closed
+  const isProjectClosed = store?.projects?.is_closed ?? false;
+  
+  return { 
+    store, 
+    pictures, 
+    isLoading, 
+    isProjectClosed, 
+    refetchPictures 
+  };
 };

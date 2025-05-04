@@ -1,27 +1,33 @@
 
 import { AnalysisData } from "@/types";
+import { Json } from "@/integrations/supabase/types";
 
-export const transformAnalysisData = (data: any[]): AnalysisData[] => {
-  if (!Array.isArray(data)) {
-    return [];
-  }
-
+/**
+ * Transforms raw JSON data from Supabase into strongly-typed AnalysisData objects
+ * @param data Raw JSON data from Supabase
+ * @returns Array of properly typed AnalysisData objects
+ */
+export function transformAnalysisData(data: Json[]): AnalysisData[] {
   return data.map(item => {
-    // Convert the item to an object if it's not already
-    const obj = typeof item === 'object' && item !== null ? item : {};
+    // Handle case where item might be a string (parse it)
+    const dataObject = typeof item === 'string' ? JSON.parse(item) : item;
     
     return {
-      sku_name: String(obj.sku_name || ''),
-      brand: String(obj.brand || ''),
-      sku_count: Number(obj.sku_count || 0),
-      sku_price: Number(obj.sku_price || 0),
-      sku_price_pre_promotion: obj.sku_price_pre_promotion ? Number(obj.sku_price_pre_promotion) : undefined,
-      sku_price_post_promotion: obj.sku_price_post_promotion ? Number(obj.sku_price_post_promotion) : undefined,
-      sku_position: obj.sku_position ? String(obj.sku_position) : undefined,
-      empty_space_estimate: obj.empty_space_estimate ? Number(obj.empty_space_estimate) : undefined,
-      sku_confidence: obj.sku_confidence ? String(obj.sku_confidence) : undefined,
-      total_sku_facings: obj.total_sku_facings ? Number(obj.total_sku_facings) : undefined,
-      quality_picture: obj.quality_picture ? String(obj.quality_picture) : undefined
+      sku_name: dataObject.sku_name || '',
+      brand: dataObject.brand || '',
+      sku_count: Number(dataObject.sku_count) || 0,
+      sku_price: Number(dataObject.sku_price) || 0,
+      sku_price_pre_promotion: dataObject.sku_price_pre_promotion 
+        ? Number(dataObject.sku_price_pre_promotion) 
+        : undefined,
+      sku_price_post_promotion: dataObject.sku_price_post_promotion 
+        ? Number(dataObject.sku_price_post_promotion) 
+        : undefined,
+      sku_position: dataObject.sku_position as string | undefined,
+      empty_space_estimate: dataObject.empty_space_estimate as number | undefined,
+      sku_confidence: dataObject.sku_confidence as string | undefined,
+      total_sku_facings: dataObject.total_sku_facings as number | undefined,
+      quality_picture: dataObject.quality_picture as string | undefined
     };
   });
-};
+}
