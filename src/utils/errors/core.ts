@@ -1,69 +1,10 @@
 
-import { toast as sonnerToast } from "sonner";
-import { toast as shadowToast } from "@/hooks/use-toast";
+import { extractErrorMessage } from './extractors';
+import { showErrorToast } from './toasts';
+import { ErrorOptions, FormattedError, ErrorContext } from './types';
 
-// Error types specific to your application
-export type ErrorSource = 'auth' | 'database' | 'storage' | 'api' | 'ui' | 'unknown';
-
-export interface ErrorContext {
-  source: ErrorSource;
-  operation: string;
-  componentName?: string;
-  additionalData?: Record<string, unknown>;
-}
-
-export interface ErrorOptions {
-  silent?: boolean;
-  fallbackMessage?: string;
-  showToast?: boolean;
-  logToService?: boolean;
-  toastVariant?: "default" | "destructive";
-  useShadcnToast?: boolean; // Whether to use shadcn/ui toast or sonner
-  context?: ErrorContext;
-  retry?: () => Promise<void>; // Optional retry function
-  // Adding operation directly to ErrorOptions for backward compatibility
-  operation?: string;
-  // Adding additionalData directly to ErrorOptions for backward compatibility
-  additionalData?: Record<string, unknown>;
-}
-
-export interface FormattedError {
-  message: string;
-  originalError: unknown;
-  context?: ErrorContext;
-}
-
-/**
- * Extract a user-friendly error message from various error types
- */
-function extractErrorMessage(error: unknown, fallbackMessage: string): string {
-  // Supabase error object
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message;
-  }
-  
-  // Standard Error object
-  if (error instanceof Error) {
-    return error.message;
-  }
-  
-  // String error
-  if (typeof error === 'string') {
-    return error;
-  }
-  
-  // JSON stringifiable error
-  try {
-    const errorStr = JSON.stringify(error);
-    if (errorStr !== '{}' && errorStr !== 'null' && errorStr !== 'undefined') {
-      return errorStr;
-    }
-  } catch {
-    // If JSON stringify fails, fall back to default message
-  }
-  
-  return fallbackMessage;
-}
+// Re-export types for convenience
+export type { ErrorSource, ErrorContext, ErrorOptions, FormattedError } from './types';
 
 /**
  * Handle errors consistently throughout the application
@@ -75,7 +16,7 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     showToast = true,
     logToService = true,
     toastVariant = "destructive",
-    useShadcnToast = false, // Default to sonner for toast since it's used in auth
+    useShadcnToast = false, 
     context = { source: 'unknown', operation: 'unknown operation' },
     retry,
     // Handle direct properties for backward compatibility
@@ -117,26 +58,13 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
   
   // Show toast notification
   if (showToast) {
-    // Handle different toast libraries
-    if (useShadcnToast) {
-      shadowToast({
-        title: `Error: ${finalContext.operation}`,
-        description: errorMessage,
-        variant: toastVariant
-      });
-    } else {
-      // For retry functionality with sonner
-      if (retry) {
-        sonnerToast.error(errorMessage, {
-          action: {
-            label: 'Retry',
-            onClick: () => retry(),
-          },
-        });
-      } else {
-        sonnerToast.error(errorMessage);
-      }
-    }
+    showErrorToast({
+      title: `Error: ${finalContext.operation}`,
+      message: errorMessage,
+      variant: toastVariant,
+      useShadcnToast,
+      retry
+    });
   }
   
   return errorWithContext;
