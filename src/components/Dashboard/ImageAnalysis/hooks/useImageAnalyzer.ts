@@ -1,129 +1,81 @@
 
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
+import { analyzeShelfImage } from "@/services/analysisService";
+import { useToast } from "@/hooks/use-toast";
+import { useAnalysisCache } from "@/hooks/use-analysis-cache";
 
 interface UseImageAnalyzerProps {
   selectedImage: string | null;
   currentPictureId: string | null;
 }
 
-export const useImageAnalyzer = ({ selectedImage, currentPictureId }: UseImageAnalyzerProps) => {
+export const useImageAnalyzer = ({ 
+  selectedImage, 
+  currentPictureId 
+}: UseImageAnalyzerProps) => {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const maxRetries = 3;
+  
+  // Create a cache key based on the image URL
+  const cacheKey = selectedImage ? `analysis-${selectedImage.split('?')[0]}` : null;
 
-  // Function to save analysis results to the database
-  const saveAnalysisToDatabase = async (data: AnalysisData[]) => {
-    if (!currentPictureId) return;
-    
-    console.log("Updating analysis data in database for picture ID:", currentPictureId);
-    const { error: updateError } = await supabase
-      .from("pictures")
-      .update({
-        analysis_data: data,
-        last_edited_at: new Date().toISOString(),
-        last_edited_by: (await supabase.auth.getUser()).data.user?.id
-      })
-      .eq("id", currentPictureId);
-
-    if (updateError) {
-      console.error("Error updating analysis data:", updateError);
-      toast({
-        title: "Warning",
-        description: "Analysis completed but failed to save results to database.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const analyzeImageWithRetry = async (attempt = 0): Promise<boolean> => {
-    try {
-      console.log(`Analysis attempt ${attempt + 1} of ${maxRetries + 1}`);
+  // Cache the analysis computation
+  const { executeComputation: executeCachedAnalysis } = useAnalysisCache(
+    cacheKey || '',
+    async () => {
+      if (!selectedImage || !currentPictureId) {
+        throw new Error("No image selected for analysis");
+      }
       
-      // Call the Edge Function to analyze the image
-      const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
-        body: {
-          imageUrl: selectedImage,
-          imageId: currentPictureId || 'new-image'
-        }
-      });
-
-      if (error) throw error;
+      setIsAnalyzing(true);
       
-      console.log("Response received:", data);
-      
-      if (data && data.success && data.data) {
-        setAnalysisData(data.data);
-        
-        // Save results to database if we have a picture ID
-        if (currentPictureId) {
-          await saveAnalysisToDatabase(data.data);
-        }
-        
-        toast({
-          title: "Analysis Complete",
-          description: "Image has been successfully analyzed."
+      try {
+        const result = await analyzeShelfImage(selectedImage, currentPictureId, {
+          includeConfidence: true
         });
         
-        return true;
-      } else {
-        console.error("Invalid response format:", data);
-        throw new Error("Invalid response format from analysis function");
+        setAnalysisData(result);
+        return result;
+      } catch (error: any) {
+        toast({
+          title: "Analysis Failed",
+          description: error.message || "Could not analyze the image. Please try again.",
+          variant: "destructive"
+        });
+        throw error;
+      } finally {
+        setIsAnalyzing(false);
       }
-    } catch (error) {
-      console.error("Error analyzing image:", error);
-      return false;
+    },
+    { 
+      // Only enable caching if we have an image
+      enabled: !!selectedImage,
+      // Cache for 30 minutes
+      ttl: 30 * 60 * 1000 
     }
-  };
+  );
 
   const handleAnalyzeImage = async () => {
-    if (!selectedImage) return;
-    
-    setIsAnalyzing(true);
-    setRetryCount(0);
+    if (!selectedImage || !currentPictureId) {
+      toast({
+        title: "No Image Selected",
+        description: "Please select or upload an image first.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
-      console.log("Starting image analysis...");
-      
-      // Try initial analysis
-      const success = await analyzeImageWithRetry(0);
-      
-      // If not successful, attempt retries
-      if (!success) {
-        let retryAttempt = 0;
-        let retrySuccess = false;
-        
-        while (retryAttempt < maxRetries && !retrySuccess) {
-          retryAttempt++;
-          setRetryCount(retryAttempt);
-          
-          toast({
-            title: "Retrying Analysis",
-            description: `Attempt ${retryAttempt + 1} of ${maxRetries + 1}...`
-          });
-          
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          retrySuccess = await analyzeImageWithRetry(retryAttempt);
-          
-          if (retrySuccess) break;
-        }
-        
-        if (!retrySuccess) {
-          toast({
-            title: "Analysis Failed",
-            description: "There was an issue connecting to the analysis service. Please try again later.",
-            variant: "destructive"
-          });
-        }
-      }
-    } finally {
-      setIsAnalyzing(false);
+      await executeCachedAnalysis();
+      toast({
+        title: "Analysis Complete",
+        description: "The image has been successfully analyzed."
+      });
+    } catch (error) {
+      // Error is already handled in the cache hook
+      console.error("Analysis error:", error);
     }
   };
 
@@ -131,6 +83,6 @@ export const useImageAnalyzer = ({ selectedImage, currentPictureId }: UseImageAn
     isAnalyzing,
     analysisData,
     setAnalysisData,
-    handleAnalyzeImage
+    handleAnalyzeImage,
   };
 };
