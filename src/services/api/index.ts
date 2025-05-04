@@ -1,59 +1,70 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+
+// Define a type for valid table names from our database
+export type TableName = keyof Database['public']['Tables'];
 
 // Base API service with common methods
-export class ApiService {
-  protected endpoint: string;
+export class ApiService<T extends TableName> {
+  protected tableName: T;
   
-  constructor(endpoint: string) {
-    this.endpoint = endpoint;
+  constructor(tableName: T) {
+    this.tableName = tableName;
   }
   
-  async getAll<T>(options: any = {}) {
-    const { data, error } = await supabase
-      .from(this.endpoint)
-      .select(options.select || '*')
-      .order(options.orderBy || 'created_at', options.ascending ? { ascending: true } : { ascending: false });
+  async getAll<R>(options: { select?: string; orderBy?: string; ascending?: boolean } = {}) {
+    const query = supabase
+      .from(this.tableName)
+      .select(options.select || '*');
+      
+    if (options.orderBy) {
+      query.order(options.orderBy, { ascending: options.ascending ?? false });
+    } else {
+      query.order('created_at', { ascending: false });
+    }
+    
+    const { data, error } = await query;
     
     if (error) throw error;
-    return data as T[];
+    return data as R[];
   }
   
-  async getById<T>(id: string, options: any = {}) {
+  async getById<R>(id: string, options: { select?: string } = {}) {
     const { data, error } = await supabase
-      .from(this.endpoint)
+      .from(this.tableName)
       .select(options.select || '*')
       .eq('id', id)
       .single();
     
     if (error) throw error;
-    return data as T;
+    return data as R;
   }
   
-  async create<T, U>(item: U) {
+  async create<R, U extends Record<string, any>>(item: U) {
     const { data, error } = await supabase
-      .from(this.endpoint)
-      .insert(item)
+      .from(this.tableName)
+      .insert(item as any)
       .select();
     
     if (error) throw error;
-    return data[0] as T;
+    return data[0] as R;
   }
   
-  async update<T, U>(id: string, item: U) {
+  async update<R, U extends Record<string, any>>(id: string, item: U) {
     const { data, error } = await supabase
-      .from(this.endpoint)
-      .update(item)
+      .from(this.tableName)
+      .update(item as any)
       .eq('id', id)
       .select();
     
     if (error) throw error;
-    return data[0] as T;
+    return data[0] as R;
   }
   
   async delete(id: string) {
     const { error } = await supabase
-      .from(this.endpoint)
+      .from(this.tableName)
       .delete()
       .eq('id', id);
     

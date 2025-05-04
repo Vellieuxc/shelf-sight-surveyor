@@ -1,7 +1,6 @@
 
 import { AnalysisData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export interface AnalysisOptions {
   retryCount?: number;
@@ -49,14 +48,13 @@ export async function analyzeShelfImage(
     } catch (error) {
       console.error(`Analysis attempt ${attempt + 1} failed:`, error);
       
-      if (attempt < retryCount - 1) {
-        toast(`Analysis attempt ${attempt + 1} failed, retrying...`);
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } else {
-        // Last attempt failed, throw error
+      // Last attempt failed, throw error
+      if (attempt === retryCount - 1) {
         throw error;
       }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   

@@ -10,7 +10,7 @@ export interface CreateProjectData {
   country: string;
 }
 
-export class ProjectsService extends ApiService {
+export class ProjectsService extends ApiService<'projects'> {
   constructor() {
     super('projects');
   }

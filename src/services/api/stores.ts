@@ -13,7 +13,7 @@ export interface CreateStoreData {
   store_image?: string | null;
 }
 
-export class StoresService extends ApiService {
+export class StoresService extends ApiService<'stores'> {
   constructor() {
     super('stores');
   }
@@ -21,7 +21,7 @@ export class StoresService extends ApiService {
   async getStores(projectId?: string) {
     if (projectId) {
       const { data, error } = await supabase
-        .from(this.endpoint)
+        .from(this.tableName)
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
@@ -49,7 +49,7 @@ export class StoresService extends ApiService {
   
   async getUserStores(userId: string, projectId?: string) {
     let query = supabase
-      .from(this.endpoint)
+      .from(this.tableName)
       .select('*')
       .eq('created_by', userId);
       
