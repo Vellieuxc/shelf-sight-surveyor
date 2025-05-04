@@ -39,25 +39,49 @@ export const createImagePreview = (file: File): Promise<string> => {
 
 /**
  * Downloads an image from a URL
+ * Uses fetch API for cross-origin images and falls back to anchor element
  */
 export const downloadImage = (imageUrl: string, fileName: string): void => {
-  // Create a link element to handle the download
-  const link = document.createElement("a");
-  
-  // Set the href to the image URL
-  link.href = imageUrl;
-  
-  // Set the download attribute with the filename
-  link.download = fileName;
-  
-  // Append to the document body
-  document.body.appendChild(link);
-  
-  // Trigger the click event
-  link.click();
-  
-  // Clean up
-  document.body.removeChild(link);
+  // Try using fetch for better cross-origin support
+  fetch(imageUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      // Create object URL from the fetched blob
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Create a link element to handle the download
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      
+      // Append to the document body
+      document.body.appendChild(link);
+      
+      // Trigger the click event
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      
+      // Release the object URL
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch(error => {
+      console.error("Error downloading image with fetch:", error);
+      
+      // Fallback to the original method
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
 };
 
 /**
