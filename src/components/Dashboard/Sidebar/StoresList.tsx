@@ -13,43 +13,36 @@ import { Store as StoreType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
 interface StoresListProps {
+  projectId: string;
   activeStoreId?: string;
 }
 
-const StoresList: React.FC<StoresListProps> = ({ activeStoreId }) => {
-  const { projectId } = useParams<{ projectId: string }>();
+const StoresList: React.FC<StoresListProps> = ({ projectId, activeStoreId }) => {
   const [stores, setStores] = useState<StoreType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchStores = async () => {
+      if (!projectId) {
+        setStores([]);
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
+        console.log("Fetching stores for project:", projectId);
         
-        if (!projectId) {
-          // If no project context, just show recent stores (limited)
-          const { data, error } = await supabase
-            .from("stores")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .limit(10);
-            
-          if (error) throw error;
-          setStores(data || []);
-        } else {
-          // If we're in a project context, only show stores for this project
-          console.log("Fetching stores for project:", projectId);
-          const { data, error } = await supabase
-            .from("stores")
-            .select("*")
-            .eq("project_id", projectId)
-            .order("created_at", { ascending: false });
-            
-          if (error) throw error;
-          console.log("Stores fetched:", data);
-          setStores(data || []);
-        }
+        const { data, error } = await supabase
+          .from("stores")
+          .select("*")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false });
+          
+        if (error) throw error;
+        console.log("Stores fetched:", data);
+        setStores(data || []);
       } catch (error: any) {
         console.error("Error fetching stores:", error);
         toast({
@@ -69,14 +62,18 @@ const StoresList: React.FC<StoresListProps> = ({ activeStoreId }) => {
     return activeStoreId === storeId;
   };
 
+  if (!projectId) {
+    return null;
+  }
+
   return (
-    <ScrollArea className="h-[200px]">
+    <ScrollArea className="h-[200px] max-h-[50vh]">
       <SidebarMenu>
         {isLoading ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">Loading stores...</div>
         ) : stores.length === 0 ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">
-            {projectId ? "No stores in this project" : "No recent stores"}
+            No stores in this project
           </div>
         ) : (
           stores.map((store) => (

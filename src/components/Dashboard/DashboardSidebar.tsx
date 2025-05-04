@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
@@ -27,6 +28,7 @@ export function DashboardSidebar() {
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   useEffect(() => {
@@ -68,6 +70,11 @@ export function DashboardSidebar() {
           
         if (error) throw error;
         setCurrentProject(data);
+        
+        // Auto-expand the current project
+        if (data && !expandedProjects.includes(data.id)) {
+          setExpandedProjects(prev => [...prev, data.id]);
+        }
       } catch (error) {
         console.error("Error fetching current project:", error);
         setCurrentProject(null);
@@ -107,6 +114,14 @@ export function DashboardSidebar() {
     setIsNewProjectDialogOpen(true);
   };
 
+  const toggleProjectExpansion = (projectId: string) => {
+    setExpandedProjects(prev => 
+      prev.includes(projectId) 
+        ? prev.filter(id => id !== projectId)
+        : [...prev, projectId]
+    );
+  };
+
   return (
     <Sidebar>
       <SidebarHeader />
@@ -125,22 +140,30 @@ export function DashboardSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <SidebarGroupLabel>Projects & Stores</SidebarGroupLabel>
           <SidebarGroupContent>
-            <ProjectsList 
-              projects={projects} 
-              isLoading={isLoading} 
-              activeProjectId={getActiveProjectId()} 
-            />
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            {currentProject ? `Stores in ${currentProject.title}` : "Recent Stores"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <StoresList activeStoreId={getActiveStoreId()} />
+            {isLoading ? (
+              <div className="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
+            ) : (
+              projects.map(project => (
+                <div key={project.id} className="mb-2">
+                  <ProjectsList 
+                    projects={[project]} 
+                    isLoading={false} 
+                    activeProjectId={getActiveProjectId()}
+                    onProjectClick={() => toggleProjectExpansion(project.id)}
+                  />
+                  {expandedProjects.includes(project.id) && (
+                    <div className="ml-4 border-l border-sidebar-border pl-2 mt-1">
+                      <StoresList 
+                        projectId={project.id} 
+                        activeStoreId={getActiveStoreId()} 
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
