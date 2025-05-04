@@ -52,7 +52,7 @@ export class StoresService extends ApiService<'stores'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.create<Store>({
+    return this.create<Store, any>({
       ...store,
       created_by: userId
     });

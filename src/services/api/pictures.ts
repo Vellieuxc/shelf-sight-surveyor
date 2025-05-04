@@ -48,7 +48,7 @@ export class PicturesService extends ApiService<'pictures'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.create<Picture>({
+    return this.create<Picture, any>({
       ...picture,
       uploaded_by: userId
     });
@@ -64,7 +64,7 @@ export class PicturesService extends ApiService<'pictures'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.update<Picture>(id, { 
+    return this.update<Picture, any>(id, { 
       analysis_data: analysisData,
       last_edited_at: new Date().toISOString(),
       last_edited_by: userId

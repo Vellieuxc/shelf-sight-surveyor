@@ -44,7 +44,7 @@ export class ProjectsService extends ApiService<'projects'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.create<Project>({
+    return this.create<Project, any>({
       ...project,
       created_by: userId
     });
@@ -56,7 +56,7 @@ export class ProjectsService extends ApiService<'projects'> {
    * @returns Promise with updated project
    */
   async closeProject(id: string): Promise<Project> {
-    return this.update<Project>(id, { is_closed: true });
+    return this.update<Project, any>(id, { is_closed: true });
   }
   
   /**
@@ -65,7 +65,7 @@ export class ProjectsService extends ApiService<'projects'> {
    * @returns Promise with updated project
    */
   async reopenProject(id: string): Promise<Project> {
-    return this.update<Project>(id, { is_closed: false });
+    return this.update<Project, any>(id, { is_closed: false });
   }
   
   /**

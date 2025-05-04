@@ -25,7 +25,7 @@ export class ApiService<T extends TableName> {
    * @param options Query options for the request
    * @returns Promise with array of records
    */
-  async getAll<R = Database['public']['Tables'][T]['Row']>(options: { 
+  async getAll<R>(options: { 
     select?: string; 
     orderBy?: string; 
     ascending?: boolean 
@@ -52,7 +52,7 @@ export class ApiService<T extends TableName> {
    * @param options Query options
    * @returns Promise with the requested record
    */
-  async getById<R = Database['public']['Tables'][T]['Row']>(id: string, options: { select?: string } = {}): Promise<R> {
+  async getById<R>(id: string, options: { select?: string } = {}): Promise<R> {
     const { data, error } = await supabase
       .from(this.tableName)
       .select(options.select || '*')
@@ -68,10 +68,10 @@ export class ApiService<T extends TableName> {
    * @param item Record data to insert
    * @returns Promise with the created record
    */
-  async create<R = Database['public']['Tables'][T]['Row'], U = Database['public']['Tables'][T]['Insert']>(item: U): Promise<R> {
+  async create<R, I>(item: I): Promise<R> {
     const { data, error } = await supabase
       .from(this.tableName)
-      .insert(item)
+      .insert(item as any)
       .select();
     
     if (error) throw error;
@@ -84,13 +84,10 @@ export class ApiService<T extends TableName> {
    * @param item Updated record data
    * @returns Promise with the updated record
    */
-  async update<R = Database['public']['Tables'][T]['Row'], U = Partial<Database['public']['Tables'][T]['Update']>>(
-    id: string, 
-    item: U
-  ): Promise<R> {
+  async update<R, U>(id: string, item: U): Promise<R> {
     const { data, error } = await supabase
       .from(this.tableName)
-      .update(item)
+      .update(item as any)
       .eq('id', id)
       .select();
     
@@ -119,7 +116,7 @@ export class ApiService<T extends TableName> {
    * @param options Query options
    * @returns Promise with array of matching records
    */
-  async query<R = Database['public']['Tables'][T]['Row']>(
+  async query<R>(
     filters: Record<string, any>,
     options: { select?: string; orderBy?: string; ascending?: boolean } = {}
   ): Promise<R[]> {
