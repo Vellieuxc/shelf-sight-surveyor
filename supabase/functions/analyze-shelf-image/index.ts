@@ -63,35 +63,125 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "You are an image analysis expert for merchandising and CPG (Consumer Packaged Goods). Please analyze the attached image of a retail store shelf.\n\n" +
-                      "Your objective is to identify all clearly visible products and extract the following information in a JSON array format. Each product should be represented as a JSON object with the following fields:\n\n" +
-                      "sku_name: Full and exact product name including variant, size, formulation, etc.\n\n" +
-                      "brand: Primary brand name only\n\n" +
-                      "sku_position: Position on the shelf (Top, Middle, or Bottom)\n\n" +
-                      "sku_count: Number of front-facing units only (do not count inventory behind or non-visible items)\n\n" +
-                      "sku_price: Price shown on shelf labels (only if clearly visible)\n\n" +
-                      "sku_price_pre_promotion: Original price if a promotional price is shown (only if clearly visible)\n\n" +
-                      "sku_price_post_promotion: Promotional price (only if clearly visible)\n\n" +
-                      "empty_space_estimate: If the shelf area is empty, estimate the percentage of unoccupied space\n\n" +
-                      "sku_confidence: Confidence level of extracted data:\n\n" +
-                      "\"high\": All information is clearly visible and identified with certainty\n\n" +
-                      "\"mid\": Most information is visible and accurate, but one or two fields may be uncertain\n\n" +
-                      "\"low\": Several fields are unclear or partially obscured\n\n" +
-                      "At the end of the array, include two summary fields:\n\n" +
-                      "total_sku_facings: The sum of all front-facing units identified across all products\n\n" +
-                      "quality_picture: Overall assessment of image readability. Choose one:\n\n" +
-                      "\"high\": Most labels, product details, and shelf positions are clear and legible\n\n" +
-                      "\"mid\": Many elements are readable, but some are blurred, obscured, or hard to distinguish\n\n" +
-                      "\"low\": Image is difficult to interpret due to poor quality, glare, angle, or occlusion\n\n" +
-                      "Guidelines:\n\n" +
-                      "Only include products that are clearly visible and confidently identifiable\n\n" +
-                      "Count only front-facing units, do not include inventory behind\n\n" +
-                      "Group multiple facings of the same SKU as one object with the appropriate sku_count\n\n" +
-                      "If a product is partially visible but clearly identifiable, include it\n\n" +
-                      "Do not guess product names, prices, or other details — omit any field that is not clearly visible\n\n" +
-                      "For empty shelf sections, include entries with \"sku_name\": \"Empty Space\" and the empty_space_estimate field\n\n" +
-                      "Return a single valid JSON array of objects followed by the two summary fields\n\n" +
-                      "Output only the JSON, with no extra explanation or text"
+                text: `🧠 Claude Prompt — Shelf Image Analysis with Integrated Metadata and Confidence Scoring
+
+You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
+
+Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. Return the result in a JSON format.
+
+---
+
+### 🔍 For each distinct SKU visible or tagged in the image, extract:
+
+* **SKUFullName**: Full product name as written on the label (e.g., "Coca-Cola 500ml Bottle")
+* **SKUBrand**: Brand only (e.g., "Coca-Cola")
+* **ProductCategory1**: Main product category, chosen based on the predefined list below
+* **ProductCategory2**: Subcategory, also chosen based on the predefined list
+* **ProductCategory3**: Leave as \`null\` for now
+* **NumberFacings**: How many visible facings of this product are on the shelf (front-facing only)
+* **PriceSKU**: Price of this SKU from the visible tag (e.g., "$1.29"). Use \`null\` if not visible
+* **ShelfSection**: Location within the shelf area (e.g., "Top Left", "Middle Right", etc.)
+* **OutofStock**: \`true\` if a shelf tag for this SKU is present but no product is in that spot; otherwise \`false\`
+* **Misplaced**: \`true\` if the visible product is **not behind its correct price/tag** (e.g., a different product is in its place)
+* **BoundingBox**: The coordinates of one representative facing, in the form:
+  \`{ "x": INT, "y": INT, "width": INT, "height": INT, "confidence": FLOAT }\`, where \`confidence\` ranges from 0 (no confidence) to 1 (full confidence) and reflects the reliability of the recognition. Use \`null\` if the SKU is only tagged, not visible.
+* **Tags**: Any visible labels, signs, or indicators (e.g., "Discount", "Out of Stock", "2 for 1")
+
+---
+
+### 📤 **Output JSON Format:**
+
+\`\`\`json
+{
+  "SKUs": [
+    {
+      "SKUFullName": "Coca-Cola 500ml Bottle",
+      "SKUBrand": "Coca-Cola",
+      "ProductCategory1": "Drinks",
+      "ProductCategory2": "Soft Drinks",
+      "ProductCategory3": null,
+      "NumberFacings": 4,
+      "PriceSKU": "$1.29",
+      "ShelfSection": "Middle Left",
+      "OutofStock": false,
+      "Misplaced": false,
+      "BoundingBox": { "x": 120, "y": 340, "width": 80, "height": 200, "confidence": 0.95 },
+      "Tags": ["Discount"]
+    },
+    {
+      "SKUFullName": "Pepsi 500ml Bottle",
+      "SKUBrand": "Pepsi",
+      "ProductCategory1": "Drinks",
+      "ProductCategory2": "Soft Drinks",
+      "ProductCategory3": null,
+      "NumberFacings": 0,
+      "PriceSKU": "$1.25",
+      "ShelfSection": "Bottom Right",
+      "OutofStock": true,
+      "Misplaced": false,
+      "BoundingBox": null,
+      "Tags": ["Price Label Visible"]
+    },
+    {
+      "SKUFullName": "Sprite 500ml Bottle",
+      "SKUBrand": "Sprite",
+      "ProductCategory1": "Drinks",
+      "ProductCategory2": "Soft Drinks",
+      "ProductCategory3": null,
+      "NumberFacings": 2,
+      "PriceSKU": "$1.20",
+      "ShelfSection": "Middle Center",
+      "OutofStock": false,
+      "Misplaced": true,
+      "BoundingBox": { "x": 310, "y": 370, "width": 85, "height": 190, "confidence": 0.88 },
+      "Tags": []
+    }
+  ]
+}
+\`\`\`
+
+---
+
+### 📌 **Important Guidelines:**
+
+* Use OCR to read price tags and product names when needed
+* Only count products clearly visible from the front
+* A SKU is Misplaced if it's behind the wrong price label or tag
+* A SKU is OutofStock if the tag is present but the product is missing
+* If information is not available or unclear, use \`null\` or leave the array empty
+* The field \`ProductCategory3\` should be kept \`null\`. The fields \`ProductCategory1\` and \`ProductCategory2\` must be assigned based on the following official category list:
+
+\`\`\`json
+[
+  {"ProductCategory1": "Drinks", "ProductCategory2": "Alcoholic Drinks"},
+  {"ProductCategory1": "Drinks", "ProductCategory2": "Hot Drinks"},
+  {"ProductCategory1": "Drinks", "ProductCategory2": "Soft Drinks"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Cooking ingredients and meals"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Dairy products and alternatives"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Fresh food"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Health and wellness"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Nutritition"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Snacks"},
+  {"ProductCategory1": "Food and nutrition", "ProductCategory2": "Staple foods"},
+  {"ProductCategory1": "Health and beauty", "ProductCategory2": "Beauty and personal care"},
+  {"ProductCategory1": "Health and beauty", "ProductCategory2": "Consumer health"},
+  {"ProductCategory1": "Health and beauty", "ProductCategory2": "Eyewear"},
+  {"ProductCategory1": "Health and beauty", "ProductCategory2": "Tissue and hygiene"},
+  {"ProductCategory1": "Home products", "ProductCategory2": "Home and Garden"},
+  {"ProductCategory1": "Home products", "ProductCategory2": "Home Care"},
+  {"ProductCategory1": "Home products", "ProductCategory2": "Pet Care"},
+  {"ProductCategory1": "Appliances and electronics", "ProductCategory2": "Consumer Appliances"},
+  {"ProductCategory1": "Appliances and electronics", "ProductCategory2": "Consumer Electronics"},
+  {"ProductCategory1": "Appliances and electronics", "ProductCategory2": "Toys and Games"},
+  {"ProductCategory1": "Luxury and fashion", "ProductCategory2": "Apparel and footwear"},
+  {"ProductCategory1": "Luxury and fashion", "ProductCategory2": "Luxury goods"},
+  {"ProductCategory1": "Luxury and fashion", "ProductCategory2": "Personal accessories"}
+]
+\`\`\`
+
+---
+
+You must respond only with a valid JSON object as shown. Do not include explanations or additional commentary.`
               },
               {
                 type: "image",
@@ -135,10 +225,12 @@ serve(async (req) => {
       console.log("Parsing Claude response as JSON");
       console.log("Claude raw response:", textContent);
       
-      // Use regex to extract JSON array from possible text
-      const jsonMatch = textContent.match(/\[[\s\S]*\]/);
+      // Use regex to extract JSON object from possible text
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        analysisData = JSON.parse(jsonMatch[0]);
+        const parsedData = JSON.parse(jsonMatch[0]);
+        // Extract the SKUs array from the response
+        analysisData = parsedData.SKUs || [];
         console.log("Successfully parsed JSON data from Claude's response");
       } else {
         console.error("Could not extract JSON data from Claude's response");
