@@ -41,51 +41,75 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
 
   // Fetch existing comments
   useEffect(() => {
+    // Only fetch if we have a valid pictureId
+    if (!pictureId) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchComments = async () => {
       try {
         setIsLoading(true);
         console.log("Fetching comments for picture:", pictureId);
         
-        // First, fetch comments
-        const { data, error } = await supabase
+        // Fetch comments with a simple query first
+        const { data: commentsData, error: commentsError } = await supabase
           .from('picture_comments')
           .select('*')
           .eq('picture_id', pictureId)
           .order('created_at', { ascending: false });
         
-        if (error) throw error;
-        
-        console.log("Comments data received:", data);
-        
-        // Process each comment to add user information
-        const commentsWithUser: Comment[] = [];
-        
-        for (const comment of (data || [])) {
-          try {
-            // Fetch user profile for each comment
-            const { data: userData, error: userError } = await supabase
-              .from("profiles")
-              .select("first_name, last_name, email")
-              .eq("id", comment.user_id)
-              .single();
-            
-            if (userError) throw userError;
-            
-            let userName = "Unknown User";
-            
-            if (userData) {
-              userName = userData.first_name && userData.last_name 
-                ? `${userData.first_name} ${userData.last_name}` 
-                : userData.email || "Unknown User";
-            }
-            
-            commentsWithUser.push({ ...comment, user_name: userName });
-          } catch (userError) {
-            console.error("Error fetching user data:", userError);
-            // If we can't get user info, still add the comment but with default name
-            commentsWithUser.push({ ...comment, user_name: "Unknown User" });
-          }
+        if (commentsError) {
+          throw commentsError;
         }
+        
+        console.log("Comments data received:", commentsData);
+        
+        // Create a map of unique user IDs for batch fetching
+        const userIds = [...new Set((commentsData || []).map(c => c.user_id))];
+        
+        // If we have no comments, skip the user profile fetch
+        if (!commentsData || commentsData.length === 0) {
+          setComments([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Batch fetch user profiles for all comments
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email")
+          .in("id", userIds);
+        
+        if (profilesError) {
+          console.warn("Error fetching user profiles:", profilesError);
+          // Continue with default user names
+        }
+        
+        // Create a lookup map of profiles by userId
+        const profilesMap = new Map();
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profilesMap.set(profile.id, profile);
+          });
+        }
+        
+        // Map comments with user names
+        const commentsWithUser: Comment[] = commentsData.map(comment => {
+          let userName = "Unknown User";
+          
+          const profile = profilesMap.get(comment.user_id);
+          if (profile) {
+            userName = profile.first_name && profile.last_name 
+              ? `${profile.first_name} ${profile.last_name}` 
+              : profile.email || "Unknown User";
+          }
+          
+          return {
+            ...comment,
+            user_name: userName
+          };
+        });
         
         setComments(commentsWithUser);
       } catch (error) {
@@ -103,9 +127,7 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
       }
     };
     
-    if (pictureId) {
-      fetchComments();
-    }
+    fetchComments();
   }, [pictureId, handleError]);
   
   const handleSubmit = async (e: React.FormEvent) => {
