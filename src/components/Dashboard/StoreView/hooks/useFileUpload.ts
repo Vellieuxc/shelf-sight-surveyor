@@ -34,19 +34,26 @@ export const useFileUpload = (store: Store | null, userId: string) => {
     }
   };
   
-  const handleFileUpload = async (file?: File) => {
-    if (!file || !store) return;
+  const handleFileUpload = async () => {
+    if (!selectedFile || !store) {
+      toast({
+        title: "Upload Error",
+        description: "No file selected or store information missing",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `stores/${store.id}/${fileName}`;
       
       // Upload image to storage
       const { error: uploadError } = await supabase.storage
         .from('pictures')
-        .upload(filePath, file);
+        .upload(filePath, selectedFile);
       
       if (uploadError) throw uploadError;
       
@@ -75,13 +82,13 @@ export const useFileUpload = (store: Store | null, userId: string) => {
         description: "The image has been uploaded successfully.",
       });
       
-      // Force a page reload to refresh the pictures list, but stay on the store page
-      // instead of navigating to picture analysis
+      // Force a page reload to refresh the pictures list
       window.location.reload();
     } catch (error: any) {
+      console.error("Upload error:", error);
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error.message || "Failed to upload the image",
         variant: "destructive",
       });
     } finally {
@@ -94,7 +101,7 @@ export const useFileUpload = (store: Store | null, userId: string) => {
   const handleCapture = async (file: File, preview: string) => {
     setSelectedFile(file);
     setImagePreview(preview);
-    await handleFileUpload(file);
+    await handleFileUpload();
   };
 
   return {

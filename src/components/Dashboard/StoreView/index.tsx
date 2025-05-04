@@ -89,6 +89,13 @@ const StoreView: React.FC<StoreViewProps> = ({
     }
   };
 
+  // Debug upload process
+  console.log("Upload dialog state:", { 
+    isUploadDialogOpen, 
+    selectedFile: selectedFile?.name, 
+    isUploading 
+  });
+
   return (
     <div className="container py-6 space-y-6 lg:space-y-8 px-4 sm:px-6">
       <StoreNavigation 

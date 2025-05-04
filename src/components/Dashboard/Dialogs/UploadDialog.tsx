@@ -69,10 +69,10 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             Cancel
           </Button>
           <Button 
-            onClick={() => onUpload(selectedFile || undefined)} 
+            onClick={() => onUpload(selectedFile || undefined)}
             disabled={isUploading || !selectedFile}
           >
-            {isUploading ? "Uploading..." : "Upload a picture"}
+            {isUploading ? "Uploading..." : "Upload"}
           </Button>
         </DialogFooter>
       </DialogContent>
