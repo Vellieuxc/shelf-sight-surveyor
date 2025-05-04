@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Store } from "@/types";
 import { createImagePreview } from "@/utils/imageUtils";
-import { handleStorageError, handleDatabaseError } from "@/utils/error-handler";
+import { handleStorageError, handleDatabaseError } from "@/utils/errors";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 
 export const useFileUpload = (store: Store | null, userId: string) => {

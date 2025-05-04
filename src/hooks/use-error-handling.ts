@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { handleError, ErrorOptions, FormattedError, ErrorContext } from '@/utils/error-handler';
+import { handleError, ErrorOptions, FormattedError, ErrorContext } from '@/utils/errors';
 
 /**
  * Hook that provides error handling capabilities to components

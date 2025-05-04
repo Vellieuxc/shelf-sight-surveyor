@@ -2,7 +2,7 @@ import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRole } from "../types";
-import { handleAuthError, handleDatabaseError } from "@/utils/error-handler";
+import { handleAuthError, handleDatabaseError } from "@/utils/errors";
 
 /**
  * Fetches a user profile from the database
