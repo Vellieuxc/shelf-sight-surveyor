@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Route, Routes, useParams, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute";
@@ -9,23 +10,36 @@ import StoreViewContainer from "@/components/Dashboard/StoreView/StoreViewContai
 import ProjectConnect from "@/components/Dashboard/ProjectConnect";
 import UsersManagement from "@/components/Dashboard/UsersManagement";
 import { useAuth } from "@/contexts/auth";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 const StoresRoute = () => {
   const { projectId } = useParams<{ projectId: string }>();
   if (!projectId) return <Navigate to="/dashboard" />;
-  return <StoresList projectId={projectId} />;
+  return (
+    <ErrorBoundary>
+      <StoresList projectId={projectId} />
+    </ErrorBoundary>
+  );
 };
 
 const AnalyzeRoute = () => {
   const { storeId } = useParams<{ storeId: string }>();
   if (!storeId) return <Navigate to="/dashboard" />;
-  return <ImageAnalyzer storeId={storeId} />;
+  return (
+    <ErrorBoundary>
+      <ImageAnalyzer storeId={storeId} />
+    </ErrorBoundary>
+  );
 };
 
 const StoreViewRoute = () => {
   const { storeId } = useParams<{ storeId: string }>();
   if (!storeId) return <Navigate to="/dashboard" />;
-  return <StoreViewContainer storeId={storeId} />;
+  return (
+    <ErrorBoundary>
+      <StoreViewContainer storeId={storeId} />
+    </ErrorBoundary>
+  );
 };
 
 const DashboardContent = () => {
@@ -49,11 +63,11 @@ const DashboardContent = () => {
   if (isBoss) {
     return (
       <Routes>
-        <Route index element={<ProjectsList />} />
+        <Route index element={<ErrorBoundary><ProjectsList /></ErrorBoundary>} />
         <Route path="projects/:projectId/stores" element={<StoresRoute />} />
         <Route path="stores/:storeId" element={<StoreViewRoute />} />
         <Route path="stores/:storeId/analyze" element={<AnalyzeRoute />} />
-        <Route path="users" element={<UsersManagement />} />
+        <Route path="users" element={<ErrorBoundary><UsersManagement /></ErrorBoundary>} />
       </Routes>
     );
   }
@@ -61,7 +75,7 @@ const DashboardContent = () => {
   // For consultants and other roles, show the regular dashboard
   return (
     <Routes>
-      <Route index element={<ProjectsList />} />
+      <Route index element={<ErrorBoundary><ProjectsList /></ErrorBoundary>} />
       <Route path="projects/:projectId/stores" element={<StoresRoute />} />
       <Route path="stores/:storeId" element={<StoreViewRoute />} />
       <Route path="stores/:storeId/analyze" element={<AnalyzeRoute />} />
