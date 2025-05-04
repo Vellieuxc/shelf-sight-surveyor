@@ -47,23 +47,31 @@ serve(async (req) => {
 
     // Make the request to the Anthropic API with the updated prompt
     console.log("Sending request to Anthropic API");
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-3-opus-20240229",
-        max_tokens: 4000,
-        messages: [
-          {
-            role: "user",
-            content: [
+    
+    let retries = 3;
+    let response;
+    let lastError;
+    
+    // Implement retry logic for network errors
+    while (retries > 0) {
+      try {
+        response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": anthropicApiKey,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-3-opus-20240229",
+            max_tokens: 4000,
+            messages: [
               {
-                type: "text",
-                text: `🧠 Claude Prompt — Shelf Image Analysis with Integrated Metadata and Confidence Scoring
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `🧠 Claude Prompt — Shelf Image Analysis with Integrated Metadata and Confidence Scoring
 
 You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
@@ -182,21 +190,36 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
 ---
 
 You must respond only with a valid JSON object as shown. Do not include explanations or additional commentary.`
-              },
-              {
-                type: "image",
-                source: {
-                  type: "url",
-                  url: imageUrl
-                }
+                  },
+                  {
+                    type: "image",
+                    source: {
+                      type: "url",
+                      url: imageUrl
+                    }
+                  }
+                ]
               }
             ]
-          }
-        ]
-      })
-    });
+          })
+        });
+        
+        // Exit the retry loop as we got a successful response
+        break;
+      } catch (error) {
+        lastError = error;
+        console.error(`Attempt ${4-retries}/3 failed:`, error);
+        retries--;
+        
+        if (retries === 0) {
+          throw new Error(`Failed to connect to Anthropic API after multiple attempts: ${error.message}`);
+        }
+        
+        // Wait before next retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, (4-retries) * 1000));
+      }
+    }
 
-    console.log("Response received from Anthropic API");
     console.log("Response status:", response.status);
     
     if (!response.ok) {

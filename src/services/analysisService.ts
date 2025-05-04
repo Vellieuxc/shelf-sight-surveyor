@@ -16,7 +16,7 @@ export async function analyzeShelfImage(
 ): Promise<AnalysisData[]> {
   const { 
     retryCount = 3, 
-    timeout = 60000,
+    timeout = 120000, // Increased timeout to 2 minutes for larger images
     includeConfidence = true 
   } = options;
   
@@ -28,6 +28,8 @@ export async function analyzeShelfImage(
   // Add retry logic
   for (let attempt = 0; attempt < retryCount; attempt++) {
     try {
+      console.log(`Attempt ${attempt + 1}/${retryCount} to analyze image ${imageId}`);
+      
       const { data, error } = await Promise.race([
         supabase.functions.invoke('analyze-shelf-image', {
           body: {
@@ -42,6 +44,7 @@ export async function analyzeShelfImage(
       if (error) throw error;
       
       if (data?.success && data.data) {
+        console.log(`Image analysis successful on attempt ${attempt + 1}`);
         return data.data;
       }
       
@@ -76,8 +79,10 @@ export async function analyzeShelfImage(
         }
       });
       
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait before retrying - increase wait time with each attempt
+      const backoffTime = Math.min(2000 * Math.pow(2, attempt), 10000); // Exponential backoff with max 10s
+      console.log(`Waiting ${backoffTime}ms before retry ${attempt + 1}`);
+      await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
   }
   
