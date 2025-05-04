@@ -33,7 +33,7 @@ const PictureGrid: React.FC<PictureGridProps> = ({
           picture={picture}
           onDelete={onPictureDeleted}
           allowDelete={allowDelete}
-          creatorName={creatorMap[picture.uploaded_by]}
+          createdByName={creatorMap[picture.uploaded_by]}
         />
       ))}
     </div>
