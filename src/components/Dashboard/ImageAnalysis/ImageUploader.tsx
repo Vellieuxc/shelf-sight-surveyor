@@ -29,6 +29,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   onAnalyze,
   onResetImage,
 }) => {
+  // This ensures the UI shows the loading state but still displays the image when analyzing
+  const showSkeleton = isLoading && !isAnalyzing;
+
   return (
     <Card className="card-shadow">
       <CardHeader>
@@ -36,7 +39,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center">
-          {isLoading ? (
+          {showSkeleton ? (
             <Skeleton className="w-full h-[300px] rounded-md" />
           ) : isError ? (
             <div className="border-dashed border-2 border-destructive rounded-lg p-12 text-center w-full">
@@ -72,6 +75,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   target.src = "/placeholder.svg"; // Set a fallback image
                 }}
               />
+              {isAnalyzing && (
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-md shadow-md">
+                    <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm font-medium">Analyzing image...</p>
+                  </div>
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -101,7 +112,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           )}
         </div>
       </CardContent>
-      {selectedImage && !isLoading && !isError && (
+      {selectedImage && !showSkeleton && !isError && (
         <CardFooter>
           <Button
             onClick={onAnalyze}
