@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, Plus } from "lucide-react";
 import { Picture } from "@/types";
 import PictureGrid from "./PictureGrid";
+import PictureGridSkeleton from "./PictureGridSkeleton";
 import EmptyPicturesState from "./EmptyPicturesState";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
@@ -11,6 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StorePicturesSectionProps {
   pictures: Picture[];
+  isLoading?: boolean;
   onUploadClick: () => void;
   onCaptureClick: () => void;
   isProjectClosed?: boolean;
@@ -20,6 +22,7 @@ interface StorePicturesSectionProps {
 
 const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
   pictures,
+  isLoading = false,
   onUploadClick,
   onCaptureClick,
   isProjectClosed = false,
@@ -75,7 +78,9 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
         )}
       </div>
 
-      {pictures.length === 0 ? (
+      {isLoading ? (
+        <PictureGridSkeleton count={9} />
+      ) : pictures.length === 0 ? (
         <EmptyPicturesState
           onAddPicture={canModify ? onUploadClick : undefined}
         />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { Picture } from "@/types";
 import { transformAnalysisData } from "@/utils/dataTransformers";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { StoreContent, StoreHeader, DialogsContainer, useImageHandlers } from "./components";
+import StoreLoading from "./StoreLoading";
 
 interface StoreViewProps {
   storeId: string;
@@ -111,8 +111,10 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
     setIsCameraDialogOpen(true);
   };
 
+  const isLoading = storeLoading || picturesLoading;
+
   if (storeLoading) {
-    return <div>Loading store details...</div>;
+    return <StoreLoading />;
   }
 
   if (storeError) {
@@ -121,11 +123,17 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       operation: "fetchStore",
       additionalData: { storeId }
     });
-    return <div>Error loading store</div>;
+    return <div className="p-6 text-center text-destructive">
+      <h2 className="text-xl font-semibold">Error loading store</h2>
+      <p className="text-muted-foreground">Please try refreshing the page.</p>
+    </div>;
   }
 
   if (!store) {
-    return <div>Store not found</div>;
+    return <div className="p-6 text-center">
+      <h2 className="text-xl font-semibold">Store not found</h2>
+      <p className="text-muted-foreground">The requested store could not be found.</p>
+    </div>;
   }
 
   // Determine if the project is closed
@@ -142,6 +150,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
         store={store}
         pictures={pictures}
         storeId={storeId}
+        isLoading={picturesLoading}
         isProjectClosed={isProjectClosed}
         isConsultant={isConsultant}
         isBoss={isBoss}

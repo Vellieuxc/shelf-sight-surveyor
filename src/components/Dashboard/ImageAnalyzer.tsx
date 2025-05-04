@@ -31,6 +31,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
         <ImageUploader
           selectedImage={selectedImage}
           isAnalyzing={isAnalyzing}
+          isLoading={isLoading}
           analysisData={analysisData}
           onImageUpload={handleImageUpload}
           onAnalyze={handleAnalyzeImage}

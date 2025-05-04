@@ -4,10 +4,12 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Upload, RefreshCw, X } from "lucide-react";
 import { AnalysisData } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ImageUploaderProps {
   selectedImage: string | null;
   isAnalyzing: boolean;
+  isLoading?: boolean;
   analysisData: AnalysisData[] | null;
   onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAnalyze: () => void;
@@ -17,6 +19,7 @@ interface ImageUploaderProps {
 const ImageUploader: React.FC<ImageUploaderProps> = ({
   selectedImage,
   isAnalyzing,
+  isLoading = false,
   analysisData,
   onImageUpload,
   onAnalyze,
@@ -29,7 +32,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center">
-          {selectedImage ? (
+          {isLoading ? (
+            <Skeleton className="w-full h-[300px] rounded-md" />
+          ) : selectedImage ? (
             <div className="relative w-full">
               <img
                 src={selectedImage}
@@ -65,7 +70,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           )}
         </div>
       </CardContent>
-      {selectedImage && (
+      {selectedImage && !isLoading && (
         <CardFooter>
           <Button
             onClick={onAnalyze}

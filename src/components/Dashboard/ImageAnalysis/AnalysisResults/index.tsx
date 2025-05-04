@@ -2,6 +2,7 @@
 import React from "react";
 import { AnalysisData } from "@/types";
 import AnalysisResultsContainer from "./AnalysisResultsContainer";
+import AnalysisResultsSkeleton from "./AnalysisResultsSkeleton";
 
 interface AnalysisResultsProps {
   isLoading: boolean;
@@ -18,9 +19,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   onExportToExcel,
   onUpdateAnalysisData,
 }) => {
+  if (isLoading) {
+    return <AnalysisResultsSkeleton />;
+  }
+  
   return (
     <AnalysisResultsContainer 
-      isLoading={isLoading}
+      isLoading={false}
       isAnalyzing={isAnalyzing}
       analysisData={analysisData}
       onExportToExcel={onExportToExcel}
