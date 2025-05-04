@@ -6,7 +6,6 @@ import AnalysisResults from "./ImageAnalysis/AnalysisResults";
 import { useSearchParams } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface ImageAnalyzerProps {
   storeId?: string;
@@ -37,9 +36,6 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
         <h2 className="text-2xl font-bold">
           {isExistingPicture ? "Analyze Existing Image" : "Image Analysis"}
         </h2>
-        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-          Edge Function Disabled
-        </Badge>
       </div>
       
       {isError && (
@@ -50,13 +46,6 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
           </AlertDescription>
         </Alert>
       )}
-      
-      <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-800">
-        <AlertCircle className="h-4 w-4 text-amber-600" />
-        <AlertDescription>
-          The analysis edge function is temporarily disabled. Only image rendering is active.
-        </AlertDescription>
-      </Alert>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ImageUploader

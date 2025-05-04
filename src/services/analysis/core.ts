@@ -17,17 +17,9 @@ export async function invokeAnalysisFunction(
 ): Promise<AnalysisResponse> {
   const { includeConfidence = true } = options;
   
-  console.log(`[DISABLED] Would invoke analyze-shelf-image edge function for image ${imageId}`);
+  console.log(`Invoking analyze-shelf-image edge function for image ${imageId}`);
   console.log(`Using image URL: ${imageUrl}`);
   
-  // Return a mock response instead of calling the edge function
-  return {
-    success: true,
-    data: [] // Empty data array
-  };
-  
-  // Original code (commented out)
-  /*
   try {
     // Invoke the edge function
     const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image', {
@@ -57,5 +49,4 @@ export async function invokeAnalysisFunction(
     console.error("Error invoking analysis function:", error);
     throw error;
   }
-  */
 }

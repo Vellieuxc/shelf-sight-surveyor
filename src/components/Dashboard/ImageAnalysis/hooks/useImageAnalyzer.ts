@@ -30,36 +30,33 @@ export const useImageAnalyzer = ({
       return;
     }
 
-    // Set analyzing state but don't actually call the edge function
     setIsAnalyzing(true);
     
     try {
-      console.log("Analysis temporarily disabled - just displaying the image");
-      console.log("Would have analyzed image ID:", currentPictureId);
+      console.log("Analyzing image ID:", currentPictureId);
       console.log("With image URL:", selectedImage);
       
-      // Wait a moment to simulate processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call the actual analysis function now
+      const analysisResults = await analyzeShelfImage(selectedImage, currentPictureId);
       
-      // Create empty analysis data for display purposes
-      const mockData: AnalysisData[] = [];
+      console.log("Analysis results:", analysisResults);
       
-      setAnalysisData(mockData);
+      setAnalysisData(analysisResults);
       
       // Call the onAnalysisComplete callback if provided
       if (onAnalysisComplete) {
-        onAnalysisComplete(mockData);
+        onAnalysisComplete(analysisResults);
       }
       
       toast({
-        title: "Analysis Disabled",
-        description: "Edge function call is currently disabled. Only rendering the image.",
+        title: "Analysis Complete",
+        description: "Image has been analyzed successfully.",
       });
       
     } catch (error) {
-      console.error("Analysis simulation error:", error);
+      console.error("Analysis error:", error);
       handleError(error, {
-        fallbackMessage: "Error in image analysis simulation.",
+        fallbackMessage: "Error analyzing image. Please try again.",
         context: {
           source: 'api',
           operation: 'analyzeImage',

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
@@ -163,7 +162,7 @@ export const useImageAnalysis = (storeId?: string) => {
     }
   };
   
-  // Auto-analysis is disabled
+  // Re-enable auto-analysis for existing images
   useEffect(() => {
     const shouldAutoAnalyze = 
       pictureId && 
@@ -174,8 +173,8 @@ export const useImageAnalysis = (storeId?: string) => {
       !analysisComplete.current;
       
     if (shouldAutoAnalyze) {
-      console.log("Auto-analysis is currently disabled. Not calling edge function.");
-      // No auto-analysis for now
+      console.log("Auto-analyzing existing image...");
+      handleAnalyzeImage();
     }
   }, [pictureId, pictureImage, isPictureLoading, pictureAnalysisData, isAnalyzing, handleAnalyzeImage]);
   
