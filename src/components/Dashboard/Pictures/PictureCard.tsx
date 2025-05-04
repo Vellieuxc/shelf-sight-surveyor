@@ -29,6 +29,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
 }) => {
   const [creator, setCreator] = useState<string>(createdByName || "");
   const [showComments, setShowComments] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const uploadDate = new Date(picture.created_at);
   const exactDate = format(uploadDate, "PPP");
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
@@ -83,11 +84,15 @@ const PictureCard: React.FC<PictureCardProps> = ({
   return (
     <Card className="overflow-hidden flex flex-col">
       <CardContent className="p-0 relative aspect-video">
-        <img 
-          src={picture.image_url} 
-          alt="Store picture" 
-          className="w-full h-full object-cover"
-        />
+        <div className={`w-full h-full ${!imageLoaded ? "bg-gray-200 animate-pulse" : ""}`}>
+          <img 
+            src={picture.image_url} 
+            alt="Store picture" 
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+          />
+        </div>
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
           <div className="flex justify-between items-center">
             <span className="text-xs text-white truncate">{format(uploadDate, "MMM d, yyyy")}</span>
