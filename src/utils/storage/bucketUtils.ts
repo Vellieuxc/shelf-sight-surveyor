@@ -37,7 +37,8 @@ export async function verifyBucketExists(bucket: string): Promise<boolean> {
       fallbackMessage: `Failed to verify or create ${bucket} storage bucket`,
       operation: 'verifyBucketExists',
       context: {
-        source: 'storage'
+        source: 'storage',
+        operation: 'verifyBucketExists'
       }
     });
     return false;
