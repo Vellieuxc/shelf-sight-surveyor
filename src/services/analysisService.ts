@@ -29,6 +29,7 @@ export async function analyzeShelfImage(
   for (let attempt = 0; attempt < retryCount; attempt++) {
     try {
       console.log(`Attempt ${attempt + 1}/${retryCount} to analyze image ${imageId}`);
+      console.log(`Using image URL: ${imageUrl}`);
       
       const { data, error } = await Promise.race([
         supabase.functions.invoke('analyze-shelf-image', {
@@ -41,13 +42,17 @@ export async function analyzeShelfImage(
         timeoutPromise
       ]);
       
-      if (error) throw error;
+      if (error) {
+        console.error(`Error from edge function:`, error);
+        throw error;
+      }
       
       if (data?.success && data.data) {
         console.log(`Image analysis successful on attempt ${attempt + 1}`);
         return data.data;
       }
       
+      console.error("Invalid response format from analysis function:", data);
       throw new Error("Invalid response format from analysis function");
     } catch (error) {
       // Format error message with attempt information

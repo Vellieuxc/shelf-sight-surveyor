@@ -41,51 +41,60 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
   });
 
   useEffect(() => {
-    if (pictureId) {
-      setIsLoading(true);
-      
-      const fetchPictureData = async () => {
-        const { data, error } = await runSafely(async () => {
-          const { data, error } = await supabase
-            .from("pictures")
-            .select("*")
-            .eq("id", pictureId)
-            .single();
+    if (!pictureId) {
+      // Clear data if no picture ID is provided
+      setSelectedImage(null);
+      setCurrentPictureId(null);
+      setAnalysisData(null);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    const fetchPictureData = async () => {
+      try {
+        console.log(`Fetching data for picture ID: ${pictureId}`);
+        const { data, error } = await supabase
+          .from("pictures")
+          .select("*")
+          .eq("id", pictureId)
+          .single();
 
-          if (error) throw error;
-          
-          // Transform the raw data to PictureData with proper typing
-          const pictureData: PictureData = {
-            ...data,
-            analysis_data: data.analysis_data 
-              ? transformAnalysisData(data.analysis_data as Json[]) 
-              : null
-          };
-          
-          return pictureData;
-        }, {
+        if (error) throw error;
+        
+        console.log(`Picture data retrieved:`, data);
+        
+        // Transform the raw data to PictureData with proper typing
+        const pictureData: PictureData = {
+          ...data,
+          analysis_data: data.analysis_data 
+            ? transformAnalysisData(data.analysis_data as Json[]) 
+            : null
+        };
+        
+        setSelectedImage(pictureData.image_url);
+        setCurrentPictureId(pictureData.id);
+        
+        // If analysis data exists, set it
+        if (pictureData.analysis_data && Array.isArray(pictureData.analysis_data) && pictureData.analysis_data.length > 0) {
+          console.log("Setting analysis data:", pictureData.analysis_data);
+          setAnalysisData(pictureData.analysis_data);
+        } else {
+          console.log("No analysis data found for this picture");
+          setAnalysisData(null);
+        }
+      } catch (err) {
+        handleError(err, {
           fallbackMessage: "Failed to load picture data",
           additionalData: { pictureId }
         });
-
-        if (!error && data) {
-          setSelectedImage(data.image_url);
-          setCurrentPictureId(data.id);
-          
-          // If analysis data exists, set it
-          if (data.analysis_data && Array.isArray(data.analysis_data) && data.analysis_data.length > 0) {
-            setAnalysisData(data.analysis_data as AnalysisData[]);
-          } else {
-            setAnalysisData(null);
-          }
-        }
-        
+      } finally {
         setIsLoading(false);
-      };
+      }
+    };
 
-      fetchPictureData();
-    }
-  }, [pictureId, runSafely]);
+    fetchPictureData();
+  }, [pictureId, handleError]);
 
   return {
     isLoading,

@@ -28,7 +28,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   return (
     <Card className="card-shadow">
       <CardHeader>
-        <CardTitle>Upload Image for Analysis</CardTitle>
+        <CardTitle>Shelf Image Analysis</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center">
