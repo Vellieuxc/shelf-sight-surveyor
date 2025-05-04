@@ -51,7 +51,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
         </Alert>
       )}
       
-      <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+      <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-800">
         <AlertCircle className="h-4 w-4 text-amber-600" />
         <AlertDescription>
           The analysis edge function is temporarily disabled. Only image rendering is active.
