@@ -39,7 +39,8 @@ export async function analyzeShelfImage(
         console.log('Analysis request aborted due to timeout');
       });
       
-      // Make the request
+      // Make the request to the edge function
+      console.log("Sending request to analyze-shelf-image edge function");
       const functionPromise = supabase.functions.invoke('analyze-shelf-image', {
         body: {
           imageUrl,

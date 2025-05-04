@@ -33,6 +33,9 @@ export const useImageAnalyzer = ({
     setIsAnalyzing(true);
     
     try {
+      console.log("Starting image analysis for pictureId:", currentPictureId);
+      console.log("Image URL:", selectedImage);
+      
       // Increase timeout for complex images to 2 minutes
       const data = await analyzeShelfImage(selectedImage, currentPictureId, {
         timeout: 120000, // 2 minutes
@@ -40,6 +43,7 @@ export const useImageAnalyzer = ({
       });
       
       if (Array.isArray(data) && data.length > 0) {
+        console.log("Analysis completed successfully with", data.length, "items");
         setAnalysisData(data);
         onAnalysisComplete?.(data);
         
@@ -49,9 +53,11 @@ export const useImageAnalyzer = ({
         });
         console.log("Analysis result:", data);
       } else {
+        console.error("No items detected in the image");
         throw new Error("No items detected in the image");
       }
     } catch (error) {
+      console.error("Analysis error details:", error);
       handleError(error, {
         fallbackMessage: "Failed to analyze image. Please try again.",
         context: {
@@ -62,8 +68,6 @@ export const useImageAnalyzer = ({
         useShadcnToast: true,
         retry: handleAnalyzeImage
       });
-      
-      console.error("Analysis error:", error);
     } finally {
       setIsAnalyzing(false);
     }

@@ -45,10 +45,37 @@ export const useImageAnalysis = (storeId?: string) => {
   } = useImageAnalyzer({ 
     selectedImage, 
     currentPictureId,
-    onAnalysisComplete: (data) => {
+    onAnalysisComplete: async (data) => {
       // If we're working with an existing picture, update its analysis data
       if (picturePictureId && pictureId) {
         setPictureAnalysisData(data);
+        
+        // Save the analysis data to the database
+        try {
+          console.log("Saving analysis data to database for picture:", pictureId);
+          const { error } = await supabase
+            .from('pictures')
+            .update({ analysis_data: data })
+            .eq('id', pictureId);
+            
+          if (error) {
+            console.error("Error saving analysis data:", error);
+            throw error;
+          }
+          
+          console.log("Analysis data saved successfully");
+          toast({
+            title: "Analysis Saved",
+            description: "Analysis data has been saved to the database."
+          });
+        } catch (err) {
+          console.error("Failed to save analysis data:", err);
+          toast({
+            title: "Save Error",
+            description: "Failed to save analysis data to database.",
+            variant: "destructive"
+          });
+        }
       }
     }
   });
