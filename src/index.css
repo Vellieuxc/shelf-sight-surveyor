@@ -138,11 +138,6 @@
   @apply py-4 sm:py-6 md:py-8;
 }
 
-/* Extra small screens */
-@screen xs {
-  /* styles for extra small screens */
-}
-
 /* Fix for scrolling issues on mobile */
 .overflow-fix {
   -webkit-overflow-scrolling: touch;
@@ -155,4 +150,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+}
+
+/* Small screen styles */
+@media (max-width: 640px) {
+  /* styles for extra small screens */
+  .xs-only-block {
+    display: block;
+  }
+  
+  .xs-only-hidden {
+    display: none;
+  }
 }

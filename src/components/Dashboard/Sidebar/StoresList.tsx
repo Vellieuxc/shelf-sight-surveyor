@@ -72,7 +72,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId, activeStoreId }) => 
   const maxHeight = isMobile ? "150px" : "calc(50vh - 100px)";
 
   return (
-    <ScrollArea className={`h-auto max-h-[${maxHeight}]`} style={{ maxHeight }}>
+    <ScrollArea className="h-auto" style={{ maxHeight }}>
       <SidebarMenu>
         {isLoading ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">Loading stores...</div>
