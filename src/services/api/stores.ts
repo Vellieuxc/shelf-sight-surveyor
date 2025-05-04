@@ -13,6 +13,9 @@ export interface CreateStoreData {
   store_image?: string | null;
 }
 
+/**
+ * Service for managing stores
+ */
 export class StoresService extends ApiService<'stores'> {
   constructor() {
     super('stores');
@@ -49,7 +52,7 @@ export class StoresService extends ApiService<'stores'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.create<Store, CreateStoreData & { created_by: string }>({
+    return this.create<Store>({
       ...store,
       created_by: userId
     });

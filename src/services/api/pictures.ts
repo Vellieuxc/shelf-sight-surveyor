@@ -9,6 +9,9 @@ export interface CreatePictureData {
   analysis_data?: any;
 }
 
+/**
+ * Service for managing pictures
+ */
 export class PicturesService extends ApiService<'pictures'> {
   constructor() {
     super('pictures');
@@ -45,7 +48,7 @@ export class PicturesService extends ApiService<'pictures'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.create<Picture, CreatePictureData & { uploaded_by: string }>({
+    return this.create<Picture>({
       ...picture,
       uploaded_by: userId
     });

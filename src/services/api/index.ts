@@ -2,18 +2,20 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
-// Define a type for valid table names from our database
+// Define type for table names in our database
 export type TableName = keyof Database['public']['Tables'];
 
-// Generic types to work with our database tables
-export type TableRow<T extends TableName> = Database['public']['Tables'][T]['Row'];
-export type TableInsert<T extends TableName> = Database['public']['Tables'][T]['Insert'];
-export type TableUpdate<T extends TableName> = Database['public']['Tables'][T]['Update'];
-
-// Base API service with common methods
+/**
+ * Base API service with common CRUD operations for Supabase tables
+ * @template T The table name from the database schema
+ */
 export class ApiService<T extends TableName> {
   protected tableName: T;
   
+  /**
+   * Create a new API service for a specific table
+   * @param tableName The name of the table in the database
+   */
   constructor(tableName: T) {
     this.tableName = tableName;
   }
@@ -23,7 +25,7 @@ export class ApiService<T extends TableName> {
    * @param options Query options for the request
    * @returns Array of records
    */
-  async getAll<R = TableRow<T>>(options: { 
+  async getAll<R = Database['public']['Tables'][T]['Row']>(options: { 
     select?: string; 
     orderBy?: string; 
     ascending?: boolean 
@@ -50,11 +52,12 @@ export class ApiService<T extends TableName> {
    * @param options Query options
    * @returns The requested record
    */
-  async getById<R = TableRow<T>>(id: string, options: { select?: string } = {}): Promise<R> {
+  async getById<R = Database['public']['Tables'][T]['Row']>(id: string, options: { select?: string } = {}): Promise<R> {
+    // We need to use a type assertion here because Supabase's types are restrictive
     const { data, error } = await supabase
       .from(this.tableName)
       .select(options.select || '*')
-      .eq('id', id)
+      .eq('id' as any, id)
       .single();
     
     if (error) throw error;
@@ -66,10 +69,11 @@ export class ApiService<T extends TableName> {
    * @param item Record data to insert
    * @returns The created record
    */
-  async create<R = TableRow<T>, U extends Partial<TableInsert<T>> = TableInsert<T>>(item: U): Promise<R> {
+  async create<R = Database['public']['Tables'][T]['Row'], U = Database['public']['Tables'][T]['Insert']>(item: U): Promise<R> {
+    // We need to use a type assertion for the insert operation
     const { data, error } = await supabase
       .from(this.tableName)
-      .insert(item)
+      .insert(item as any)
       .select();
     
     if (error) throw error;
@@ -82,11 +86,14 @@ export class ApiService<T extends TableName> {
    * @param item Updated record data
    * @returns The updated record
    */
-  async update<R = TableRow<T>, U extends Partial<TableUpdate<T>> = TableUpdate<T>>(id: string, item: U): Promise<R> {
+  async update<R = Database['public']['Tables'][T]['Row'], U = Partial<Database['public']['Tables'][T]['Update']>>(
+    id: string, 
+    item: U
+  ): Promise<R> {
     const { data, error } = await supabase
       .from(this.tableName)
-      .update(item)
-      .eq('id', id)
+      .update(item as any)
+      .eq('id' as any, id)
       .select();
     
     if (error) throw error;
@@ -102,7 +109,7 @@ export class ApiService<T extends TableName> {
     const { error } = await supabase
       .from(this.tableName)
       .delete()
-      .eq('id', id);
+      .eq('id' as any, id);
     
     if (error) throw error;
     return true;
@@ -114,7 +121,7 @@ export class ApiService<T extends TableName> {
    * @param options Query options
    * @returns Array of matching records
    */
-  async query<R = TableRow<T>>(
+  async query<R = Database['public']['Tables'][T]['Row']>(
     filters: Record<string, any>,
     options: { select?: string; orderBy?: string; ascending?: boolean } = {}
   ): Promise<R[]> {
@@ -124,7 +131,7 @@ export class ApiService<T extends TableName> {
       
     // Apply all filters
     Object.entries(filters).forEach(([key, value]) => {
-      query = query.eq(key, value);
+      query = query.eq(key as any, value);
     });
     
     // Apply ordering
@@ -141,7 +148,10 @@ export class ApiService<T extends TableName> {
   }
 }
 
-// Export utility type for creating service implementations
+/**
+ * Export utility type for creating service implementations
+ * This allows strongly-typed service classes extending the base ApiService
+ */
 export type ApiServiceImplementation<T extends TableName> = {
   [K in string]: (...args: any[]) => Promise<any>;
 } & ApiService<T>;

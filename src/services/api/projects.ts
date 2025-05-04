@@ -10,6 +10,9 @@ export interface CreateProjectData {
   country: string;
 }
 
+/**
+ * Service for managing projects
+ */
 export class ProjectsService extends ApiService<'projects'> {
   constructor() {
     super('projects');
@@ -41,7 +44,7 @@ export class ProjectsService extends ApiService<'projects'> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("User not authenticated");
     
-    return this.create<Project, CreateProjectData & { created_by: string }>({
+    return this.create<Project>({
       ...project,
       created_by: userId
     });
