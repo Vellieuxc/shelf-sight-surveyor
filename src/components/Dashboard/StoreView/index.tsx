@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from "react";
+import React, { useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Store, Picture } from "@/types";
@@ -9,9 +9,7 @@ import StoreNavigation from "./StoreNavigation";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import StoreControls from "./components/StoreControls";
-import StoreContent from "./components/StoreContent";
-import StoreDialogs from "./components/StoreDialogs";
+import { StoreControls, StoreContent, StoreDialogs } from "./components";
 
 interface StoreViewProps {
   store: Store | null;
@@ -28,8 +26,8 @@ const StoreView: React.FC<StoreViewProps> = ({
   isProjectClosed,
   userId
 }) => {
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
+  const [isCameraDialogOpen, setIsCameraDialogOpen] = React.useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
   const summaryRef = useRef<HTMLDivElement>(null);
