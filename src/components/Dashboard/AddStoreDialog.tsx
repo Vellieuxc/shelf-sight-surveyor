@@ -6,7 +6,8 @@ import { useAuth } from "@/contexts/auth";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
 import { Store } from "@/types";
-import StoreForm, { StoreFormValues } from "./StoreForm";
+import StoreForm from "./StoreForm";
+import { StoreFormValues } from "./StoreForm/types";
 import { toast } from "sonner";
 
 interface AddStoreDialogProps {
