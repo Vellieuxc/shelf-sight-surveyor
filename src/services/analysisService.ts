@@ -41,23 +41,15 @@ export async function analyzeShelfImage(
       
       // Make the request to the edge function
       console.log("Sending request to analyze-shelf-image edge function");
-      const functionPromise = supabase.functions.invoke('analyze-shelf-image', {
+      
+      // Use a direct function invocation to ensure we're calling the function correctly
+      const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image', {
         body: {
           imageUrl,
           imageId,
           includeConfidence
         }
       });
-      
-      // Create a wrapper promise that we can resolve/reject based on the abort signal
-      const result = await Promise.race([
-        functionPromise,
-        new Promise((_, reject) => {
-          controller.signal.addEventListener('abort', () => {
-            reject(new Error(`Analysis timed out after ${timeout}ms`));
-          });
-        })
-      ]);
       
       // Clear the timeout if we complete successfully
       clearTimeout(timeoutId);
@@ -67,20 +59,20 @@ export async function analyzeShelfImage(
         throw new Error(`Analysis timed out after ${timeout}ms`);
       }
       
-      // Destructure result after we know we haven't aborted
-      const { data, error } = result as any;
-      
+      // Check for errors from the edge function
       if (error) {
         console.error(`Error from edge function:`, error);
         throw error;
       }
       
-      if (data?.success && data.data) {
+      console.log("Response from edge function:", response);
+      
+      if (response?.success && response.data) {
         console.log(`Image analysis successful on attempt ${attempt + 1}`);
-        return data.data;
+        return response.data;
       }
       
-      console.error("Invalid response format from analysis function:", data);
+      console.error("Invalid response format from analysis function:", response);
       throw new Error("Invalid response format from analysis function");
     } catch (error: any) {
       // Format error message with attempt information

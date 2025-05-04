@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
 import { AnalysisData } from "@/types";
@@ -35,6 +35,19 @@ export const useImageAnalysis = (storeId?: string) => {
   // Use either the picture data or uploaded image data
   const selectedImage = pictureImage || uploadedImage;
   const currentPictureId = picturePictureId || uploadedPictureId;
+
+  // Debug logs
+  useEffect(() => {
+    console.log("Current state:", {
+      pictureId,
+      selectedImage,
+      currentPictureId,
+      pictureImage,
+      uploadedImage,
+      picturePictureId,
+      uploadedPictureId
+    });
+  }, [pictureId, selectedImage, currentPictureId, pictureImage, uploadedImage, picturePictureId, uploadedPictureId]);
   
   // Image analysis functionality
   const {
@@ -48,6 +61,7 @@ export const useImageAnalysis = (storeId?: string) => {
     onAnalysisComplete: async (data) => {
       // If we're working with an existing picture, update its analysis data
       if (picturePictureId && pictureId) {
+        console.log("Analysis complete for existing picture. Updating state and saving to DB.");
         setPictureAnalysisData(data);
         
         // Save the analysis data to the database
@@ -76,6 +90,8 @@ export const useImageAnalysis = (storeId?: string) => {
             variant: "destructive"
           });
         }
+      } else {
+        console.log("Analysis complete for uploaded image");
       }
     }
   });
@@ -137,6 +153,18 @@ export const useImageAnalysis = (storeId?: string) => {
       });
     }
   };
+  
+  // Auto-analyze when loading an existing picture without analysis data
+  useEffect(() => {
+    if (pictureId && pictureImage && !isPictureLoading && !pictureAnalysisData && !isAnalyzing) {
+      console.log("Auto-analyzing picture because it has no existing analysis data");
+      // Wait a moment to ensure everything is ready
+      const timer = setTimeout(() => {
+        handleAnalyzeImage();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [pictureId, pictureImage, isPictureLoading, pictureAnalysisData, isAnalyzing, handleAnalyzeImage]);
   
   return {
     selectedImage,

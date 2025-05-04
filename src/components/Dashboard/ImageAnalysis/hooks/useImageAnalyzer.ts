@@ -38,14 +38,21 @@ export const useImageAnalyzer = ({
       
       // Increase timeout for complex images to 2 minutes
       const data = await analyzeShelfImage(selectedImage, currentPictureId, {
-        timeout: 120000, // 2 minutes
+        timeout: 180000, // 3 minutes (increased timeout)
         retryCount: 3
       });
+      
+      console.log("Raw analysis result:", data);
       
       if (Array.isArray(data) && data.length > 0) {
         console.log("Analysis completed successfully with", data.length, "items");
         setAnalysisData(data);
-        onAnalysisComplete?.(data);
+        
+        // Call the onAnalysisComplete callback if provided
+        if (onAnalysisComplete) {
+          console.log("Calling onAnalysisComplete callback with data");
+          onAnalysisComplete(data);
+        }
         
         toast({
           title: "Analysis Complete",
@@ -53,7 +60,7 @@ export const useImageAnalyzer = ({
         });
         console.log("Analysis result:", data);
       } else {
-        console.error("No items detected in the image");
+        console.error("No items detected in the image or invalid response format");
         throw new Error("No items detected in the image");
       }
     } catch (error) {
