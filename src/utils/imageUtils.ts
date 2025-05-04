@@ -38,6 +38,42 @@ export const createImagePreview = (file: File): Promise<string> => {
 };
 
 /**
+ * Validates file types against an allowed list
+ */
+export const validateImageType = (file: File, allowedTypes: string[] = ["image/jpeg", "image/png", "image/jpg", "image/webp"]): boolean => {
+  return allowedTypes.includes(file.type);
+};
+
+/**
+ * Validates file size against a maximum size in MB
+ */
+export const validateImageSize = (file: File, maxSizeMB: number = 10): boolean => {
+  const fileSizeInMB = file.size / (1024 * 1024);
+  return fileSizeInMB <= maxSizeMB;
+};
+
+/**
+ * Creates a safe filename for storage
+ */
+export const createSafeImageFilename = (originalName: string): string => {
+  // Remove potentially dangerous characters
+  const safeName = originalName
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_{2,}/g, '_');
+  
+  // Generate a random suffix for uniqueness
+  const randomSuffix = Math.random().toString(36).substring(2, 9);
+  
+  // Extract file extension
+  const parts = safeName.split('.');
+  const extension = parts.length > 1 ? parts.pop() : '';
+  const nameWithoutExtension = parts.join('.');
+  
+  // Combine with random suffix
+  return `${nameWithoutExtension}_${randomSuffix}.${extension}`;
+};
+
+/**
  * Downloads an image from a URL
  * Uses fetch API for cross-origin images and falls back to anchor element
  */

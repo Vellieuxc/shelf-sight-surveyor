@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { UploadDialog, CameraDialog } from "./Dialogs";
-import { useImageUploader } from "./hooks/useImageUploader";
+import { useImageUploader } from "@/hooks/use-image-uploader";
 import PictureUploadControls from "./Pictures/PictureUploadControls";
 
 interface PictureUploadProps {
@@ -20,7 +20,7 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
     handleFileChange,
     handleCaptureFromCamera,
     handleUpload
-  } = useImageUploader(storeId, onPictureUploaded);
+  } = useImageUploader({ storeId, onPictureUploaded });
 
   const openUploadDialog = () => {
     setIsUploadDialogOpen(true);

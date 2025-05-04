@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
-import { createImagePreview } from "@/utils/imageUtils";
 import { useToast } from '@/hooks/use-toast';
+import { useImageUpload } from './use-image-upload';
 
 interface UseImageProcessingOptions {
   maxSizeMB?: number;
@@ -10,30 +10,44 @@ interface UseImageProcessingOptions {
 }
 
 export function useImageProcessing(options: UseImageProcessingOptions = {}) {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const { maxSizeMB = 10, maxWidth = 1920, maxHeight = 1080 } = options;
   
+  // Use our base image upload hook
+  const {
+    selectedFile: imageFile,
+    imagePreview,
+    handleFileChange: baseHandleImageChange,
+    resetFile: resetImage
+  } = useImageUpload({
+    maxSizeMB,
+    onSuccess: () => {
+      // Additional processing could be added here in the future
+    }
+  });
+
   const processImage = async (file: File): Promise<{ processedFile: File, preview: string } | null> => {
     setIsProcessing(true);
     
     try {
-      // Check file size
-      const fileSizeInMB = file.size / (1024 * 1024);
-      if (fileSizeInMB > maxSizeMB) {
-        toast({
-          title: "File too large",
-          description: `Image must be smaller than ${maxSizeMB}MB`,
-          variant: "destructive"
-        });
-        return null;
-      }
+      // For now, just delegate to the base hook
+      // Future enhancement: Add resizing logic based on maxWidth and maxHeight
+      const previewPromise = new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            resolve(e.target.result as string);
+          } else {
+            reject(new Error("Failed to create image preview"));
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       
-      // Create preview
-      const preview = await createImagePreview(file);
+      const preview = await previewPromise;
       
       return {
         processedFile: file,
@@ -53,23 +67,7 @@ export function useImageProcessing(options: UseImageProcessingOptions = {}) {
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) {
-      return;
-    }
-    
-    const file = files[0];
-    const result = await processImage(file);
-    
-    if (result) {
-      setImageFile(result.processedFile);
-      setImagePreview(result.preview);
-    }
-  };
-
-  const resetImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
+    baseHandleImageChange(e);
   };
 
   return {

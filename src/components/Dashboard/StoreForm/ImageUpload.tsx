@@ -5,26 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { StoreFormValues } from "./types";
+import { useImageUpload } from "@/hooks/use-image-upload";
 
 interface ImageUploadProps {
   form: UseFormReturn<StoreFormValues>;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({ form }) => {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const {
+    imagePreview,
+    handleFileChange: baseHandleFileChange,
+    resetFile
+  } = useImageUpload({
+    onSuccess: (file) => {
+      form.setValue("store_image", file);
+    }
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      form.setValue("store_image", file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImagePreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    baseHandleFileChange(e);
   };
 
   return (
@@ -68,7 +67,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ form }) => {
                     className="ml-2"
                     onClick={() => {
                       form.setValue("store_image", undefined);
-                      setImagePreview(null);
+                      resetFile();
                     }}
                   >
                     Remove
