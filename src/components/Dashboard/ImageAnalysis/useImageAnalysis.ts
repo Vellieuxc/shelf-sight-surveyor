@@ -155,7 +155,7 @@ export const useImageAnalysis = (storeId?: string) => {
     }
   };
   
-  // Auto-analyze when loading an existing picture without analysis data
+  // Modify auto-analyze behavior - temporarily disabled
   useEffect(() => {
     const shouldAutoAnalyze = 
       pictureId && 
@@ -165,12 +165,8 @@ export const useImageAnalysis = (storeId?: string) => {
       !isAnalyzing;
       
     if (shouldAutoAnalyze) {
-      console.log("Auto-analyzing picture because it has no existing analysis data");
-      // Wait a moment to ensure everything is ready
-      const timer = setTimeout(() => {
-        handleAnalyzeImage();
-      }, 500);
-      return () => clearTimeout(timer);
+      console.log("Auto-analysis is currently disabled. Not calling edge function.");
+      // No auto-analysis for now
     }
   }, [pictureId, pictureImage, isPictureLoading, pictureAnalysisData, isAnalyzing, handleAnalyzeImage]);
   

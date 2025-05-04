@@ -30,40 +30,36 @@ export const useImageAnalyzer = ({
       return;
     }
 
+    // Set analyzing state but don't actually call the edge function
     setIsAnalyzing(true);
     
     try {
-      console.log("Starting image analysis for pictureId:", currentPictureId);
-      console.log("Image URL:", selectedImage);
+      console.log("Analysis temporarily disabled - just displaying the image");
+      console.log("Would have analyzed image ID:", currentPictureId);
+      console.log("With image URL:", selectedImage);
       
-      // Increase timeout for complex images to 3 minutes
-      const data = await analyzeShelfImage(selectedImage, currentPictureId, {
-        timeout: 180000, // 3 minutes
-        retryCount: 3
+      // Wait a moment to simulate processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Create empty analysis data for display purposes
+      const mockData: AnalysisData[] = [];
+      
+      setAnalysisData(mockData);
+      
+      // Call the onAnalysisComplete callback if provided
+      if (onAnalysisComplete) {
+        onAnalysisComplete(mockData);
+      }
+      
+      toast({
+        title: "Analysis Disabled",
+        description: "Edge function call is currently disabled. Only rendering the image.",
       });
       
-      if (Array.isArray(data) && data.length > 0) {
-        console.log("Analysis completed successfully with", data.length, "items");
-        setAnalysisData(data);
-        
-        // Call the onAnalysisComplete callback if provided
-        if (onAnalysisComplete) {
-          console.log("Calling onAnalysisComplete callback with data");
-          onAnalysisComplete(data);
-        }
-        
-        toast({
-          title: "Analysis Complete",
-          description: `Successfully analyzed ${data.length} items on the shelf.`,
-        });
-      } else {
-        console.error("No items detected in the image or invalid response format");
-        throw new Error("No items detected in the image");
-      }
     } catch (error) {
-      console.error("Analysis error details:", error);
+      console.error("Analysis simulation error:", error);
       handleError(error, {
-        fallbackMessage: "Failed to analyze image. Please try again.",
+        fallbackMessage: "Error in image analysis simulation.",
         context: {
           source: 'api',
           operation: 'analyzeImage',
