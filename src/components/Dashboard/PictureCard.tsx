@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Microscope } from "lucide-react";
+import { Trash2, Microscope, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +65,23 @@ const PictureCard: React.FC<PictureCardProps> = ({
     }
   }, [picture.uploaded_by, createdByName]);
 
+  const handleDownload = async () => {
+    try {
+      // Generate a filename based on store and date
+      const fileName = `store-picture-${format(uploadDate, "yyyy-MM-dd")}.jpg`;
+      
+      // Create an anchor element
+      const link = document.createElement("a");
+      link.href = picture.image_url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    }
+  };
+
   return (
     <Card className="overflow-hidden flex flex-col h-full">
       <CardContent className="p-0 relative aspect-video">
@@ -84,18 +101,29 @@ const PictureCard: React.FC<PictureCardProps> = ({
         <PictureMetadata createdAt={picture.created_at} exactDate={exactDate} />
         <PictureCreatorInfo creator={creator} />
       </div>
-      <CardFooter className="flex flex-wrap sm:flex-nowrap justify-between p-2 pt-0 gap-2 mt-auto">
-        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="w-full sm:w-auto">
+      <CardFooter className="flex flex-wrap gap-2 p-2 pt-0 mt-auto">
+        <Button 
+          variant="ghost" 
+          size={isMobile ? "sm" : "default"}
+          className="w-full sm:flex-1"
+          onClick={handleDownload}
+        >
+          <Download className="mr-1 h-4 w-4" />
+          <span>Download</span>
+        </Button>
+        
+        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="w-full sm:flex-1">
           <Button variant="ghost" size={isMobile ? "sm" : "default"} className="w-full">
             <Microscope className="mr-1 h-4 w-4" />
             <span>Analyze</span>
           </Button>
         </Link>
+        
         {allowDelete && (
           <Button 
             variant="ghost" 
             size={isMobile ? "sm" : "default"} 
-            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
+            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90 w-full sm:flex-1"
             onClick={onDelete}
           >
             <Trash2 className="mr-1 h-4 w-4" />
