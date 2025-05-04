@@ -9,18 +9,24 @@ interface PictureGridProps {
   onPictureDeleted: () => void;
   allowDelete?: boolean;
   creatorMap?: Record<string, string>;
+  onUploadClick?: () => void;
+  onCaptureClick?: () => void;
 }
 
 const PictureGrid: React.FC<PictureGridProps> = ({ 
   pictures, 
   onPictureDeleted, 
   allowDelete = true,
-  creatorMap = {}
+  creatorMap = {},
+  onUploadClick = () => {},
+  onCaptureClick = () => {}
 }) => {
   if (pictures.length === 0) {
     return (
       <EmptyPicturesState
         canAddPhotos={false}
+        onUploadClick={onUploadClick}
+        onCaptureClick={onCaptureClick}
       />
     );
   }

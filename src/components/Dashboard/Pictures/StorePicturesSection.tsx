@@ -51,6 +51,8 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
             pictures={pictures} 
             onPictureDeleted={onPictureDeleted}
             allowDelete={canAddPhotos}
+            onUploadClick={onUploadClick}
+            onCaptureClick={onCaptureClick}
           />
         ) : (
           <EmptyPicturesState 
