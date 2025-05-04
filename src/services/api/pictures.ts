@@ -20,7 +20,7 @@ export class PicturesService extends ApiService<'pictures'> {
   /**
    * Get pictures, optionally filtered by store ID
    * @param storeId Optional store ID filter
-   * @returns Array of pictures
+   * @returns Promise with array of pictures
    */
   async getPictures(storeId?: string): Promise<Picture[]> {
     if (storeId) {
@@ -33,7 +33,7 @@ export class PicturesService extends ApiService<'pictures'> {
   /**
    * Get a specific picture by ID
    * @param id Picture ID
-   * @returns Picture details
+   * @returns Promise with picture details
    */
   async getPicture(id: string): Promise<Picture> {
     return this.getById<Picture>(id);
@@ -42,7 +42,7 @@ export class PicturesService extends ApiService<'pictures'> {
   /**
    * Create a new picture
    * @param picture Picture data
-   * @returns Created picture
+   * @returns Promise with created picture
    */
   async createPicture(picture: CreatePictureData): Promise<Picture> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -58,7 +58,7 @@ export class PicturesService extends ApiService<'pictures'> {
    * Update analysis data for a picture
    * @param id Picture ID
    * @param analysisData Analysis results
-   * @returns Updated picture
+   * @returns Promise with updated picture
    */
   async updateAnalysisData(id: string, analysisData: any): Promise<Picture> {
     const userId = (await supabase.auth.getUser()).data.user?.id;

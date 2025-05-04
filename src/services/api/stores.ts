@@ -24,7 +24,7 @@ export class StoresService extends ApiService<'stores'> {
   /**
    * Get stores, optionally filtered by project ID
    * @param projectId Optional project ID filter
-   * @returns Array of stores
+   * @returns Promise with array of stores
    */
   async getStores(projectId?: string): Promise<Store[]> {
     if (projectId) {
@@ -37,7 +37,7 @@ export class StoresService extends ApiService<'stores'> {
   /**
    * Get a specific store by ID
    * @param id Store ID
-   * @returns Store details
+   * @returns Promise with store details
    */
   async getStore(id: string): Promise<Store> {
     return this.getById<Store>(id);
@@ -46,7 +46,7 @@ export class StoresService extends ApiService<'stores'> {
   /**
    * Create a new store
    * @param store Store data
-   * @returns Created store
+   * @returns Promise with created store
    */
   async createStore(store: CreateStoreData): Promise<Store> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -62,7 +62,7 @@ export class StoresService extends ApiService<'stores'> {
    * Get stores created by a specific user
    * @param userId User ID
    * @param projectId Optional project ID filter
-   * @returns Array of user's stores
+   * @returns Promise with array of user's stores
    */
   async getUserStores(userId: string, projectId?: string): Promise<Store[]> {
     const filters: Record<string, any> = { created_by: userId };

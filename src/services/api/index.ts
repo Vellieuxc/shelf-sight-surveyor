@@ -23,7 +23,7 @@ export class ApiService<T extends TableName> {
   /**
    * Get all records from the table
    * @param options Query options for the request
-   * @returns Array of records
+   * @returns Promise with array of records
    */
   async getAll<R = Database['public']['Tables'][T]['Row']>(options: { 
     select?: string; 
@@ -50,14 +50,13 @@ export class ApiService<T extends TableName> {
    * Get a record by ID
    * @param id Record ID
    * @param options Query options
-   * @returns The requested record
+   * @returns Promise with the requested record
    */
   async getById<R = Database['public']['Tables'][T]['Row']>(id: string, options: { select?: string } = {}): Promise<R> {
-    // We need to use a type assertion here because Supabase's types are restrictive
     const { data, error } = await supabase
       .from(this.tableName)
       .select(options.select || '*')
-      .eq('id' as any, id)
+      .eq('id', id)
       .single();
     
     if (error) throw error;
@@ -67,13 +66,12 @@ export class ApiService<T extends TableName> {
   /**
    * Create a new record
    * @param item Record data to insert
-   * @returns The created record
+   * @returns Promise with the created record
    */
   async create<R = Database['public']['Tables'][T]['Row'], U = Database['public']['Tables'][T]['Insert']>(item: U): Promise<R> {
-    // We need to use a type assertion for the insert operation
     const { data, error } = await supabase
       .from(this.tableName)
-      .insert(item as any)
+      .insert(item)
       .select();
     
     if (error) throw error;
@@ -84,7 +82,7 @@ export class ApiService<T extends TableName> {
    * Update an existing record
    * @param id Record ID
    * @param item Updated record data
-   * @returns The updated record
+   * @returns Promise with the updated record
    */
   async update<R = Database['public']['Tables'][T]['Row'], U = Partial<Database['public']['Tables'][T]['Update']>>(
     id: string, 
@@ -92,8 +90,8 @@ export class ApiService<T extends TableName> {
   ): Promise<R> {
     const { data, error } = await supabase
       .from(this.tableName)
-      .update(item as any)
-      .eq('id' as any, id)
+      .update(item)
+      .eq('id', id)
       .select();
     
     if (error) throw error;
@@ -103,13 +101,13 @@ export class ApiService<T extends TableName> {
   /**
    * Delete a record
    * @param id Record ID
-   * @returns Success indicator
+   * @returns Promise indicating success
    */
   async delete(id: string): Promise<boolean> {
     const { error } = await supabase
       .from(this.tableName)
       .delete()
-      .eq('id' as any, id);
+      .eq('id', id);
     
     if (error) throw error;
     return true;
@@ -119,7 +117,7 @@ export class ApiService<T extends TableName> {
    * Query records with filters
    * @param filters Key-value pairs for filtering
    * @param options Query options
-   * @returns Array of matching records
+   * @returns Promise with array of matching records
    */
   async query<R = Database['public']['Tables'][T]['Row']>(
     filters: Record<string, any>,
@@ -131,7 +129,7 @@ export class ApiService<T extends TableName> {
       
     // Apply all filters
     Object.entries(filters).forEach(([key, value]) => {
-      query = query.eq(key as any, value);
+      query = query.eq(key, value);
     });
     
     // Apply ordering
