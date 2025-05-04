@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
@@ -127,11 +126,11 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       <div className="flex gap-2">
         <Button onClick={() => setIsUploadDialogOpen(true)}>
           <Upload className="mr-2 h-4 w-4" />
-          Upload Picture
+          Upload a picture
         </Button>
         <Button onClick={() => setIsCameraDialogOpen(true)} variant="secondary">
           <Camera className="mr-2 h-4 w-4" />
-          Take a Picture
+          Take a picture
         </Button>
       </div>
 

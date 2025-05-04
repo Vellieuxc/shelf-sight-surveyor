@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -129,7 +128,7 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
           </Button>
           <Button onClick={takePicture}>
             <Camera className="mr-2 h-4 w-4" />
-            Capture
+            Take a picture
           </Button>
         </DialogFooter>
       </DialogContent>
