@@ -20,7 +20,14 @@ const formSchema = z.object({
 
 export type StoreFormValues = z.infer<typeof formSchema>;
 
-const storeTypes = ["Supermarket", "Convenience", "Department", "Specialty", "Discount", "Warehouse", "Other"];
+const storeTypes = [
+  "Convenience store / minimart",
+  "Supermarket",
+  "Hypermarket",
+  "Pharmacy",
+  "Traditional store (warungs, sari sari,...)",
+  "Specialized store"
+];
 
 interface StoreFormProps {
   onSubmit: (values: StoreFormValues) => Promise<void>;
