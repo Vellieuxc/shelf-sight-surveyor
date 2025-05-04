@@ -4,6 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
 import { useErrorHandling } from "@/hooks/use-error-handling";
+import { Json } from "@/integrations/supabase/types";
+import { transformAnalysisData } from "@/utils/dataTransformers";
 
 interface PictureData {
   id: string;
@@ -12,6 +14,8 @@ interface PictureData {
   store_id: string;
   created_at: string;
   uploaded_by: string;
+  last_edited_at?: string | null;
+  last_edited_by?: string | null;
 }
 
 interface UsePictureDataReturn {
@@ -49,7 +53,16 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
             .single();
 
           if (error) throw error;
-          return data as PictureData;
+          
+          // Transform the raw data to PictureData with proper typing
+          const pictureData: PictureData = {
+            ...data,
+            analysis_data: data.analysis_data 
+              ? transformAnalysisData(data.analysis_data as Json[]) 
+              : null
+          };
+          
+          return pictureData;
         }, {
           fallbackMessage: "Failed to load picture data",
           additionalData: { pictureId }
