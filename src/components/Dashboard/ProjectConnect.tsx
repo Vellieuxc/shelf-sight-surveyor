@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -41,10 +42,16 @@ const ProjectConnect: React.FC = () => {
         return;
       }
       
-      // Extract the first result from the array if it exists
-      const result = data?.[0];
+      // Ensure data exists and has at least one result
+      if (!data || data.length === 0 || !data[0]) {
+        toast.error("Project not found. Please check the ID and try again.");
+        return;
+      }
       
-      if (!result || !result.project_id) {
+      // Extract the first result from the array
+      const result = data[0];
+      
+      if (!result.project_id) {
         toast.error("Project not found. Please check the ID and try again.");
         return;
       }
