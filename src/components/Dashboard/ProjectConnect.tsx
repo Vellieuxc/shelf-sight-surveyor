@@ -40,7 +40,7 @@ const ProjectConnect: React.FC = () => {
     try {
       // Use the connect_to_project database function to handle project connection
       const { data, error } = await supabase
-        .rpc<ProjectConnectResult>('connect_to_project', { 
+        .rpc('connect_to_project', { 
           project_id_param: projectId 
         });
         
@@ -50,13 +50,13 @@ const ProjectConnect: React.FC = () => {
       }
       
       // Ensure data exists and has at least one result
-      if (!data || data.length === 0 || !data[0]) {
+      if (!data || !Array.isArray(data) || data.length === 0 || !data[0]) {
         toast.error("Project not found. Please check the ID and try again.");
         return;
       }
       
       // Extract the first result from the array
-      const result = data[0];
+      const result = data[0] as ProjectConnectResult;
       
       if (!result.project_id) {
         toast.error("Project not found. Please check the ID and try again.");
