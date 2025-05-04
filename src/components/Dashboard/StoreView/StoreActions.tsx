@@ -1,36 +1,40 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Microscope } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/auth";
+import { PlusIcon, CameraIcon, ImageIcon } from "lucide-react";
 
 interface StoreActionsProps {
-  storeId: string;
-  isProjectClosed?: boolean;
-  onAnalyze: () => void;
+  isProjectClosed: boolean;
+  onUploadClick: () => void;
+  onCaptureClick: () => void;
 }
 
 const StoreActions: React.FC<StoreActionsProps> = ({
-  storeId,
-  isProjectClosed = false,
-  onAnalyze
+  isProjectClosed,
+  onUploadClick,
+  onCaptureClick
 }) => {
-  const navigate = useNavigate();
-  const { profile } = useAuth();
-  const isConsultant = profile?.role === "consultant";
-  const isBoss = profile?.role === "boss";
+  if (isProjectClosed) {
+    return null;
+  }
   
-  const handleAnalyzeStore = () => {
-    onAnalyze();
-    navigate(`/dashboard/stores/${storeId}/analyze`);
-  };
-
   return (
-    <div>
-      <Button variant="outline" onClick={handleAnalyzeStore}>
-        <Microscope className="mr-2 h-4 w-4" />
-        Analyze Store Data
+    <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+      <Button 
+        onClick={onUploadClick}
+        className="flex items-center gap-2"
+      >
+        <ImageIcon className="h-4 w-4" />
+        <span>Upload</span>
+      </Button>
+      
+      <Button
+        onClick={onCaptureClick}
+        className="flex items-center gap-2"
+        variant="secondary"
+      >
+        <CameraIcon className="h-4 w-4" />
+        <span>Take Picture</span>
       </Button>
     </div>
   );

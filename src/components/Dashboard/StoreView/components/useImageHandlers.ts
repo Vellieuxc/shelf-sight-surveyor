@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { getFileFromCanvas } from "@/utils/imageUtils";
+import { useAuth } from "@/contexts/auth";
 
 export const useImageHandlers = (storeId: string, refetchPictures: () => void) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -14,6 +15,7 @@ export const useImageHandlers = (storeId: string, refetchPictures: () => void) =
     source: 'storage',
     componentName: 'ImageHandlers'
   });
+  const { user } = useAuth(); // Get the current user
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,10 +46,10 @@ export const useImageHandlers = (storeId: string, refetchPictures: () => void) =
   };
   
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (!selectedFile || !user) {
       toast({
         title: "No file selected",
-        description: "Please select or capture an image first.",
+        description: "Please select or capture an image first or log in.",
         variant: "destructive"
       });
       return;
@@ -80,6 +82,7 @@ export const useImageHandlers = (storeId: string, refetchPictures: () => void) =
         .from("pictures")
         .insert({
           store_id: storeId,
+          uploaded_by: user.id, // Add the required uploaded_by field
           image_url: publicUrlData.publicUrl
         });
       

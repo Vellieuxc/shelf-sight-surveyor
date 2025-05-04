@@ -4,11 +4,12 @@ import {
   handleError, 
   ErrorOptions, 
   ErrorContext, 
-  FormattedError 
+  FormattedError,
+  ErrorSource 
 } from "@/utils/errors";
 
 interface UseErrorHandlingConfig {
-  source: string;
+  source: ErrorSource;
   componentName?: string;
   operation?: string;
   additionalData?: Record<string, unknown>;

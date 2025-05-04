@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useToast } from "./use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useErrorHandling } from "./use-error-handling";
+import { useAuth } from "@/contexts/auth";
 
 interface UseImageOperationsProps {
   storeId?: string;
@@ -19,6 +20,7 @@ export const useImageOperations = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth(); // Get the current user
   const { handleError, runSafely } = useErrorHandling({
     source: 'storage',
     componentName: 'ImageOperations'
@@ -64,10 +66,11 @@ export const useImageOperations = ({
   };
   
   const handleUpload = async () => {
-    if (!selectedFile || !storeId) {
+    if (!selectedFile || !storeId || !user) {
       toast({
         title: "Missing information",
-        description: selectedFile ? "Store ID is required." : "Please select a file first.",
+        description: !user ? "User authentication required." : 
+                    selectedFile ? "Store ID is required." : "Please select a file first.",
         variant: "destructive"
       });
       return;
@@ -100,6 +103,7 @@ export const useImageOperations = ({
         .insert({
           store_id: storeId,
           image_url: publicUrlData.publicUrl,
+          uploaded_by: user.id, // Add the required uploaded_by field
         });
         
       if (dbError) throw dbError;

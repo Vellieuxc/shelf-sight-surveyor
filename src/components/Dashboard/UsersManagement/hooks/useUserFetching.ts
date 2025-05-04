@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { UserData } from "../types";
+import { UserRole } from "@/types";
 
 interface ProfileData {
   id: string;
@@ -41,11 +42,12 @@ export const useUserFetching = () => {
     });
     
     if (!error && data) {
+      // Map the API response to the UserData type with proper role conversion
       const mappedUsers = data.map((user: ProfileData) => ({
         id: user.id,
         email: user.email,
         created_at: user.created_at || "Unknown",
-        role: user.role,
+        role: user.role as UserRole, // Cast to UserRole enum
         first_name: user.first_name || "",
         last_name: user.last_name || "",
         is_blocked: user.is_blocked || false,
