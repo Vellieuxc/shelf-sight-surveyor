@@ -75,7 +75,8 @@ export const useFileUpload = (store: Store | null, userId: string) => {
         description: "The image has been uploaded successfully.",
       });
       
-      // Force a page reload to refresh the pictures list
+      // Force a page reload to refresh the pictures list, but stay on the store page
+      // instead of navigating to picture analysis
       window.location.reload();
     } catch (error: any) {
       toast({
