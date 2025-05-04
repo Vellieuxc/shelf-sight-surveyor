@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Store } from "@/types";
 import { createImagePreview } from "@/utils/imageUtils";
+import { handleStorageError, handleDatabaseError } from "@/utils/error-handler";
+import { useErrorHandling } from "@/hooks/use-error-handling";
 
 export const useFileUpload = (store: Store | null, userId: string) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -12,6 +14,7 @@ export const useFileUpload = (store: Store | null, userId: string) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { isOnline, captureOfflineImage } = useOfflineMode();
+  const { runSafely } = useErrorHandling({ source: 'storage', componentName: 'useFileUpload' });
 
   // Handle file selection
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,11 +26,10 @@ export const useFileUpload = (store: Store | null, userId: string) => {
         const previewUrl = await createImagePreview(file);
         setImagePreview(previewUrl);
       } catch (error) {
-        console.error("Failed to create preview:", error);
-        toast({
-          title: "Preview Error",
-          description: "Failed to create image preview", 
-          variant: "destructive"
+        handleStorageError(error, 'createImagePreview', {
+          fallbackMessage: "Failed to create image preview",
+          useShadcnToast: true,
+          additionalData: { fileName: file.name, fileSize: file.size }
         });
       }
     }
@@ -79,14 +81,25 @@ export const useFileUpload = (store: Store | null, userId: string) => {
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `stores/${store.id}/${fileName}`;
       
-      // Create a storage object
-      const { error: uploadError } = await supabase.storage
-        .from('pictures')
-        .upload(filePath, selectedFile);
+      // Using runSafely to handle storage upload errors
+      const { data: uploadResult, error: uploadError } = await runSafely(
+        async () => {
+          const { error } = await supabase.storage
+            .from('pictures')
+            .upload(filePath, selectedFile);
+            
+          if (error) throw error;
+          return { filePath };
+        },
+        { 
+          operation: 'uploadFile',
+          fallbackMessage: "Failed to upload image to storage",
+          showToast: true
+        }
+      );
       
-      if (uploadError) {
-        console.error("Storage upload error:", uploadError);
-        throw new Error(`Failed to upload image: ${uploadError.message}`);
+      if (uploadError || !uploadResult) {
+        throw new Error("Failed to upload file to storage");
       }
       
       // Get the public URL
@@ -108,7 +121,14 @@ export const useFileUpload = (store: Store | null, userId: string) => {
           analysis_data: []
         });
       
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Using handleDatabaseError for database-specific error handling
+        handleDatabaseError(dbError, 'savePictureMetadata', {
+          fallbackMessage: "Failed to save picture metadata",
+          additionalData: { storeId: store.id, userId }
+        });
+        return;
+      }
       
       toast({
         title: "Upload Successful", 
@@ -119,12 +139,17 @@ export const useFileUpload = (store: Store | null, userId: string) => {
       setImagePreview(null);
       onSuccess?.();
       
-    } catch (error: any) {
-      console.error("Error uploading picture:", error.message);
-      toast({
-        title: "Upload Failed",
-        description: `Failed to upload picture: ${error.message}`,
-        variant: "destructive"
+    } catch (error) {
+      console.error("Error uploading picture:", error);
+      // Using custom error handler
+      handleStorageError(error, 'fileUpload', {
+        useShadcnToast: true,
+        fallbackMessage: "Failed to upload picture",
+        additionalData: { 
+          storeId: store?.id, 
+          fileName: selectedFile?.name,
+          fileSize: selectedFile?.size
+        }
       });
     } finally {
       setIsUploading(false);
@@ -155,7 +180,10 @@ export const useFileUpload = (store: Store | null, userId: string) => {
         if (updateError) throw updateError;
       }
     } catch (error) {
-      console.error('Error verifying pictures bucket:', error);
+      // Using storage error handler
+      handleStorageError(error, 'verifyPicturesBucketExists', { 
+        fallbackMessage: "Failed to verify or create pictures storage bucket"
+      });
       throw error;
     }
   }

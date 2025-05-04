@@ -1,8 +1,8 @@
-
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRole } from "../types";
+import { handleAuthError, handleDatabaseError } from "@/utils/error-handler";
 
 /**
  * Fetches a user profile from the database
@@ -16,8 +16,7 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
       .single();
 
     if (error) {
-      console.error("Error fetching user profile:", error);
-      return null;
+      throw error;
     }
     
     return {
@@ -29,7 +28,10 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
       isBlocked: data.is_blocked
     };
   } catch (error) {
-    console.error("Unexpected error fetching profile:", error);
+    handleDatabaseError(error, 'fetchUserProfile', { 
+      fallbackMessage: 'Unable to fetch user profile',
+      additionalData: { userId }
+    });
     return null;
   }
 };
@@ -46,13 +48,15 @@ export const checkIfUserIsBlocked = async (userId: string): Promise<boolean> => 
       .single();
         
     if (error) {
-      console.error("Error checking if user is blocked:", error);
-      return false;
+      throw error;
     }
     
     return !!data.is_blocked;
   } catch (error) {
-    console.error("Unexpected error checking blocked status:", error);
+    handleDatabaseError(error, 'checkIfUserIsBlocked', { 
+      fallbackMessage: 'Unable to check if user is blocked',
+      additionalData: { userId }
+    });
     return false;
   }
 };
@@ -68,27 +72,26 @@ export const handleSignIn = async (
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
-      toast.error(error.message);
-      return { success: false };
+      throw error;
     }
 
     if (!data.user) {
-      return { success: false };
+      throw new Error("No user returned from authentication");
     }
 
     // Check if user is blocked before proceeding
     const isBlocked = await checkIfUserIsBlocked(data.user.id);
       
     if (isBlocked) {
-      toast.error("Your account has been blocked. Please contact an administrator.");
-      await supabase.auth.signOut();
-      return { success: false };
+      throw new Error("Your account has been blocked. Please contact an administrator.");
     }
     
     toast.success("Signed in successfully");
     return { success: true, user: data.user };
-  } catch (error: any) {
-    toast.error(error.message || "An error occurred during sign in");
+  } catch (error) {
+    handleAuthError(error, 'signIn', {
+      additionalData: { email }
+    });
     return { success: false };
   }
 };
