@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/auth";
 import { DashboardSidebar } from "@/components/Dashboard/DashboardSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -112,29 +113,5 @@ const MobileMenu: React.FC = () => {
     </div>
   );
 };
-
-// Button component for the mobile sidebar trigger
-const Button = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "outline";
-    size?: "default" | "sm";
-  }
->(({ className, variant = "default", size = "default", ...props }, ref) => {
-  const sizeClasses = size === "sm" ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm";
-  const variantClasses = 
-    variant === "outline" 
-      ? "border border-input bg-background hover:bg-accent hover:text-accent-foreground" 
-      : "bg-primary text-primary-foreground hover:bg-primary/90";
-  
-  return (
-    <button
-      ref={ref}
-      className={`${sizeClasses} ${variantClasses} inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${className || ''}`}
-      {...props}
-    />
-  );
-});
-Button.displayName = "Button";
 
 export default MainLayout;
