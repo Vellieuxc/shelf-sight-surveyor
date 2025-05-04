@@ -1,4 +1,3 @@
-
 import React, { useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +8,9 @@ import StoreNavigation from "./StoreNavigation";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { StoreControls, StoreContent, StoreDialogs } from "./components";
+import StoreControls from "./components/StoreControls";
+import StoreContent from "./components/StoreContent";
+import StoreDialogs from "./components/StoreDialogs";
 
 interface StoreViewProps {
   store: Store | null;
