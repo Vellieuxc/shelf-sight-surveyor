@@ -11,7 +11,7 @@ interface DialogsContainerProps {
   imagePreview: string | null;
   isUploading: boolean;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleUpload: (file?: File) => void;
+  handleUpload: () => void;  // Changed signature to match useImageHandlers
   handleCaptureFromCamera: (file: File, preview: string) => void;
 }
 

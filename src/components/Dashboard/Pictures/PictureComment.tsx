@@ -45,8 +45,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
       try {
         setIsLoading(true);
         
-        // Use generic from() and then cast the result type for TypeScript
-        const { data, error } = await supabase
+        // Fetch comments for this picture
+        const { data: commentsData, error } = await supabase
           .from('picture_comments')
           .select('*')
           .eq('picture_id', pictureId)
@@ -54,32 +54,32 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         
         if (error) throw error;
         
-        // Fetch user information for each comment
-        const commentsWithUser = await Promise.all((data || []).map(async (comment: Comment) => {
-          const { data: userData, error: userError } = await supabase
-            .from("profiles")
-            .select("first_name, last_name, email")
-            .eq("id", comment.user_id)
-            .single();
-          
-          if (userError) {
-            handleError(userError, {
-              fallbackMessage: "Failed to load user data for comment",
-              silent: true,
-              showToast: false
-            });
+        // Initialize the array for processed comments
+        const commentsWithUser: Comment[] = [];
+        
+        // Process each comment to add user information
+        for (const comment of (commentsData || [])) {
+          try {
+            const { data: userData } = await supabase
+              .from("profiles")
+              .select("first_name, last_name, email")
+              .eq("id", comment.user_id)
+              .single();
+            
+            let userName = "Unknown User";
+            if (userData) {
+              const profile = userData as UserProfile;
+              userName = profile.first_name && profile.last_name 
+                ? `${profile.first_name} ${profile.last_name}` 
+                : profile.email;
+            }
+            
+            commentsWithUser.push({ ...comment, user_name: userName });
+          } catch (userError) {
+            // If we can't get user info, still add the comment but with default name
+            commentsWithUser.push({ ...comment, user_name: "Unknown User" });
           }
-          
-          let userName = "Unknown User";
-          if (userData) {
-            const profile = userData as UserProfile;
-            userName = profile.first_name && profile.last_name 
-              ? `${profile.first_name} ${profile.last_name}` 
-              : profile.email;
-          }
-          
-          return { ...comment, user_name: userName };
-        }));
+        }
         
         setComments(commentsWithUser);
       } catch (error) {
@@ -87,12 +87,16 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
           fallbackMessage: "Failed to load comments",
           additionalData: { pictureId }
         });
+        // Set empty comments array to prevent eternal loading state
+        setComments([]);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchComments();
+    if (pictureId) {
+      fetchComments();
+    }
   }, [pictureId, handleError]);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +106,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
     
     setIsSubmitting(true);
     
-    const { data: newComment, error } = await runSafely(async () => {
+    try {
+      // Add the comment to database
       const { error } = await supabase
         .from('picture_comments')
         .insert({
@@ -113,8 +118,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
       
       if (error) throw error;
       
-      // Return the new comment object
-      return {
+      // Create a new comment object to add to the UI immediately
+      const newComment: Comment = {
         id: Math.random().toString(),  // Temporary ID
         picture_id: pictureId,
         user_id: user.id,
@@ -123,20 +128,21 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         user_name: profile?.firstName && profile?.lastName 
           ? `${profile.firstName} ${profile.lastName}` 
           : user.email || "You"
-      } as Comment;
-    }, {
-      operation: 'addComment',
-      fallbackMessage: "Failed to add comment",
-      showToast: true
-    });
-    
-    if (!error && newComment) {
+      };
+      
+      // Add the new comment to the comments array
       setComments([newComment, ...comments]);
       setComment("");
       toast.success("Comment added");
+    } catch (error) {
+      handleError(error, {
+        operation: 'addComment',
+        fallbackMessage: "Failed to add comment",
+        showToast: true
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   return (
