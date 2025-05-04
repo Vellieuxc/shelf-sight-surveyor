@@ -41,11 +41,22 @@ export const createImagePreview = (file: File): Promise<string> => {
  * Downloads an image from a URL
  */
 export const downloadImage = (imageUrl: string, fileName: string): void => {
+  // Create a link element to handle the download
   const link = document.createElement("a");
+  
+  // Set the href to the image URL
   link.href = imageUrl;
+  
+  // Set the download attribute with the filename
   link.download = fileName;
+  
+  // Append to the document body
   document.body.appendChild(link);
+  
+  // Trigger the click event
   link.click();
+  
+  // Clean up
   document.body.removeChild(link);
 };
 

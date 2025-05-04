@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { Trash2, Microscope, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadImage } from "@/utils/imageUtils";
 import PictureMetadata from "./PictureMetadata";
 import PictureCreatorInfo from "./PictureCreatorInfo";
 import PictureAnalysisBadge from "./PictureAnalysisBadge";
@@ -65,18 +65,13 @@ const PictureCard: React.FC<PictureCardProps> = ({
     }
   }, [picture.uploaded_by, createdByName]);
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     try {
       // Generate a filename based on store and date
       const fileName = `store-picture-${format(uploadDate, "yyyy-MM-dd")}.jpg`;
       
-      // Create an anchor element
-      const link = document.createElement("a");
-      link.href = picture.image_url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Use the utility function for downloading
+      downloadImage(picture.image_url, fileName);
     } catch (error) {
       console.error("Error downloading image:", error);
     }
