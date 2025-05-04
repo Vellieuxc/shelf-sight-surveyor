@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
 import {
   Sidebar,
@@ -24,9 +24,11 @@ import SidebarNavigation from "./Sidebar/SidebarNavigation";
 export function DashboardSidebar() {
   const { signOut, profile } = useAuth();
   const location = useLocation();
+  const { projectId } = useParams<{ projectId: string }>();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -49,6 +51,32 @@ export function DashboardSidebar() {
 
     fetchProjects();
   }, [profile]);
+
+  // Fetch current project details if projectId is available
+  useEffect(() => {
+    const fetchCurrentProject = async () => {
+      if (!projectId) {
+        setCurrentProject(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", projectId)
+          .single();
+          
+        if (error) throw error;
+        setCurrentProject(data);
+      } catch (error) {
+        console.error("Error fetching current project:", error);
+        setCurrentProject(null);
+      }
+    };
+    
+    fetchCurrentProject();
+  }, [projectId]);
 
   const getActiveProjectId = () => {
     const match = location.pathname.match(/\/projects\/([^/]+)/);
@@ -101,7 +129,9 @@ export function DashboardSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Recent Stores</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {currentProject ? `Stores in ${currentProject.title}` : "Recent Stores"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <StoresList activeStoreId={getActiveStoreId()} />
           </SidebarGroupContent>
