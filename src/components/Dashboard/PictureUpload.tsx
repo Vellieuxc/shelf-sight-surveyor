@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,8 @@ import { UploadDialog, CameraDialog } from "./Dialogs";
 import { createImagePreview } from "@/utils/imageUtils";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import OfflineStatus from "@/components/OfflineStatus";
+import { useErrorHandling } from "@/hooks/use-error-handling";
+import { handleStorageError, handleDatabaseError } from "@/utils/errors";
 
 interface PictureUploadProps {
   storeId: string;
@@ -24,6 +26,10 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
   const { user } = useAuth();
   const { toast } = useToast();
   const { isOnline, captureOfflineImage } = useOfflineMode();
+  const { handleError, runSafely } = useErrorHandling({
+    source: 'storage',
+    componentName: 'PictureUpload'
+  });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -34,11 +40,10 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
         const previewUrl = await createImagePreview(file);
         setImagePreview(previewUrl);
       } catch (error) {
-        console.error("Failed to create preview:", error);
-        toast({
-          title: "Preview Error",
-          description: "Failed to create image preview", 
-          variant: "destructive"
+        handleStorageError(error, 'createImagePreview', {
+          fallbackMessage: "Failed to create image preview", 
+          useShadcnToast: true,
+          additionalData: { fileName: file.name }
         });
       }
     }
@@ -84,43 +89,52 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       }
       
       // If online, proceed with normal upload flow
-      await verifyPicturesBucketExists();
-      
-      // Upload the file to Supabase Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `stores/${storeId}/${fileName}`;
-      
-      // Create a storage object
-      const { error: uploadError } = await supabase.storage
-        .from('pictures')
-        .upload(filePath, selectedFile);
-      
-      if (uploadError) {
-        console.error("Storage upload error:", uploadError);
-        throw new Error(`Failed to upload image: ${uploadError.message}`);
-      }
-      
-      // Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('pictures')
-        .getPublicUrl(filePath);
-      
-      if (!publicUrlData || !publicUrlData.publicUrl) {
-        throw new Error("Failed to get public URL for uploaded image");
-      }
-      
-      // Save picture metadata to database
-      const { error: dbError } = await supabase
-        .from("pictures")
-        .insert({
-          store_id: storeId,
-          uploaded_by: user.id,
-          image_url: publicUrlData.publicUrl,
-          analysis_data: []
-        });
-      
-      if (dbError) throw dbError;
+      await runSafely(async () => {
+        await verifyPicturesBucketExists();
+        
+        // Upload the file to Supabase Storage
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `stores/${storeId}/${fileName}`;
+        
+        // Create a storage object
+        const { error: uploadError } = await supabase.storage
+          .from('pictures')
+          .upload(filePath, selectedFile);
+        
+        if (uploadError) {
+          throw uploadError;
+        }
+        
+        // Get the public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('pictures')
+          .getPublicUrl(filePath);
+        
+        if (!publicUrlData || !publicUrlData.publicUrl) {
+          throw new Error("Failed to get public URL for uploaded image");
+        }
+        
+        // Save picture metadata to database
+        const { error: dbError } = await supabase
+          .from("pictures")
+          .insert({
+            store_id: storeId,
+            uploaded_by: user.id,
+            image_url: publicUrlData.publicUrl,
+            analysis_data: []
+          });
+        
+        if (dbError) {
+          throw dbError;
+        }
+        
+        return { success: true };
+      }, {
+        operation: 'uploadPicture',
+        fallbackMessage: "Failed to upload picture",
+        additionalData: { storeId, fileName: selectedFile.name }
+      });
       
       toast({
         title: "Upload Successful", 
@@ -131,12 +145,15 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
       setImagePreview(null);
       onPictureUploaded();
       
-    } catch (error: any) {
-      console.error("Error uploading picture:", error.message);
-      toast({
-        title: "Upload Failed",
-        description: `Failed to upload picture: ${error.message}`,
-        variant: "destructive"
+    } catch (error) {
+      handleStorageError(error, 'fileUpload', {
+        useShadcnToast: true,
+        fallbackMessage: "Failed to upload picture",
+        additionalData: { 
+          storeId, 
+          fileName: selectedFile?.name,
+          fileSize: selectedFile?.size
+        }
       });
     } finally {
       setIsUploading(false);

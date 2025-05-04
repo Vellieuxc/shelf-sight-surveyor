@@ -1,3 +1,4 @@
+
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,13 +46,13 @@ export const checkIfUserIsBlocked = async (userId: string): Promise<boolean> => 
       .from("profiles")
       .select("is_blocked")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
         
     if (error) {
       throw error;
     }
     
-    return !!data.is_blocked;
+    return !!data?.is_blocked;
   } catch (error) {
     handleDatabaseError(error, 'checkIfUserIsBlocked', { 
       fallbackMessage: 'Unable to check if user is blocked',
@@ -107,15 +108,16 @@ export const handleSignUp = async (
     const { data, error } = await supabase.auth.signUp({ email, password });
     
     if (error) {
-      toast.error(error.message);
-      return { success: false };
+      throw error;
     }
 
     toast.success("Sign up successful! Please check your email for verification.");
     
     return { success: true, user: data.user ?? undefined };
-  } catch (error: any) {
-    toast.error(error.message || "An error occurred during sign up");
+  } catch (error) {
+    handleAuthError(error, 'signUp', {
+      additionalData: { email }
+    });
     return { success: false };
   }
 };
@@ -128,8 +130,10 @@ export const handleSignOut = async (): Promise<boolean> => {
     await supabase.auth.signOut();
     toast.success("Signed out successfully");
     return true;
-  } catch (error: any) {
-    toast.error(error.message || "An error occurred during sign out");
+  } catch (error) {
+    handleAuthError(error, 'signOut', {
+      fallbackMessage: "An error occurred during sign out"
+    });
     return false;
   }
 };

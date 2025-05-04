@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { useErrorHandling } from "@/hooks/use-error-handling";
+import { handleDatabaseError } from "@/utils/errors";
 
 interface PictureCommentProps {
   pictureId: string;
@@ -25,6 +27,11 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { user, profile } = useAuth();
+  const { handleError, runSafely } = useErrorHandling({
+    source: 'database',
+    componentName: 'PictureComment',
+    operation: 'manageComments'
+  });
 
   // Fetch existing comments
   useEffect(() => {
@@ -43,11 +50,19 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         
         // Fetch user information for each comment
         const commentsWithUser = await Promise.all((data || []).map(async (comment: any) => {
-          const { data: userData } = await supabase
+          const { data: userData, error: userError } = await supabase
             .from("profiles")
             .select("first_name, last_name, email")
             .eq("id", comment.user_id)
             .single();
+          
+          if (userError) {
+            handleError(userError, {
+              fallbackMessage: "Failed to load user data for comment",
+              silent: true,
+              showToast: false
+            });
+          }
           
           let userName = "Unknown User";
           if (userData) {
@@ -61,14 +76,17 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         
         setComments(commentsWithUser);
       } catch (error) {
-        console.error("Error fetching comments:", error);
+        handleDatabaseError(error, 'fetchComments', {
+          fallbackMessage: "Failed to load comments",
+          additionalData: { pictureId }
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchComments();
-  }, [pictureId]);
+  }, [pictureId, handleError]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,8 +95,7 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
     
     setIsSubmitting(true);
     
-    try {
-      // Insert the comment using a more reliable approach without checking for table existence
+    const { data: newComment, error } = await runSafely(async () => {
       const { error } = await supabase
         .from('picture_comments')
         .insert({
@@ -89,8 +106,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
       
       if (error) throw error;
       
-      // Add the new comment to the list
-      const newComment: Comment = {
+      // Return the new comment object
+      return {
         id: Math.random().toString(),  // Temporary ID
         picture_id: pictureId,
         user_id: user.id,
@@ -100,16 +117,19 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
           ? `${profile.firstName} ${profile.lastName}` 
           : user.email || "You"
       };
-      
+    }, {
+      operation: 'addComment',
+      fallbackMessage: "Failed to add comment",
+      showToast: true
+    });
+    
+    if (!error && newComment) {
       setComments([newComment, ...comments]);
       setComment("");
       toast.success("Comment added");
-    } catch (error: any) {
-      console.error("Error adding comment:", error);
-      toast.error(error.message || "Failed to add comment");
-    } finally {
-      setIsSubmitting(false);
     }
+    
+    setIsSubmitting(false);
   };
 
   return (

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
+import { useErrorHandling } from "@/hooks/use-error-handling";
 
 export const usePictureData = (pictureId: string | null) => {
   const { toast } = useToast();
@@ -10,44 +11,49 @@ export const usePictureData = (pictureId: string | null) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentPictureId, setCurrentPictureId] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
+  const { handleError, runSafely } = useErrorHandling({
+    source: 'database',
+    componentName: 'usePictureData',
+    operation: 'fetchPictureData'
+  });
 
   useEffect(() => {
     if (pictureId) {
       setIsLoading(true);
+      
       const fetchPictureData = async () => {
-        try {
-          const { data: picture, error } = await supabase
+        const { data, error } = await runSafely(async () => {
+          const { data, error } = await supabase
             .from("pictures")
             .select("*")
             .eq("id", pictureId)
             .single();
 
           if (error) throw error;
+          return data;
+        }, {
+          fallbackMessage: "Failed to load picture data",
+          additionalData: { pictureId }
+        });
 
-          if (picture) {
-            setSelectedImage(picture.image_url);
-            setCurrentPictureId(picture.id);
-            
-            // If analysis data exists, set it
-            if (picture.analysis_data && Array.isArray(picture.analysis_data) && picture.analysis_data.length > 0) {
-              setAnalysisData(picture.analysis_data as AnalysisData[]);
-            }
+        if (!error && data) {
+          setSelectedImage(data.image_url);
+          setCurrentPictureId(data.id);
+          
+          // If analysis data exists, set it
+          if (data.analysis_data && Array.isArray(data.analysis_data) && data.analysis_data.length > 0) {
+            setAnalysisData(data.analysis_data as AnalysisData[]);
+          } else {
+            setAnalysisData(null);
           }
-        } catch (error) {
-          console.error("Error fetching picture:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load picture data",
-            variant: "destructive"
-          });
-        } finally {
-          setIsLoading(false);
         }
+        
+        setIsLoading(false);
       };
 
       fetchPictureData();
     }
-  }, [pictureId, toast]);
+  }, [pictureId, runSafely]);
 
   return {
     isLoading,

@@ -1,10 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useErrorHandling } from "@/hooks/use-error-handling";
 
 export const useCreatorInfo = (creatorId: string) => {
   const [creatorName, setCreatorName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { handleError } = useErrorHandling({
+    source: 'database',
+    componentName: 'useCreatorInfo',
+    operation: 'fetchCreator'
+  });
   
   useEffect(() => {
     const fetchCreator = async () => {
@@ -29,7 +35,11 @@ export const useCreatorInfo = (creatorId: string) => {
           setCreatorName(`${creatorId}@user.id`);
         }
       } catch (error) {
-        console.error("Error fetching store creator:", error);
+        handleError(error, {
+          fallbackMessage: "Failed to fetch creator information",
+          silent: true, // Don't show toast for this non-critical error
+          additionalData: { creatorId }
+        });
         // Display creator ID as email-like format on error
         setCreatorName(`${creatorId}@user.id`);
       } finally {
@@ -38,7 +48,7 @@ export const useCreatorInfo = (creatorId: string) => {
     };
     
     fetchCreator();
-  }, [creatorId]);
+  }, [creatorId, handleError]);
   
   return { creatorName, isLoading };
 };

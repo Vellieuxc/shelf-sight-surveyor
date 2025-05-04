@@ -1,3 +1,4 @@
+
 import React, { useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import StoreControls from "./components/StoreControls";
 import StoreContent from "./components/StoreContent";
 import StoreDialogs from "./components/StoreDialogs";
+import { useErrorHandling } from "@/hooks/use-error-handling";
 
 interface StoreViewProps {
   store: Store | null;
@@ -33,6 +35,10 @@ const StoreView: React.FC<StoreViewProps> = ({
   const { profile } = useAuth();
   const summaryRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const { handleError } = useErrorHandling({ 
+    source: 'ui',
+    componentName: 'StoreView'
+  });
   
   // Check if user is consultant or boss to show the summary
   const canViewSummary = profile?.role === 'consultant' || profile?.role === 'boss';
@@ -60,30 +66,33 @@ const StoreView: React.FC<StoreViewProps> = ({
 
   // Handle synthesizing store data
   const handleSynthesizeStore = () => {
-    if (canViewSummary && store) {
-      toast({
-        title: "Synthesizing store data",
-        description: "Processing store information and analysis data...",
-      });
-      
-      // Scroll to the summary section
-      if (summaryRef.current) {
-        summaryRef.current.scrollIntoView({ behavior: "smooth" });
+    try {
+      if (canViewSummary && store) {
+        toast({
+          title: "Synthesizing store data",
+          description: "Processing store information and analysis data...",
+        });
         
-        // Find the generate summary button and click it programmatically
-        const generateButton = summaryRef.current.querySelector('button');
-        if (generateButton) {
-          setTimeout(() => {
-            generateButton.click();
-          }, 500);
+        // Scroll to the summary section
+        if (summaryRef.current) {
+          summaryRef.current.scrollIntoView({ behavior: "smooth" });
+          
+          // Find the generate summary button and click it programmatically
+          const generateButton = summaryRef.current.querySelector('button');
+          if (generateButton) {
+            setTimeout(() => {
+              generateButton.click();
+            }, 500);
+          }
         }
       }
-    }
-    else {
-      toast({
-        title: "Permission denied",
-        description: "Only consultants and bosses can synthesize store data.",
-        variant: "destructive",
+      else {
+        throw new Error("Only consultants and bosses can synthesize store data.");
+      }
+    } catch (error) {
+      handleError(error, { 
+        fallbackMessage: "Failed to synthesize store data",
+        operation: "synthesizeStore"
       });
     }
   };
@@ -100,9 +109,16 @@ const StoreView: React.FC<StoreViewProps> = ({
   
   // Handle camera capture
   const handleCameraCapture = (file: File, previewUrl: string) => {
-    handleCapture(file, previewUrl);
-    setIsCameraDialogOpen(false);
-    setIsUploadDialogOpen(true);
+    try {
+      handleCapture(file, previewUrl);
+      setIsCameraDialogOpen(false);
+      setIsUploadDialogOpen(true);
+    } catch (error) {
+      handleError(error, {
+        fallbackMessage: "Failed to process camera capture",
+        operation: "cameraCapture"
+      });
+    }
   };
 
   return (

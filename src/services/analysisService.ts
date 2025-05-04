@@ -1,6 +1,7 @@
 
 import { AnalysisData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { handleError } from "@/utils/errors";
 
 export interface AnalysisOptions {
   retryCount?: number;
@@ -46,12 +47,34 @@ export async function analyzeShelfImage(
       
       throw new Error("Invalid response format from analysis function");
     } catch (error) {
-      console.error(`Analysis attempt ${attempt + 1} failed:`, error);
+      // Format error message with attempt information
+      const enhancedError = new Error(`Analysis attempt ${attempt + 1} failed`);
       
-      // Last attempt failed, throw error
+      // On last attempt, throw the error to be handled by caller
       if (attempt === retryCount - 1) {
-        throw error;
+        handleError(error, {
+          silent: false, 
+          fallbackMessage: `Image analysis failed after ${retryCount} attempts`, 
+          context: {
+            source: 'api',
+            operation: 'analyzeShelfImage',
+            additionalData: { imageId, attempt: retryCount }
+          }
+        });
+        throw enhancedError;
       }
+      
+      // Log the error but continue with retry
+      handleError(error, {
+        silent: true, 
+        showToast: false,
+        logToService: true,
+        context: {
+          source: 'api',
+          operation: 'analyzeShelfImage',
+          additionalData: { imageId, attempt: attempt + 1, willRetry: true }
+        }
+      });
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, 2000));
