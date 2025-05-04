@@ -17,7 +17,7 @@ import DeletePictureDialog from "./DeletePictureDialog";
 
 interface PictureCardProps {
   picture: Picture;
-  onDelete: () => void;
+  onDelete?: () => void;
   allowDelete?: boolean;
   createdByName?: string;
 }
@@ -126,7 +126,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
         {allowDelete && (
           <DeletePictureDialog
             pictureId={picture.id}
-            onDeleted={onDelete}
+            onDeleted={onDelete || (() => {})}
           />
         )}
         

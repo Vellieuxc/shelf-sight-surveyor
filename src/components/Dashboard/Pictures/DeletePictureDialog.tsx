@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,87 +12,80 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { picturesService } from "@/services/api/pictures";
 import { useErrorHandling } from "@/hooks/use-error-handling";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { DeletePictureDialogProps } from "./types";
 
-interface DeletePictureDialogProps {
-  pictureId: string;
-  onDeleted: () => void;
-}
-
-const DeletePictureDialog = ({ pictureId, onDeleted }: DeletePictureDialogProps) => {
+const DeletePictureDialog: React.FC<DeletePictureDialogProps> = ({
+  pictureId,
+  onDeleted
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
   const { handleError } = useErrorHandling({
-    source: 'ui',
-    componentName: 'DeletePictureDialog'
+    source: 'database',
+    componentName: 'DeletePictureDialog',
+    operation: 'deletePicture'
   });
-  const isMobile = useIsMobile();
-  
+
   const handleDelete = async () => {
-    if (!pictureId) {
-      setIsOpen(false);
-      return;
-    }
+    if (!pictureId) return;
     
     setIsDeleting(true);
-    
     try {
       await picturesService.deletePicture(pictureId);
+      toast.success("Picture deleted successfully");
+      setIsOpen(false);
       
-      toast({
-        title: "Picture deleted",
-        description: "The picture has been successfully deleted"
-      });
-      
-      onDeleted();
+      // Call the callback to refresh the list after successful deletion
+      if (onDeleted) {
+        onDeleted();
+      }
     } catch (error) {
       handleError(error, {
-        fallbackMessage: "Failed to delete the picture",
-        operation: "deletePicture",
-        additionalData: { pictureId }
+        fallbackMessage: "Failed to delete picture",
+        operation: 'deletePicture',
+        additionalData: { pictureId },
+        showToast: true
       });
     } finally {
       setIsDeleting(false);
-      setIsOpen(false);
     }
   };
-  
+
   return (
     <>
-      <Button 
-        variant="ghost" 
-        size={isMobile ? "sm" : "default"} 
-        className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90 w-full sm:flex-1"
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full sm:flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
         onClick={() => setIsOpen(true)}
       >
         <Trash2 className="mr-1 h-4 w-4" />
         <span>Delete</span>
       </Button>
-      
+
       <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the picture 
-              from the server and remove all associated data.
+              This action cannot be undone. This will permanently delete this picture
+              and remove the image file from storage.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogAction 
               onClick={(e) => {
                 e.preventDefault();
                 handleDelete();
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete picture"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

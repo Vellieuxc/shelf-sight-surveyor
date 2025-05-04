@@ -60,40 +60,53 @@ export class PicturesService extends ApiService<'pictures'> {
    * @returns Promise resolving to true if successful
    */
   async deletePicture(id: string): Promise<boolean> {
-    // First, get the picture to get its image URL
-    const picture = await this.getById<Picture>(id);
-    
-    if (!picture) {
-      throw new Error("Picture not found");
-    }
-    
-    // Delete from database
-    await this.delete(id);
-    
-    // Extract the file path from the image URL
-    // URL format: https://[project-ref].supabase.co/storage/v1/object/public/[bucket]/[filepath]
-    // We need to extract the filepath
     try {
-      const urlParts = picture.image_url.split('/storage/v1/object/public/');
-      if (urlParts.length > 1) {
-        const pathParts = urlParts[1].split('/', 1);
-        const bucket = pathParts[0];
-        const filePath = urlParts[1].substring(bucket.length + 1); // +1 for the '/'
+      // First, get the picture to get its image URL
+      const { data: picture, error: getError } = await supabase
+        .from('pictures')
+        .select('image_url')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (getError) throw getError;
+      if (!picture) throw new Error("Picture not found");
+      
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('pictures')
+        .delete()
+        .eq('id', id);
         
-        // Delete the file from storage
-        const { error } = await supabase.storage
-          .from(bucket)
-          .remove([filePath]);
-        
-        if (error) {
-          console.error("Failed to delete file from storage:", error);
+      if (deleteError) throw deleteError;
+      
+      // Extract the file path from the image URL
+      // URL format: https://[project-ref].supabase.co/storage/v1/object/public/[bucket]/[filepath]
+      // We need to extract the filepath
+      try {
+        const urlParts = picture.image_url.split('/storage/v1/object/public/');
+        if (urlParts.length > 1) {
+          const pathParts = urlParts[1].split('/', 1);
+          const bucket = pathParts[0];
+          const filePath = urlParts[1].substring(bucket.length + 1); // +1 for the '/'
+          
+          // Delete the file from storage
+          const { error: storageError } = await supabase.storage
+            .from(bucket)
+            .remove([filePath]);
+          
+          if (storageError) {
+            console.error("Failed to delete file from storage:", storageError);
+          }
         }
+      } catch (error) {
+        console.error("Error parsing image URL:", error);
       }
+      
+      return true;
     } catch (error) {
-      console.error("Error parsing image URL:", error);
+      console.error("Error deleting picture:", error);
+      throw error;
     }
-    
-    return true;
   }
   
   /**
