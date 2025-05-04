@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      picture_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          picture_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          picture_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          picture_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "picture_comments_picture_id_fkey"
+            columns: ["picture_id"]
+            isOneToOne: false
+            referencedRelation: "pictures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pictures: {
         Row: {
           analysis_data: Json | null
@@ -198,6 +230,14 @@ export type Database = {
           project_title: string
           already_member: boolean
         }[]
+      }
+      create_picture_comments_function_if_not_exists: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      create_picture_comments_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       has_role: {
         Args: { role_to_check: Database["public"]["Enums"]["app_role"] }

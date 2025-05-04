@@ -31,16 +31,18 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
     const fetchComments = async () => {
       try {
         setIsLoading(true);
+        
+        // Use generic from() and then cast the result type for TypeScript
         const { data, error } = await supabase
-          .from("picture_comments")
-          .select("*")
-          .eq("picture_id", pictureId)
-          .order("created_at", { ascending: false });
+          .from('picture_comments')
+          .select('*')
+          .eq('picture_id', pictureId)
+          .order('created_at', { ascending: false });
         
         if (error) throw error;
         
         // Fetch user information for each comment
-        const commentsWithUser = await Promise.all((data || []).map(async (comment) => {
+        const commentsWithUser = await Promise.all((data || []).map(async (comment: any) => {
           const { data: userData } = await supabase
             .from("profiles")
             .select("first_name, last_name, email")
@@ -54,7 +56,7 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
               : userData.email;
           }
           
-          return { ...comment, user_name: userName };
+          return { ...comment, user_name: userName } as Comment;
         }));
         
         setComments(commentsWithUser);
@@ -76,21 +78,9 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
     setIsSubmitting(true);
     
     try {
-      // First, check if the picture_comments table exists
-      const { error: checkError } = await supabase
-        .from("picture_comments")
-        .select("id")
-        .limit(1);
-        
-      if (checkError) {
-        // Create the table if it doesn't exist
-        const { error: createTableError } = await supabase.rpc('create_picture_comments_table');
-        if (createTableError) throw createTableError;
-      }
-      
-      // Insert the comment
+      // Insert the comment using a more reliable approach without checking for table existence
       const { error } = await supabase
-        .from("picture_comments")
+        .from('picture_comments')
         .insert({
           picture_id: pictureId,
           user_id: user.id,

@@ -43,21 +43,9 @@ export const verifyPicturesBucketExists = async () => {
 // Create the picture_comments table if it doesn't exist
 export const verifyPictureCommentsTableExists = async () => {
   try {
-    // First check if the table exists by trying to get a single record
-    const { error } = await supabase
-      .from('picture_comments')
-      .select('id')
-      .limit(1);
-      
-    if (error && error.code === '42P01') { // Relation does not exist error code
-      // Execute RPC function to create the table
-      const { error: createError } = await supabase.rpc('create_picture_comments_table');
-      
-      if (createError) throw createError;
-    } else if (error) {
-      // Some other error occurred
-      throw error;
-    }
+    // Execute RPC function to create the table
+    const { error } = await supabase.rpc('create_picture_comments_table');
+    if (error) throw error;
   } catch (error) {
     console.error('Error verifying picture_comments table:', error);
   }
