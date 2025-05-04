@@ -9,3 +9,4 @@ export { default as PictureComment } from './PictureComment';
 export { default as CommentForm } from './CommentForm';
 export { default as CommentsList } from './CommentsList';
 export { default as CommentItem } from './CommentItem';
+export { default as DeletePictureDialog } from './DeletePictureDialog';

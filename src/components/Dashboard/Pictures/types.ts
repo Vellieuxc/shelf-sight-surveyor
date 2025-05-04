@@ -13,3 +13,22 @@ export interface UserProfile {
   last_name: string | null;
   email: string;
 }
+
+export interface DeletePictureDialogProps {
+  pictureId: string;
+  onDeleted: () => void;
+}
+
+export interface CommentFormProps {
+  pictureId: string;
+  onCommentAdded: (comment: Comment) => void;
+}
+
+export interface CommentItemProps {
+  comment: Comment;
+}
+
+export interface CommentsListProps {
+  comments: Comment[];
+  isLoading: boolean;
+}

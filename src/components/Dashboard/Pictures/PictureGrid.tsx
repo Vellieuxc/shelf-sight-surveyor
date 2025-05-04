@@ -5,6 +5,7 @@ import PictureCard from "./PictureCard";
 import { FixedSizeGrid as Grid } from "react-window";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useResizeObserver } from "@/hooks/use-resize-observer";
+import { useToast } from "@/hooks/use-toast";
 
 interface PictureGridProps {
   pictures: Picture[];
@@ -28,6 +29,7 @@ const PictureGrid: React.FC<PictureGridProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   
   // State for grid dimensions
   const [dimensions, setDimensions] = useState({
@@ -83,6 +85,10 @@ const PictureGrid: React.FC<PictureGridProps> = ({
   // Calculate total number of rows needed
   const rowCount = Math.ceil(pictures.length / dimensions.columnCount);
 
+  const handleDeletePicture = (pictureId: string) => {
+    onDeletePicture(pictureId);
+  };
+
   const Cell = ({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
     const index = rowIndex * dimensions.columnCount + columnIndex;
     
@@ -107,7 +113,7 @@ const PictureGrid: React.FC<PictureGridProps> = ({
       <div style={cellStyle} role="listitem">
         <PictureCard 
           picture={picture} 
-          onDelete={() => onDeletePicture(picture.id)}
+          onDelete={() => handleDeletePicture(picture.id)}
           allowDelete={allowEditing}
           createdByName={creatorMap[picture.uploaded_by]}
         />

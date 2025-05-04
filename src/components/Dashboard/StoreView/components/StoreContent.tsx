@@ -1,21 +1,30 @@
 
-import React, { useState } from "react";
-import { Picture, Store } from "@/types";
-import StorePicturesSection from "../../StorePicturesSection";
-import StoreSummary from "../StoreSummary";
-import { useAuth } from "@/contexts/auth";
+import React from "react";
+import { Picture } from "@/types";
+import StorePicturesSection from "../../Pictures/StorePicturesSection";
+
+interface Store {
+  id: string;
+  name: string;
+  address: string;
+  type: string;
+  store_image?: string;
+  projects?: {
+    is_closed: boolean;
+  };
+}
 
 interface StoreContentProps {
   store: Store;
   pictures: Picture[];
   storeId: string;
   isLoading?: boolean;
-  isProjectClosed: boolean;
-  isConsultant: boolean;
-  isBoss: boolean;
+  isProjectClosed?: boolean;
+  isConsultant?: boolean;
+  isBoss?: boolean;
   onUploadClick: () => void;
   onCaptureClick: () => void;
-  refetchPictures: () => Promise<unknown>;
+  refetchPictures: () => void;
 }
 
 const StoreContent: React.FC<StoreContentProps> = ({
@@ -23,31 +32,25 @@ const StoreContent: React.FC<StoreContentProps> = ({
   pictures,
   storeId,
   isLoading = false,
-  isProjectClosed,
-  isConsultant,
-  isBoss,
+  isProjectClosed = false,
+  isConsultant = false,
+  isBoss = false,
   onUploadClick,
   onCaptureClick,
   refetchPictures
 }) => {
-  const { profile } = useAuth();
-  
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2">
-        <StorePicturesSection
-          pictures={pictures}
-          isLoading={isLoading}
-          onUploadClick={onUploadClick}
-          onCaptureClick={onCaptureClick}
-          isProjectClosed={isProjectClosed}
-          isConsultant={isConsultant}
-          isBoss={isBoss}
-        />
-      </div>
-      <div>
-        <StoreSummary store={store} />
-      </div>
+    <div className="space-y-6">
+      <StorePicturesSection
+        pictures={pictures}
+        isLoading={isLoading}
+        onUploadClick={onUploadClick}
+        onCaptureClick={onCaptureClick}
+        onPictureDeleted={refetchPictures}
+        isProjectClosed={isProjectClosed}
+        isConsultant={isConsultant}
+        isBoss={isBoss}
+      />
     </div>
   );
 };

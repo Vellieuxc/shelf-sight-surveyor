@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Microscope, Download } from "lucide-react";
+import { Microscope, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import PictureCreatorInfo from "./PictureCreatorInfo";
 import PictureAnalysisBadge from "./PictureAnalysisBadge";
 import PictureComment from "./PictureComment";
 import { useIsMobile } from "@/hooks/use-mobile";
+import DeletePictureDialog from "./DeletePictureDialog";
 
 interface PictureCardProps {
   picture: Picture;
@@ -123,15 +124,10 @@ const PictureCard: React.FC<PictureCardProps> = ({
         </Link>
         
         {allowDelete && (
-          <Button 
-            variant="ghost" 
-            size={isMobile ? "sm" : "default"} 
-            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90 w-full sm:flex-1"
-            onClick={onDelete}
-          >
-            <Trash2 className="mr-1 h-4 w-4" />
-            <span>Delete</span>
-          </Button>
+          <DeletePictureDialog
+            pictureId={picture.id}
+            onDeleted={onDelete}
+          />
         )}
         
         <Button
