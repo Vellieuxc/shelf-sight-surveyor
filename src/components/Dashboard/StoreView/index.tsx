@@ -3,17 +3,15 @@ import React, { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Store, Picture } from "@/types";
-import StoreHeader from "../StoreHeader";
 import StoreNotFound from "./StoreNotFound";
 import StoreLoading from "./StoreLoading";
 import StoreNavigation from "./StoreNavigation";
-import StoreActions from "./StoreActions";
-import StoreSummary from "./StoreSummary";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { StorePicturesSection } from "../Pictures";
-import { UploadDialog, CameraDialog } from "../Dialogs";
+import StoreControls from "./components/StoreControls";
+import StoreContent from "./components/StoreContent";
+import StoreDialogs from "./components/StoreDialogs";
 
 interface StoreViewProps {
   store: Store | null;
@@ -39,6 +37,8 @@ const StoreView: React.FC<StoreViewProps> = ({
   
   // Check if user is consultant or boss to show the summary
   const canViewSummary = profile?.role === 'consultant' || profile?.role === 'boss';
+  const isConsultant = profile?.role === 'consultant';
+  const isBoss = profile?.role === 'boss';
   
   // Handle upload functionality
   const { 
@@ -116,53 +116,35 @@ const StoreView: React.FC<StoreViewProps> = ({
       />
 
       <Card className="p-4 sm:p-6">
-        <StoreHeader 
+        <StoreControls 
           store={store}
+          isProjectClosed={isProjectClosed}
           onSynthesizeStore={handleSynthesizeStore}
         />
       </Card>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-        <StoreActions 
-          storeId={store.id}
-          isProjectClosed={isProjectClosed}
-          onAnalyze={() => {}}
-        />
-      </div>
+      <StoreContent 
+        store={store}
+        pictures={pictures}
+        isProjectClosed={isProjectClosed}
+        canViewSummary={canViewSummary}
+        isConsultant={!!isConsultant}
+        isBoss={!!isBoss}
+        onUploadClick={handleUploadClick}
+        onCaptureClick={() => setIsCameraDialogOpen(true)}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        <div className="lg:col-span-2">
-          <StorePicturesSection 
-            pictures={pictures}
-            onUploadClick={handleUploadClick}
-            onCaptureClick={() => setIsCameraDialogOpen(true)}
-            isProjectClosed={isProjectClosed}
-            isConsultant={profile?.role === 'consultant'}
-            isBoss={profile?.role === 'boss'}
-          />
-        </div>
-
-        {canViewSummary && (
-          <div className={`${isMobile ? 'mt-6' : ''}`} ref={summaryRef}>
-            <StoreSummary store={store} />
-          </div>
-        )}
-      </div>
-
-      <UploadDialog
-        open={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
+      <StoreDialogs 
+        isUploadDialogOpen={isUploadDialogOpen}
+        setIsUploadDialogOpen={setIsUploadDialogOpen}
+        isCameraDialogOpen={isCameraDialogOpen}
+        setIsCameraDialogOpen={setIsCameraDialogOpen}
         selectedFile={selectedFile}
         imagePreview={imagePreview}
         isUploading={isUploading}
         onFileChange={handleFileChange}
         onUpload={handleProcessUpload}
-      />
-
-      <CameraDialog
-        open={isCameraDialogOpen}
-        onOpenChange={setIsCameraDialogOpen}
-        onCapture={handleCameraCapture}
+        onCaptureImage={handleCameraCapture}
       />
     </div>
   );
