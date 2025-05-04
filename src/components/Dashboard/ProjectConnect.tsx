@@ -9,6 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth";
 
+// Define the type for the data returned from the connect_to_project RPC function
+type ProjectConnectResult = {
+  project_id: string;
+  project_title: string;
+  already_member: boolean;
+}
+
 const ProjectConnect: React.FC = () => {
   const [projectId, setProjectId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +40,7 @@ const ProjectConnect: React.FC = () => {
     try {
       // Use the connect_to_project database function to handle project connection
       const { data, error } = await supabase
-        .rpc('connect_to_project', { 
+        .rpc<ProjectConnectResult>('connect_to_project', { 
           project_id_param: projectId 
         });
         
