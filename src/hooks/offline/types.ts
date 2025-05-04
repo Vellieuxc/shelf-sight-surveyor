@@ -1,4 +1,6 @@
 
+import { IDBPDatabase } from 'idb';
+
 export interface OfflineImage {
   id: string;
   storeId: string;
