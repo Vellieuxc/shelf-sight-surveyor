@@ -4,15 +4,15 @@ import { UploadDialog, CameraDialog } from "../../Dialogs";
 
 interface DialogsContainerProps {
   isUploadDialogOpen: boolean;
-  setIsUploadDialogOpen: (isOpen: boolean) => void;
+  setIsUploadDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isCameraDialogOpen: boolean;
-  setIsCameraDialogOpen: (isOpen: boolean) => void;
+  setIsCameraDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   selectedFile: File | null;
   imagePreview: string | null;
   isUploading: boolean;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleUpload: () => Promise<void>;
-  handleCaptureFromCamera: (file: File, previewUrl: string) => void;
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleUpload: (file?: File) => void;
+  handleCaptureFromCamera: (file: File, preview: string) => void;
 }
 
 const DialogsContainer: React.FC<DialogsContainerProps> = ({
@@ -29,7 +29,7 @@ const DialogsContainer: React.FC<DialogsContainerProps> = ({
 }) => {
   return (
     <>
-      <UploadDialog
+      <UploadDialog 
         open={isUploadDialogOpen}
         onOpenChange={setIsUploadDialogOpen}
         selectedFile={selectedFile}
@@ -39,7 +39,7 @@ const DialogsContainer: React.FC<DialogsContainerProps> = ({
         onUpload={handleUpload}
       />
       
-      <CameraDialog
+      <CameraDialog 
         open={isCameraDialogOpen}
         onOpenChange={setIsCameraDialogOpen}
         onCapture={handleCaptureFromCamera}
