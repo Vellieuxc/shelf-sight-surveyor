@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StorePicturesSectionProps {
   pictures: Picture[];
+  isLoading?: boolean;  // Added isLoading prop to match the interface in Pictures/StorePicturesSection.tsx
   onUploadClick: () => void;
   onCaptureClick: () => void;
   isProjectClosed?: boolean;
@@ -20,6 +21,7 @@ interface StorePicturesSectionProps {
 
 const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
   pictures,
+  isLoading = false, // Added isLoading with default value
   onUploadClick,
   onCaptureClick,
   isProjectClosed = false,
@@ -71,7 +73,16 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
         )}
       </div>
 
-      {pictures.length === 0 ? (
+      {isLoading ? (
+        // Show loading state when isLoading is true
+        <div className="animate-pulse space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((_, index) => (
+              <div key={index} className="bg-muted h-48 rounded-md"></div>
+            ))}
+          </div>
+        </div>
+      ) : pictures.length === 0 ? (
         <EmptyStoresState
           onAddStore={canModify ? onUploadClick : undefined}
         />
