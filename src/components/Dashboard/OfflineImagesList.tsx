@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { OfflineImage, useOfflineMode } from "@/hooks/useOfflineMode";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Sync, Trash2, Upload } from "lucide-react";
+import { RefreshCw, Trash2, Upload } from "lucide-react";
 import { formatDateToRelative } from "@/utils/formatters";
 
 interface OfflineImagesListProps {
@@ -72,7 +72,7 @@ const OfflineImagesList: React.FC<OfflineImagesListProps> = ({
             onClick={handleSync} 
             disabled={syncing}
           >
-            <Sync className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? "Syncing..." : "Sync all"}
           </Button>
         )}

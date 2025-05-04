@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import { useAuth } from "@/contexts/auth";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import OfflineStatus from "@/components/OfflineStatus";
 import OfflineImagesList from "@/components/Dashboard/OfflineImagesList";
+import { AnalysisData } from "@/types";
 
 const StoreView: React.FC = () => {
   const { storeId } = useParams<{ storeId: string }>();
@@ -59,7 +61,12 @@ const StoreView: React.FC = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      return data;
+      
+      // Transform the analysis_data to ensure it's an array of AnalysisData objects
+      return data.map(picture => ({
+        ...picture,
+        analysis_data: Array.isArray(picture.analysis_data) ? picture.analysis_data : []
+      }));
     },
     enabled: !!storeId
   });
@@ -211,7 +218,10 @@ const StoreView: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <StoreHeader store={store} />
+      <StoreHeader 
+        store={store} 
+        onSynthesizeStore={() => console.log("Synthesize store")}
+      />
       
       <OfflineStatus className="mt-4" />
       

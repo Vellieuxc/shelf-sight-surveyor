@@ -53,8 +53,8 @@ export function useOfflineMode(): OfflineStore {
         
         setDb(database);
         
-        // Count pending uploads
-        const count = await database.count('offline-images', IDBKeyRange.only(false));
+        // Count pending uploads - use IDBKeyRange.only with a value of 0 (false)
+        const count = await database.count('offline-images', IDBKeyRange.only(0));
         setPendingUploads(count);
       } catch (error) {
         console.error("Failed to initialize IndexedDB:", error);
@@ -160,8 +160,8 @@ export function useOfflineMode(): OfflineStore {
     try {
       await db.delete('offline-images', id);
       
-      // Update pending uploads count
-      const count = await db.count('offline-images', IDBKeyRange.only(false));
+      // Update pending uploads count - use IDBKeyRange.only with 0 (false)
+      const count = await db.count('offline-images', IDBKeyRange.only(0));
       setPendingUploads(count);
       
       return true;
@@ -177,7 +177,8 @@ export function useOfflineMode(): OfflineStore {
     
     const tx = db.transaction('offline-images', 'readwrite');
     const store = tx.objectStore('offline-images');
-    const pendingImages = await store.index('byUploadStatus').getAll(false);
+    // Use IDBKeyRange.only with 0 (false) instead of boolean
+    const pendingImages = await store.index('byUploadStatus').getAll(0);
     
     let successCount = 0;
     
@@ -217,10 +218,10 @@ export function useOfflineMode(): OfflineStore {
         
         if (dbError) throw dbError;
         
-        // Mark as uploaded in local DB
+        // Mark as uploaded in local DB - use 1 instead of true
         await store.put({
           ...image,
-          uploaded: true
+          uploaded: 1
         });
         
         successCount++;
