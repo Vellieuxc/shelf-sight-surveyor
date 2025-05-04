@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
 import { AnalysisData } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useImageAnalysis = (storeId?: string) => {
   const [searchParams] = useSearchParams();
