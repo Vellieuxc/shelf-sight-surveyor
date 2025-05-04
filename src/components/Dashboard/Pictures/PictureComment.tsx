@@ -19,7 +19,6 @@ interface Comment {
   content: string;
   created_at: string;
   user_name?: string;
-  profiles?: UserProfile;
 }
 
 interface UserProfile {
@@ -47,17 +46,10 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         setIsLoading(true);
         console.log("Fetching comments for picture:", pictureId);
         
-        // Fetch comments with user profiles in a single query using joins
+        // First, fetch comments
         const { data, error } = await supabase
           .from('picture_comments')
-          .select(`
-            *,
-            profiles:user_id (
-              first_name, 
-              last_name,
-              email
-            )
-          `)
+          .select('*')
           .eq('picture_id', pictureId)
           .order('created_at', { ascending: false });
         
@@ -65,23 +57,35 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         
         console.log("Comments data received:", data);
         
-        // Process the joined data
-        const commentsWithUser: Comment[] = (data || []).map(comment => {
-          let userName = "Unknown User";
-          
-          // Add proper type checking for the profiles property
-          if (comment.profiles && typeof comment.profiles === 'object') {
-            const profile = comment.profiles as UserProfile;
-            userName = profile.first_name && profile.last_name 
-              ? `${profile.first_name} ${profile.last_name}` 
-              : profile.email || "Unknown User";
+        // Process each comment to add user information
+        const commentsWithUser: Comment[] = [];
+        
+        for (const comment of (data || [])) {
+          try {
+            // Fetch user profile for each comment
+            const { data: userData, error: userError } = await supabase
+              .from("profiles")
+              .select("first_name, last_name, email")
+              .eq("id", comment.user_id)
+              .single();
+            
+            if (userError) throw userError;
+            
+            let userName = "Unknown User";
+            
+            if (userData) {
+              userName = userData.first_name && userData.last_name 
+                ? `${userData.first_name} ${userData.last_name}` 
+                : userData.email || "Unknown User";
+            }
+            
+            commentsWithUser.push({ ...comment, user_name: userName });
+          } catch (userError) {
+            console.error("Error fetching user data:", userError);
+            // If we can't get user info, still add the comment but with default name
+            commentsWithUser.push({ ...comment, user_name: "Unknown User" });
           }
-          
-          return {
-            ...comment,
-            user_name: userName
-          };
-        });
+        }
         
         setComments(commentsWithUser);
       } catch (error) {
