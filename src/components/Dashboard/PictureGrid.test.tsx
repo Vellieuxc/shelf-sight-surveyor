@@ -4,6 +4,27 @@ import { render, screen } from '@/test/utils';
 import PictureGrid from './PictureGrid';
 import { Picture } from '@/types';
 
+// Mock react-window to avoid rendering issues in tests
+vi.mock('react-window', () => ({
+  FixedSizeGrid: ({ children, columnCount, rowCount }: any) => {
+    const items = [];
+    // Render first 4 items only for testing
+    for (let row = 0; row < Math.min(rowCount, 2); row++) {
+      for (let col = 0; col < Math.min(columnCount, 2); col++) {
+        items.push(children({ columnIndex: col, rowIndex: row, style: {} }));
+      }
+    }
+    return <div role="list">{items}</div>;
+  }
+}));
+
+// Mock resize observer
+window.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
 describe('PictureGrid Component', () => {
   it('renders an empty state message when there are no pictures', () => {
     render(<PictureGrid pictures={[]} onDeletePicture={() => {}} />);
@@ -35,6 +56,10 @@ describe('PictureGrid Component', () => {
     const mockDeleteHandler = vi.fn();
     const mockCreatorMap = { 'user-1': 'John Doe', 'user-2': 'Jane Smith' };
     
+    // Mock element dimensions for testing
+    const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 1000 });
+    
     render(
       <PictureGrid 
         pictures={mockPictures} 
@@ -43,10 +68,14 @@ describe('PictureGrid Component', () => {
       />
     );
     
-    // We don't check for specific image URLs as PictureCard is a separate component,
-    // but we can verify the component renders the grid structure
-    const gridElement = screen.getByRole('list') || document.querySelector('.grid');
+    // We expect the grid container to be rendered
+    const gridElement = screen.getByRole('list');
     expect(gridElement).toBeInTheDocument();
+    
+    // Restore original offsetWidth
+    if (originalOffsetWidth) {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', originalOffsetWidth);
+    }
   });
 
   it('respects the allowEditing prop', () => {
@@ -62,6 +91,10 @@ describe('PictureGrid Component', () => {
     ];
     
     const mockDeleteHandler = vi.fn();
+    
+    // Mock element dimensions for testing
+    const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 1000 });
     
     // First render with allowEditing=false
     const { rerender } = render(
@@ -80,5 +113,10 @@ describe('PictureGrid Component', () => {
         allowEditing={true}
       />
     );
+    
+    // Restore original offsetWidth
+    if (originalOffsetWidth) {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', originalOffsetWidth);
+    }
   });
 });
