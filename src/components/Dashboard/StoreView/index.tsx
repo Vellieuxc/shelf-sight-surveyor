@@ -4,17 +4,16 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Store, Picture } from "@/types";
 import StoreHeader from "../StoreHeader";
-import UploadDialog from "../UploadDialog";
-import CameraDialog from "../CameraDialog";
 import StoreNotFound from "./StoreNotFound";
 import StoreLoading from "./StoreLoading";
 import StoreNavigation from "./StoreNavigation";
-import StorePicturesSection from "./StorePicturesSection";
 import StoreActions from "./StoreActions";
 import StoreSummary from "./StoreSummary";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useAuth } from "@/contexts/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { StorePicturesSection } from "../Pictures";
+import { UploadDialog, CameraDialog } from "../Dialogs";
 
 interface StoreViewProps {
   store: Store | null;
