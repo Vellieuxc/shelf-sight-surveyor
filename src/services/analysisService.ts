@@ -16,14 +16,9 @@ export async function analyzeShelfImage(
 ): Promise<AnalysisData[]> {
   const { 
     retryCount = 3, 
-    timeout = 120000, // Increased timeout to 2 minutes for larger images
+    timeout = 120000, // 2 minutes default timeout for larger images
     includeConfidence = true 
   } = options;
-  
-  // Add timeout logic
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error("Analysis timed out")), timeout);
-  });
   
   // Add retry logic
   for (let attempt = 0; attempt < retryCount; attempt++) {
@@ -31,16 +26,22 @@ export async function analyzeShelfImage(
       console.log(`Attempt ${attempt + 1}/${retryCount} to analyze image ${imageId}`);
       console.log(`Using image URL: ${imageUrl}`);
       
-      const { data, error } = await Promise.race([
-        supabase.functions.invoke('analyze-shelf-image', {
-          body: {
-            imageUrl,
-            imageId,
-            includeConfidence
-          }
-        }),
-        timeoutPromise
-      ]);
+      // Create an AbortController for this request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      // Make the request with timeout handling
+      const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
+        body: {
+          imageUrl,
+          imageId,
+          includeConfidence
+        },
+        signal: controller.signal
+      });
+      
+      // Clear the timeout
+      clearTimeout(timeoutId);
       
       if (error) {
         console.error(`Error from edge function:`, error);
@@ -54,15 +55,22 @@ export async function analyzeShelfImage(
       
       console.error("Invalid response format from analysis function:", data);
       throw new Error("Invalid response format from analysis function");
-    } catch (error) {
+    } catch (error: any) {
       // Format error message with attempt information
-      const enhancedError = new Error(`Analysis attempt ${attempt + 1} failed`);
+      const enhancedError = new Error(`Analysis attempt ${attempt + 1} failed: ${error.message || 'Unknown error'}`);
       
+      // Check if this was a timeout
+      const isTimeout = error.name === 'AbortError' || 
+                        error.message?.includes('timeout') ||
+                        error.message?.includes('aborted');
+                        
       // On last attempt, throw the error to be handled by caller
       if (attempt === retryCount - 1) {
         handleError(error, {
           silent: false, 
-          fallbackMessage: `Image analysis failed after ${retryCount} attempts`, 
+          fallbackMessage: isTimeout 
+            ? `Image analysis timed out after ${retryCount} attempts. The image may be too complex.` 
+            : `Image analysis failed after ${retryCount} attempts`, 
           context: {
             source: 'api',
             operation: 'analyzeShelfImage',

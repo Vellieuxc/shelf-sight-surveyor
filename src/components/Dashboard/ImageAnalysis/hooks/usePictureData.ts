@@ -63,25 +63,23 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
       try {
         console.log(`Fetching data for picture ID: ${pictureId}`);
         
-        // Add timeout to prevent hanging requests
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Request timed out")), 10000);
-        });
+        // Increased timeout to prevent frequent timeouts
+        const TIMEOUT_MS = 30000; // 30 seconds
         
-        const fetchPromise = supabase
+        // Create a controller to abort the fetch if needed
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), TIMEOUT_MS);
+        
+        // Execute the fetch with proper error handling
+        const { data, error } = await supabase
           .from("pictures")
           .select("*")
           .eq("id", pictureId)
           .single();
+        
+        // Clear the timeout since fetch completed
+        clearTimeout(timeoutId);
           
-        // Race between fetch and timeout
-        const { data, error } = await Promise.race([
-          fetchPromise,
-          timeoutPromise.then(() => {
-            throw new Error("Request timed out");
-          })
-        ]) as any;
-
         if (error) throw error;
         
         console.log(`Picture data retrieved:`, data);
@@ -107,7 +105,13 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
         }
       } catch (err: any) {
         setIsError(true);
-        setErrorMessage(err?.message || "Failed to load picture data");
+        
+        // Handle AbortError specially
+        if (err.name === 'AbortError' || err.message === 'The user aborted a request.') {
+          setErrorMessage("Request timed out. Please try again.");
+        } else {
+          setErrorMessage(err?.message || "Failed to load picture data");
+        }
         
         // Use the error handling utility for proper error logging and display
         handleError(err, {

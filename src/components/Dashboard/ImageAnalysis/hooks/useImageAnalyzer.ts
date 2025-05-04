@@ -33,16 +33,11 @@ export const useImageAnalyzer = ({
     setIsAnalyzing(true);
     
     try {
-      // Add timeout guard
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Analysis timed out")), 60000); // 60 seconds timeout
+      // Increase timeout for complex images to 2 minutes
+      const data = await analyzeShelfImage(selectedImage, currentPictureId, {
+        timeout: 120000, // 2 minutes
+        retryCount: 3
       });
-      
-      // Race between analysis and timeout
-      const data = await Promise.race([
-        analyzeShelfImage(selectedImage, currentPictureId),
-        timeoutPromise
-      ]);
       
       if (Array.isArray(data) && data.length > 0) {
         setAnalysisData(data);
