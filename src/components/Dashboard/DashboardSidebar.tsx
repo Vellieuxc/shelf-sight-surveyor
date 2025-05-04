@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
@@ -24,7 +23,7 @@ import SidebarNavigation from "./Sidebar/SidebarNavigation";
 export function DashboardSidebar() {
   const { signOut, profile } = useAuth();
   const location = useLocation();
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, storeId } = useParams<{ projectId: string; storeId: string }>();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,11 +78,19 @@ export function DashboardSidebar() {
   }, [projectId]);
 
   const getActiveProjectId = () => {
+    // First try to get from params
+    if (projectId) return projectId;
+    
+    // Otherwise try to extract from path
     const match = location.pathname.match(/\/projects\/([^/]+)/);
     return match ? match[1] : undefined;
   };
 
   const getActiveStoreId = () => {
+    // First try to get from params
+    if (storeId) return storeId;
+    
+    // Otherwise try to extract from path
     const match = location.pathname.match(/\/stores\/([^/]+)/);
     return match ? match[1] : undefined;
   };
