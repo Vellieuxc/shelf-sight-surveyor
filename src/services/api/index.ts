@@ -34,7 +34,7 @@ export class ApiService<T extends TableName> {
     const { data, error } = await supabase
       .from(this.tableName)
       .select(options.select || '*')
-      .eq('id', id)
+      .eq('id', id as any)
       .single();
     
     if (error) throw error;
@@ -55,7 +55,7 @@ export class ApiService<T extends TableName> {
     const { data, error } = await supabase
       .from(this.tableName)
       .update(item as any)
-      .eq('id', id)
+      .eq('id', id as any)
       .select();
     
     if (error) throw error;
@@ -66,7 +66,7 @@ export class ApiService<T extends TableName> {
     const { error } = await supabase
       .from(this.tableName)
       .delete()
-      .eq('id', id);
+      .eq('id', id as any);
     
     if (error) throw error;
     return true;
