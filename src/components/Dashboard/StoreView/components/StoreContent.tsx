@@ -2,8 +2,8 @@
 import React from "react";
 import { StorePicturesSection } from "../../Pictures";
 import { Picture, Store } from "@/types";
-import { OfflineStatus } from "@/components/OfflineStatus";
-import { OfflineImagesList } from "@/components/Dashboard/OfflineImagesList";
+import OfflineStatus from "@/components/OfflineStatus";
+import OfflineImagesList from "@/components/Dashboard/OfflineImagesList";
 
 interface StoreContentProps {
   store: Store;

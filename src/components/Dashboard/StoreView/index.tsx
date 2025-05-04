@@ -1,155 +1,158 @@
 
-import React, { useRef } from "react";
-import { Card } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Picture } from "@/types";
-import StoreNotFound from "./StoreNotFound";
-import StoreLoading from "./StoreLoading";
-import StoreNavigation from "./StoreNavigation";
-import { useFileUpload } from "./hooks/useFileUpload";
 import { useAuth } from "@/contexts/auth";
-import { useIsMobile } from "@/hooks/use-mobile";
-import StoreControls from "./components/StoreControls";
-import StoreContent from "./components/StoreContent";
-import StoreDialogs from "./components/StoreDialogs";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
+import { Picture } from "@/types";
+import { transformAnalysisData } from "@/utils/dataTransformers";
 import { useErrorHandling } from "@/hooks/use-error-handling";
+import { StoreContent, StoreHeader, DialogsContainer, useImageHandlers } from "./components";
 
-interface StoreViewProps {
-  store: Store | null;
-  pictures: Picture[];
-  isLoading: boolean;
-  isProjectClosed: boolean;
-  userId: string;
-}
-
-const StoreView: React.FC<StoreViewProps> = ({
-  store,
-  pictures,
-  isLoading,
-  isProjectClosed,
-  userId
-}) => {
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
-  const [isCameraDialogOpen, setIsCameraDialogOpen] = React.useState(false);
+const StoreView: React.FC = () => {
+  const { storeId } = useParams<{ storeId: string }>();
   const { toast } = useToast();
-  const { profile } = useAuth();
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
-  const { handleError } = useErrorHandling({ 
+  const { user, profile } = useAuth();
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
+  const { pendingUploads, isOnline, syncOfflineImages } = useOfflineMode();
+  const { handleError } = useErrorHandling({
     source: 'ui',
     componentName: 'StoreView'
   });
+
+  // Check user permissions
+  const isConsultant = profile?.role === "consultant";
+  const isBoss = profile?.role === "boss";
   
-  // Check if user is consultant or boss to show the summary
-  const canViewSummary = profile?.role === 'consultant' || profile?.role === 'boss';
-  const isConsultant = profile?.role === 'consultant';
-  const isBoss = profile?.role === 'boss';
-  
-  // Handle upload functionality
+  // Fetch store data
   const { 
-    selectedFile, 
-    imagePreview, 
-    isUploading,
-    handleFileChange,
-    handleFileUpload,
-    handleCapture
-  } = useFileUpload(store, userId);
-
-  // Handle not found and loading states
-  if (!store && !isLoading) {
-    return <StoreNotFound />;
-  }
-
-  if (isLoading || !store) {
-    return <StoreLoading />;
-  }
-
-  // Handle synthesizing store data
-  const handleSynthesizeStore = () => {
-    try {
-      if (canViewSummary && store) {
-        toast({
-          title: "Synthesizing store data",
-          description: "Processing store information and analysis data...",
-        });
+    data: store, 
+    isLoading: storeLoading,
+    error: storeError
+  } = useQuery({
+    queryKey: ['store', storeId],
+    queryFn: async () => {
+      if (!storeId) throw new Error("Store ID is required");
+      
+      const { data, error } = await supabase
+        .from('stores')
+        .select('*, projects:project_id(is_closed)')
+        .eq('id', storeId)
+        .single();
         
-        // Scroll to the summary section
-        if (summaryRef.current) {
-          summaryRef.current.scrollIntoView({ behavior: "smooth" });
-          
-          // Find the generate summary button and click it programmatically
-          const generateButton = summaryRef.current.querySelector('button');
-          if (generateButton) {
-            setTimeout(() => {
-              generateButton.click();
-            }, 500);
-          }
-        }
-      }
-      else {
-        throw new Error("Only consultants and bosses can synthesize store data.");
-      }
-    } catch (error) {
-      handleError(error, { 
-        fallbackMessage: "Failed to synthesize store data",
-        operation: "synthesizeStore"
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!storeId
+  });
+  
+  // Fetch pictures
+  const { 
+    data: picturesData = [], 
+    isLoading: picturesLoading,
+    refetch: refetchPictures
+  } = useQuery({
+    queryKey: ['pictures', storeId],
+    queryFn: async () => {
+      if (!storeId) return [];
+      
+      const { data, error } = await supabase
+        .from('pictures')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!storeId
+  });
+  
+  // Transform the pictures data to ensure proper typing
+  const pictures: Picture[] = picturesData.map(pic => ({
+    ...pic,
+    analysis_data: transformAnalysisData(Array.isArray(pic.analysis_data) ? pic.analysis_data : [])
+  }));
+  
+  // Auto-sync when coming online
+  useEffect(() => {
+    if (isOnline && pendingUploads > 0) {
+      syncOfflineImages().then(() => {
+        refetchPictures();
       });
     }
-  };
+  }, [isOnline, pendingUploads, refetchPictures]);
   
-  // Handle upload button click
+  // Use the image handlers custom hook
+  const {
+    selectedFile,
+    imagePreview,
+    isUploading,
+    handleFileChange,
+    handleCaptureFromCamera,
+    handleUpload
+  } = useImageHandlers(storeId || '', refetchPictures);
+  
+  // Handle various UI interactions
+  const handleSynthesizeStore = () => {
+    console.log("Synthesize store");
+  };
+
   const handleUploadClick = () => {
     setIsUploadDialogOpen(true);
   };
-  
-  // Handle file upload with dialog close
-  const handleProcessUpload = () => {
-    handleFileUpload(() => setIsUploadDialogOpen(false));
+
+  const handleCaptureClick = () => {
+    setIsCameraDialogOpen(true);
   };
-  
-  // Handle camera capture
-  const handleCameraCapture = (file: File, previewUrl: string) => {
-    try {
-      handleCapture(file, previewUrl);
-      setIsCameraDialogOpen(false);
-      setIsUploadDialogOpen(true);
-    } catch (error) {
-      handleError(error, {
-        fallbackMessage: "Failed to process camera capture",
-        operation: "cameraCapture"
-      });
-    }
-  };
+
+  if (!storeId) {
+    return <div>Store ID is required</div>;
+  }
+
+  if (storeLoading) {
+    return <div>Loading store details...</div>;
+  }
+
+  if (storeError) {
+    handleError(storeError, {
+      fallbackMessage: "Failed to load store details",
+      operation: "fetchStore",
+      additionalData: { storeId }
+    });
+    return <div>Error loading store</div>;
+  }
+
+  if (!store) {
+    return <div>Store not found</div>;
+  }
+
+  // Determine if the project is closed
+  const isProjectClosed = store.projects?.is_closed ?? false;
 
   return (
-    <div className="container py-6 space-y-6 lg:space-y-8 px-4 sm:px-6">
-      <StoreNavigation 
-        projectId={store.project_id} 
-        storeId={store.id} 
-        creatorId={store.created_by} 
-        currentUserId={userId} 
+    <div className="space-y-8">
+      <StoreHeader 
+        store={store} 
+        onSynthesizeStore={handleSynthesizeStore}
       />
-
-      <Card className="p-4 sm:p-6">
-        <StoreControls 
-          store={store}
-          isProjectClosed={isProjectClosed}
-          onSynthesizeStore={handleSynthesizeStore}
-        />
-      </Card>
-
+      
       <StoreContent 
         store={store}
         pictures={pictures}
+        storeId={storeId}
         isProjectClosed={isProjectClosed}
-        canViewSummary={canViewSummary}
-        isConsultant={!!isConsultant}
-        isBoss={!!isBoss}
+        isConsultant={isConsultant}
+        isBoss={isBoss}
         onUploadClick={handleUploadClick}
-        onCaptureClick={() => setIsCameraDialogOpen(true)}
+        onCaptureClick={handleCaptureClick}
+        refetchPictures={refetchPictures}
       />
-
-      <StoreDialogs 
+      
+      <DialogsContainer
         isUploadDialogOpen={isUploadDialogOpen}
         setIsUploadDialogOpen={setIsUploadDialogOpen}
         isCameraDialogOpen={isCameraDialogOpen}
@@ -157,9 +160,9 @@ const StoreView: React.FC<StoreViewProps> = ({
         selectedFile={selectedFile}
         imagePreview={imagePreview}
         isUploading={isUploading}
-        onFileChange={handleFileChange}
-        onUpload={handleProcessUpload}
-        onCaptureImage={handleCameraCapture}
+        handleFileChange={handleFileChange}
+        handleUpload={handleUpload}
+        handleCaptureFromCamera={handleCaptureFromCamera}
       />
     </div>
   );
