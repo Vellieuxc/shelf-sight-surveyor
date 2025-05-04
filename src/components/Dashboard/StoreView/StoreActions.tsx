@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon, CameraIcon, ImageIcon } from "lucide-react";
 
 interface StoreActionsProps {
-  storeId?: string; // Added storeId as an optional prop
+  storeId?: string;
   isProjectClosed: boolean;
   onUploadClick?: () => void;
   onCaptureClick?: () => void;
-  onAnalyze?: () => void; // Made this optional
+  onAnalyze?: () => void; // This is separate from upload/capture
 }
 
 const StoreActions: React.FC<StoreActionsProps> = ({

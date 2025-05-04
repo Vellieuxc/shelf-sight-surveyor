@@ -1,27 +1,16 @@
 
 import React from "react";
-import { Picture } from "@/types";
+import { Store, Picture } from "@/types";
 import StorePicturesSection from "../../Pictures/StorePicturesSection";
-
-interface Store {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  store_image?: string;
-  projects?: {
-    is_closed: boolean;
-  };
-}
 
 interface StoreContentProps {
   store: Store;
   pictures: Picture[];
   storeId: string;
-  isLoading?: boolean;
-  isProjectClosed?: boolean;
-  isConsultant?: boolean;
-  isBoss?: boolean;
+  isLoading: boolean;
+  isProjectClosed: boolean;
+  isConsultant: boolean;
+  isBoss: boolean;
   onUploadClick: () => void;
   onCaptureClick: () => void;
   refetchPictures: () => void;
@@ -31,16 +20,20 @@ const StoreContent: React.FC<StoreContentProps> = ({
   store,
   pictures,
   storeId,
-  isLoading = false,
-  isProjectClosed = false,
-  isConsultant = false,
-  isBoss = false,
+  isLoading,
+  isProjectClosed,
+  isConsultant,
+  isBoss,
   onUploadClick,
   onCaptureClick,
   refetchPictures
 }) => {
+  // Determine if the user can add photos based on project status and role
+  const canAddPhotos = !isProjectClosed || isConsultant || isBoss;
+  
   return (
     <div className="space-y-6">
+      {/* Pictures Section */}
       <StorePicturesSection
         pictures={pictures}
         isLoading={isLoading}
