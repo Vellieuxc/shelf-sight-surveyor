@@ -1,6 +1,6 @@
 
 // Analysis Service
-export * from './analysisService';
+export * from './analysis';
 
 // API Services
 export * from './api/index';

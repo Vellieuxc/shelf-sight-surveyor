@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeShelfImage } from "@/services/analysisService";
+import { analyzeShelfImage } from "@/services/analysis";
 import { AnalysisData } from "@/types";
 import { handleError } from "@/utils/errors";
 
