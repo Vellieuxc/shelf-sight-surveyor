@@ -29,8 +29,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   onAnalyze,
   onResetImage,
 }) => {
-  // This ensures the UI shows the loading state but still displays the image when analyzing
-  const showSkeleton = isLoading && !isAnalyzing;
+  // Only show skeleton when loading initially, not when analyzing
+  const showSkeleton = isLoading && !selectedImage;
 
   return (
     <Card className="card-shadow">

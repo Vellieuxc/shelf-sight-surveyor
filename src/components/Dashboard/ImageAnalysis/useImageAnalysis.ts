@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
 import { AnalysisData } from "@/types";
@@ -10,6 +10,7 @@ export const useImageAnalysis = (storeId?: string) => {
   const [searchParams] = useSearchParams();
   const pictureId = searchParams.get("pictureId");
   const { toast } = useToast();
+  const analysisComplete = useRef(false);
   
   // Load picture data if pictureId is provided
   const { 
@@ -65,6 +66,9 @@ export const useImageAnalysis = (storeId?: string) => {
         console.log("Analysis complete for existing picture. Updating state and saving to DB.");
         setPictureAnalysisData(data);
         
+        // Set that we've completed analysis
+        analysisComplete.current = true;
+        
         // Save the analysis data to the database
         try {
           console.log("Saving analysis data to database for picture:", pictureId);
@@ -93,6 +97,8 @@ export const useImageAnalysis = (storeId?: string) => {
         }
       } else {
         console.log("Analysis complete for uploaded image");
+        // Set that we've completed analysis
+        analysisComplete.current = true;
       }
     }
   });
@@ -115,6 +121,8 @@ export const useImageAnalysis = (storeId?: string) => {
       // For new uploads, reset everything
       handleResetImage();
     }
+    // Reset analysis completion flag
+    analysisComplete.current = false;
   };
 
   // Handle updating analysis data
@@ -155,14 +163,15 @@ export const useImageAnalysis = (storeId?: string) => {
     }
   };
   
-  // Modify auto-analyze behavior - temporarily disabled
+  // Auto-analysis is disabled
   useEffect(() => {
     const shouldAutoAnalyze = 
       pictureId && 
       pictureImage && 
       !isPictureLoading && 
       !pictureAnalysisData && 
-      !isAnalyzing;
+      !isAnalyzing && 
+      !analysisComplete.current;
       
     if (shouldAutoAnalyze) {
       console.log("Auto-analysis is currently disabled. Not calling edge function.");

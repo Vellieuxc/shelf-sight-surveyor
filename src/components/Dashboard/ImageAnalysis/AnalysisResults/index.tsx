@@ -19,7 +19,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   onExportToExcel,
   onUpdateAnalysisData,
 }) => {
-  if (isLoading) {
+  // Only show skeleton on initial load, not when analyzing
+  if (isLoading && !analysisData) {
     return <AnalysisResultsSkeleton />;
   }
   

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
@@ -38,6 +38,9 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentPictureId, setCurrentPictureId] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
+  const isMounted = useRef(true);
+  const hasLoaded = useRef(false);
+  
   const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'usePictureData',
@@ -45,6 +48,18 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
   });
 
   useEffect(() => {
+    // Set up cleanup function for component unmount
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Reset the loaded state when pictureId changes
+    if (pictureId !== currentPictureId) {
+      hasLoaded.current = false;
+    }
+    
     if (!pictureId) {
       // Clear data if no picture ID is provided
       setSelectedImage(null);
@@ -55,6 +70,12 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
       return;
     }
     
+    // Prevent duplicate fetches for the same pictureId
+    if (hasLoaded.current && pictureId === currentPictureId) {
+      return;
+    }
+    
+    // Set loading state and prepare to fetch data
     setIsLoading(true);
     setIsError(false);
     setErrorMessage(null);
@@ -68,15 +89,12 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
           throw new Error("Supabase client is not initialized");
         }
         
-        // Add delay before fetch to ensure client is ready
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
         // Execute the fetch with improved error handling
         const { data, error } = await supabase
           .from("pictures")
           .select("*")
           .eq("id", pictureId)
-          .single();
+          .maybeSingle();
           
         if (error) {
           console.error("Error fetching picture data:", error);
@@ -86,6 +104,9 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
         if (!data) {
           throw new Error("Picture not found");
         }
+        
+        // Don't update state if component has unmounted
+        if (!isMounted.current) return;
         
         console.log(`Picture data retrieved:`, data);
         
@@ -97,6 +118,10 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
             : null
         };
         
+        // Mark that we've successfully loaded the data
+        hasLoaded.current = true;
+        
+        // Set states with data
         setSelectedImage(pictureData.image_url);
         setCurrentPictureId(pictureData.id);
         
@@ -109,6 +134,9 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
           setAnalysisData(null);
         }
       } catch (err: any) {
+        // Don't update state if component has unmounted
+        if (!isMounted.current) return;
+        
         setIsError(true);
         
         const errorMessage = err?.message || "Failed to load picture data";
@@ -124,7 +152,10 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
         setSelectedImage(null);
         setAnalysisData(null);
       } finally {
-        setIsLoading(false);
+        // Don't update state if component has unmounted
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 
