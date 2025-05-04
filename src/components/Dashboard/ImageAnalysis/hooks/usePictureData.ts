@@ -20,6 +20,8 @@ interface PictureData {
 
 interface UsePictureDataReturn {
   isLoading: boolean;
+  isError: boolean;
+  errorMessage: string | null;
   selectedImage: string | null;
   currentPictureId: string | null;
   analysisData: AnalysisData[] | null;
@@ -31,10 +33,12 @@ interface UsePictureDataReturn {
 export const usePictureData = (pictureId: string | null): UsePictureDataReturn => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentPictureId, setCurrentPictureId] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
-  const { handleError, runSafely } = useErrorHandling({
+  const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'usePictureData',
     operation: 'fetchPictureData'
@@ -46,19 +50,37 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
       setSelectedImage(null);
       setCurrentPictureId(null);
       setAnalysisData(null);
+      setIsError(false);
+      setErrorMessage(null);
       return;
     }
     
     setIsLoading(true);
+    setIsError(false);
+    setErrorMessage(null);
     
     const fetchPictureData = async () => {
       try {
         console.log(`Fetching data for picture ID: ${pictureId}`);
-        const { data, error } = await supabase
+        
+        // Add timeout to prevent hanging requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Request timed out")), 10000);
+        });
+        
+        const fetchPromise = supabase
           .from("pictures")
           .select("*")
           .eq("id", pictureId)
           .single();
+          
+        // Race between fetch and timeout
+        const { data, error } = await Promise.race([
+          fetchPromise,
+          timeoutPromise.then(() => {
+            throw new Error("Request timed out");
+          })
+        ]) as any;
 
         if (error) throw error;
         
@@ -83,11 +105,19 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
           console.log("No analysis data found for this picture");
           setAnalysisData(null);
         }
-      } catch (err) {
+      } catch (err: any) {
+        setIsError(true);
+        setErrorMessage(err?.message || "Failed to load picture data");
+        
+        // Use the error handling utility for proper error logging and display
         handleError(err, {
           fallbackMessage: "Failed to load picture data",
           additionalData: { pictureId }
         });
+        
+        // Make sure to clear any partial data
+        setSelectedImage(null);
+        setAnalysisData(null);
       } finally {
         setIsLoading(false);
       }
@@ -98,6 +128,8 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
 
   return {
     isLoading,
+    isError,
+    errorMessage,
     selectedImage,
     currentPictureId,
     analysisData,

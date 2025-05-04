@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
@@ -13,6 +14,8 @@ export const useImageAnalysis = (storeId?: string) => {
   // Load picture data if pictureId is provided
   const { 
     isLoading: isPictureLoading,
+    isError: isPictureError,
+    errorMessage: pictureErrorMessage,
     selectedImage: pictureImage,
     currentPictureId: picturePictureId,
     analysisData: pictureAnalysisData,
@@ -112,6 +115,8 @@ export const useImageAnalysis = (storeId?: string) => {
     selectedImage,
     isAnalyzing,
     isLoading: isPictureLoading,
+    isError: isPictureError,
+    errorMessage: pictureErrorMessage,
     analysisData,
     currentPictureId,
     handleImageUpload,
