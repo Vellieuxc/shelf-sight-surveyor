@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { OfflineImage, useOfflineMode } from "@/hooks/useOfflineMode";
+import { useOfflineContext } from "@/contexts/offline";
+import { OfflineImage } from "@/hooks/useOfflineMode";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { RefreshCw, Trash2, Upload } from "lucide-react";
 import { formatDateToRelative } from "@/utils/formatters";
@@ -15,7 +15,7 @@ const OfflineImagesList: React.FC<OfflineImagesListProps> = ({
   storeId, 
   onSyncComplete 
 }) => {
-  const { getPendingImages, syncOfflineImages, deleteOfflineImage, isOnline } = useOfflineMode();
+  const { getPendingImages, syncOfflineImages, deleteOfflineImage, isOnline } = useOfflineContext();
   const [images, setImages] = useState<OfflineImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);

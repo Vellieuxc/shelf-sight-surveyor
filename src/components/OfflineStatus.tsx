@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { useOfflineMode } from '@/hooks/useOfflineMode';
+import { useOfflineContext } from '@/contexts/offline';
 import { Wifi, WifiOff, Upload } from 'lucide-react';
 
 interface OfflineStatusProps {
@@ -10,14 +10,7 @@ interface OfflineStatusProps {
 }
 
 const OfflineStatus: React.FC<OfflineStatusProps> = ({ showSync = true, className = "" }) => {
-  const { isOnline, pendingUploads, syncOfflineImages } = useOfflineMode();
-  
-  // Auto-sync when coming back online
-  useEffect(() => {
-    if (isOnline && pendingUploads > 0) {
-      syncOfflineImages();
-    }
-  }, [isOnline, pendingUploads, syncOfflineImages]);
+  const { isOnline, pendingUploads, syncOfflineImages } = useOfflineContext();
   
   if (isOnline && pendingUploads === 0) {
     return null;
