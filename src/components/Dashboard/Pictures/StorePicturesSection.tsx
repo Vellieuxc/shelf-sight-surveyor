@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PictureGrid from "./PictureGrid";
 import PictureGridSkeleton from "./PictureGridSkeleton";
 import EmptyPicturesState from "./EmptyPicturesState";
+import StoreActions from "../StoreView/StoreActions";
 
 interface StorePicturesSectionProps {
   pictures: Picture[];
@@ -32,8 +33,15 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
   
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-xl font-semibold">Store Pictures</CardTitle>
+        {canAddPhotos && (
+          <StoreActions
+            isProjectClosed={isProjectClosed}
+            onUploadClick={onUploadClick}
+            onCaptureClick={onCaptureClick}
+          />
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
