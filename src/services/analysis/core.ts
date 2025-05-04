@@ -43,6 +43,28 @@ export async function invokeAnalysisFunction(
       throw new Error("No response received from analysis function");
     }
     
+    // Add a summary item with total facings if not present
+    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+      const totalFacings = response.data.reduce((sum, item) => {
+        // Only count items that are not empty spaces
+        return sum + (item.empty_space_estimate === undefined ? (item.sku_count || 0) : 0);
+      }, 0);
+      
+      // Add a summary item if not already present
+      const hasSummary = response.data.some(item => item.total_sku_facings !== undefined);
+      
+      if (!hasSummary) {
+        response.data.push({
+          sku_name: "Summary",
+          brand: "",
+          sku_count: 0,
+          sku_price: 0,
+          total_sku_facings: totalFacings,
+          quality_picture: "Good"
+        });
+      }
+    }
+    
     return response as AnalysisResponse;
     
   } catch (error) {

@@ -136,15 +136,15 @@ function extractAnalysisData(data: any): any[] {
  * Returns the prompt template for Claude
  */
 function getPrompt(): string {
-  return `🧠 Claude Prompt — Shelf Image Analysis with Integrated Metadata and Confidence Scoring
+  return `🧠 Claude Prompt — Complete Shelf Image Analysis with Data Mapping
 
 You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
-Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. Return the result in a JSON format.
+Given an image of a shelf, extract structured merchandising data for ALL facings and ALL SKUs visible in the image, along with related metadata. Return the result in a JSON format.
 
 ---
 
-### 🔍 For each distinct SKU visible or tagged in the image, extract:
+### 🔍 For each distinct SKU or facing visible in the image, extract:
 
 * **SKUFullName**: Full product name as written on the label (e.g., "Coca-Cola 500ml Bottle")
 * **SKUBrand**: Brand only (e.g., "Coca-Cola")
@@ -217,8 +217,10 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
 
 ### 📌 **Important Guidelines:**
 
+* **ANALYZE ALL PRODUCTS VISIBLE IN THE IMAGE - Be comprehensive and don't miss any items**
 * Use OCR to read price tags and product names when needed
-* Only count products clearly visible from the front
+* Analyze all shelves visible in the image, from top to bottom
+* Count ALL products clearly visible from the front, even if partially visible
 * A SKU is Misplaced if it's behind the wrong price label or tag
 * A SKU is OutofStock if the tag is present but the product is missing
 * If information is not available or unclear, use \`null\` or leave the array empty
@@ -256,3 +258,4 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
 
 You must respond only with a valid JSON object as shown. Do not include explanations or additional commentary.`;
 }
+

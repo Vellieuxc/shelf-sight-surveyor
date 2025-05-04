@@ -35,8 +35,24 @@ serve(async (req) => {
 
     console.log("Successfully extracted and parsed data from Claude response");
     
+    // Transform the data to match our expected format
+    const transformedData = analysisData.map(item => {
+      return {
+        sku_name: item.SKUFullName || '',
+        brand: item.SKUBrand || '',
+        sku_count: item.NumberFacings || 0,
+        sku_price: parseFloat(item.PriceSKU?.replace(/[^0-9.]/g, '')) || 0,
+        sku_position: item.ShelfSection || '',
+        sku_confidence: item.BoundingBox?.confidence ? 
+          (item.BoundingBox.confidence >= 0.9 ? 'high' : 
+           item.BoundingBox.confidence >= 0.7 ? 'mid' : 'low') : 
+          'unknown',
+        empty_space_estimate: item.OutofStock === true ? 100 : undefined
+      };
+    });
+    
     // Return the response with CORS headers
-    return new Response(JSON.stringify({ success: true, data: analysisData }), {
+    return new Response(JSON.stringify({ success: true, data: transformedData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
