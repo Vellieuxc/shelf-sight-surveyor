@@ -56,7 +56,7 @@ export class ApiService<T extends TableName> {
     const { data, error } = await supabase
       .from(this.tableName)
       .select(options.select || '*')
-      .eq('id', id)
+      .eq('id' as any, id)
       .single();
     
     if (error) throw error;
@@ -88,7 +88,7 @@ export class ApiService<T extends TableName> {
     const { data, error } = await supabase
       .from(this.tableName)
       .update(item as any)
-      .eq('id', id)
+      .eq('id' as any, id)
       .select();
     
     if (error) throw error;
@@ -104,7 +104,7 @@ export class ApiService<T extends TableName> {
     const { error } = await supabase
       .from(this.tableName)
       .delete()
-      .eq('id', id);
+      .eq('id' as any, id);
     
     if (error) throw error;
     return true;
@@ -126,7 +126,7 @@ export class ApiService<T extends TableName> {
       
     // Apply all filters
     Object.entries(filters).forEach(([key, value]) => {
-      query = query.eq(key, value);
+      query = query.eq(key as any, value);
     });
     
     // Apply ordering
