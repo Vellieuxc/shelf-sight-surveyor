@@ -42,7 +42,7 @@ export async function analyzeShelfImage(
       // Make the request to the edge function
       console.log("Sending request to analyze-shelf-image edge function");
       
-      // Use a direct function invocation to ensure we're calling the function correctly
+      // Use a direct function invocation with simplified error handling
       const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image', {
         body: {
           imageUrl,
@@ -54,7 +54,7 @@ export async function analyzeShelfImage(
       // Clear the timeout if we complete successfully
       clearTimeout(timeoutId);
       
-      // If already aborted, throw error (should not reach here but just in case)
+      // If already aborted, throw error
       if (isAborted) {
         throw new Error(`Analysis timed out after ${timeout}ms`);
       }
@@ -67,16 +67,26 @@ export async function analyzeShelfImage(
       
       console.log("Response from edge function:", response);
       
-      if (response?.success && response.data) {
-        console.log(`Image analysis successful on attempt ${attempt + 1}`);
-        return response.data;
+      // Improved validation of response structure
+      if (!response) {
+        throw new Error("No response received from analysis function");
       }
       
-      console.error("Invalid response format from analysis function:", response);
-      throw new Error("Invalid response format from analysis function");
+      if (response.success === false) {
+        throw new Error(response.error || "Analysis function returned an error");
+      }
+      
+      if (!response.success || !response.data || !Array.isArray(response.data)) {
+        console.error("Invalid response format from analysis function:", response);
+        throw new Error("Invalid response format from analysis function");
+      }
+      
+      console.log(`Image analysis successful on attempt ${attempt + 1}, found ${response.data.length} items`);
+      return response.data;
     } catch (error: any) {
       // Format error message with attempt information
-      const enhancedError = new Error(`Analysis attempt ${attempt + 1} failed: ${error.message || 'Unknown error'}`);
+      const errorMessage = `Analysis attempt ${attempt + 1} failed: ${error.message || 'Unknown error'}`;
+      console.error(errorMessage);
       
       // Check if this was a timeout
       const isTimeout = error.name === 'AbortError' || 
@@ -96,7 +106,7 @@ export async function analyzeShelfImage(
             additionalData: { imageId, attempt: retryCount }
           }
         });
-        throw enhancedError;
+        throw new Error(errorMessage);
       }
       
       // Log the error but continue with retry

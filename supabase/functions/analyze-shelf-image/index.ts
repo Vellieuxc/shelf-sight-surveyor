@@ -246,7 +246,6 @@ You must respond only with a valid JSON object as shown. Do not include explanat
       // Find JSON in Claude's response
       const textContent = data.content[0].text;
       console.log("Parsing Claude response as JSON");
-      console.log("Claude raw response:", textContent);
       
       // Use regex to extract JSON object from possible text
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
@@ -255,6 +254,7 @@ You must respond only with a valid JSON object as shown. Do not include explanat
         // Extract the SKUs array from the response
         analysisData = parsedData.SKUs || [];
         console.log("Successfully parsed JSON data from Claude's response");
+        console.log("Found items:", analysisData.length);
       } else {
         console.error("Could not extract JSON data from Claude's response");
         throw new Error("Could not extract JSON data from Claude's response");

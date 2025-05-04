@@ -63,24 +63,29 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
       try {
         console.log(`Fetching data for picture ID: ${pictureId}`);
         
-        // Increased timeout to prevent frequent timeouts
-        const TIMEOUT_MS = 30000; // 30 seconds
+        // Verify that the Supabase client is properly initialized
+        if (!supabase) {
+          throw new Error("Supabase client is not initialized");
+        }
         
-        // Create a controller to abort the fetch if needed
-        const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), TIMEOUT_MS);
+        // Add delay before fetch to ensure client is ready
+        await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Execute the fetch with proper error handling
+        // Execute the fetch with improved error handling
         const { data, error } = await supabase
           .from("pictures")
           .select("*")
           .eq("id", pictureId)
           .single();
-        
-        // Clear the timeout since fetch completed
-        clearTimeout(timeoutId);
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching picture data:", error);
+          throw error;
+        }
+        
+        if (!data) {
+          throw new Error("Picture not found");
+        }
         
         console.log(`Picture data retrieved:`, data);
         
@@ -106,12 +111,8 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
       } catch (err: any) {
         setIsError(true);
         
-        // Handle AbortError specially
-        if (err.name === 'AbortError' || err.message === 'The user aborted a request.') {
-          setErrorMessage("Request timed out. Please try again.");
-        } else {
-          setErrorMessage(err?.message || "Failed to load picture data");
-        }
+        const errorMessage = err?.message || "Failed to load picture data";
+        setErrorMessage(errorMessage);
         
         // Use the error handling utility for proper error logging and display
         handleError(err, {

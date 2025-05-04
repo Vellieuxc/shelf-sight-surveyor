@@ -36,13 +36,11 @@ export const useImageAnalyzer = ({
       console.log("Starting image analysis for pictureId:", currentPictureId);
       console.log("Image URL:", selectedImage);
       
-      // Increase timeout for complex images to 2 minutes
+      // Increase timeout for complex images to 3 minutes
       const data = await analyzeShelfImage(selectedImage, currentPictureId, {
-        timeout: 180000, // 3 minutes (increased timeout)
+        timeout: 180000, // 3 minutes
         retryCount: 3
       });
-      
-      console.log("Raw analysis result:", data);
       
       if (Array.isArray(data) && data.length > 0) {
         console.log("Analysis completed successfully with", data.length, "items");
@@ -58,7 +56,6 @@ export const useImageAnalyzer = ({
           title: "Analysis Complete",
           description: `Successfully analyzed ${data.length} items on the shelf.`,
         });
-        console.log("Analysis result:", data);
       } else {
         console.error("No items detected in the image or invalid response format");
         throw new Error("No items detected in the image");

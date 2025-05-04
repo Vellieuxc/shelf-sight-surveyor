@@ -38,16 +38,17 @@ export const useImageAnalysis = (storeId?: string) => {
 
   // Debug logs
   useEffect(() => {
-    console.log("Current state:", {
+    console.log("Current image analysis state:", {
       pictureId,
       selectedImage,
       currentPictureId,
       pictureImage,
       uploadedImage,
       picturePictureId,
-      uploadedPictureId
+      uploadedPictureId,
+      analysisData: pictureAnalysisData || "none"
     });
-  }, [pictureId, selectedImage, currentPictureId, pictureImage, uploadedImage, picturePictureId, uploadedPictureId]);
+  }, [pictureId, selectedImage, currentPictureId, pictureImage, uploadedImage, picturePictureId, uploadedPictureId, pictureAnalysisData]);
   
   // Image analysis functionality
   const {
@@ -156,7 +157,14 @@ export const useImageAnalysis = (storeId?: string) => {
   
   // Auto-analyze when loading an existing picture without analysis data
   useEffect(() => {
-    if (pictureId && pictureImage && !isPictureLoading && !pictureAnalysisData && !isAnalyzing) {
+    const shouldAutoAnalyze = 
+      pictureId && 
+      pictureImage && 
+      !isPictureLoading && 
+      !pictureAnalysisData && 
+      !isAnalyzing;
+      
+    if (shouldAutoAnalyze) {
       console.log("Auto-analyzing picture because it has no existing analysis data");
       // Wait a moment to ensure everything is ready
       const timer = setTimeout(() => {
