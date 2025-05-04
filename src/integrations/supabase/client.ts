@@ -3,13 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
 // Get Supabase URL and Key from environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Make sure we provide fallback values if environment variables are not available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://horzlrlmbfivzrmycauu.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvcnpscmxtYmZpdnpybXljYXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDUzNzAsImV4cCI6MjA2MTY4MTM3MH0.jMtqLKCDe19sWWX_HTUyxGZiVNUuUYu8iQYgUETTBYs';
 
 // Create Supabase client
 export const supabase = createClient<Database>(
-  supabaseUrl ?? '',
-  supabaseAnonKey ?? '',
+  supabaseUrl,
+  supabaseAnonKey,
 );
 
 // Verify that the pictures bucket exists, create it if it doesn't
