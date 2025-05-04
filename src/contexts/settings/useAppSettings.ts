@@ -1,49 +1,52 @@
 
 import { useState, useEffect } from 'react';
-import { AppSettings } from './types';
+import { AppSettings, AppSettingsContextType } from './types';
 
-const DEFAULT_SETTINGS: AppSettings = {
+// Default settings values
+const defaultSettings: AppSettings = {
   theme: 'system',
   autoSync: true,
   notificationsEnabled: true,
-  imageQuality: 'medium'
+  imageQuality: 'medium',
 };
 
-export const useAppSettingsState = () => {
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+// Local storage key
+const SETTINGS_STORAGE_KEY = 'app_settings';
 
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('app-settings');
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+export function useAppSettingsState(): AppSettingsContextType {
+  // Initialize state with default values or from storage if available
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings) as Partial<AppSettings>;
+        return { ...defaultSettings, ...parsedSettings };
+      } catch (e) {
+        console.error('Failed to parse stored settings:', e);
+        return defaultSettings;
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
     }
-  }, []);
+    return defaultSettings;
+  });
 
   // Save settings to localStorage when they change
   useEffect(() => {
-    try {
-      localStorage.setItem('app-settings', JSON.stringify(settings));
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-    }
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
-  const updateSettings = (newSettings: Partial<AppSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+  // Update settings with partial values
+  const updateSettings = (updatedSettings: Partial<AppSettings>) => {
+    setSettings(prevSettings => ({ ...prevSettings, ...updatedSettings }));
   };
 
+  // Reset settings to defaults
   const resetSettings = () => {
-    setSettings(DEFAULT_SETTINGS);
+    setSettings(defaultSettings);
   };
 
   return {
     settings,
     updateSettings,
-    resetSettings
+    resetSettings,
   };
-};
+}

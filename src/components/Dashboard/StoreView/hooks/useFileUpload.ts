@@ -8,7 +8,20 @@ import { createImagePreview } from "@/utils/imageUtils";
 import { handleStorageError, handleDatabaseError } from "@/utils/errors";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 
-export const useFileUpload = (store: Store | null, userId: string) => {
+interface FileUploadResult {
+  filePath: string;
+}
+
+interface UseFileUploadReturn {
+  selectedFile: File | null;
+  imagePreview: string | null;
+  isUploading: boolean;
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleFileUpload: (onSuccess?: () => void) => Promise<void>;
+  handleCapture: (file: File, previewUrl: string) => void;
+}
+
+export const useFileUpload = (store: Store | null, userId: string): UseFileUploadReturn => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -42,7 +55,7 @@ export const useFileUpload = (store: Store | null, userId: string) => {
   };
 
   // Handle file upload
-  const handleFileUpload = async (onSuccess?: () => void) => {
+  const handleFileUpload = async (onSuccess?: () => void): Promise<void> => {
     if (!selectedFile || !userId || !store) {
       toast({
         title: "Upload Error",
@@ -82,7 +95,7 @@ export const useFileUpload = (store: Store | null, userId: string) => {
       const filePath = `stores/${store.id}/${fileName}`;
       
       // Using runSafely to handle storage upload errors
-      const { data: uploadResult, error: uploadError } = await runSafely(
+      const { data: uploadResult, error: uploadError } = await runSafely<FileUploadResult>(
         async () => {
           const { error } = await supabase.storage
             .from('pictures')
@@ -156,9 +169,8 @@ export const useFileUpload = (store: Store | null, userId: string) => {
     }
   };
 
-  // We need to import this function since it's being used above
-  // but isn't exported from imageUtils
-  async function verifyPicturesBucketExists() {
+  // Helper function to verify storage bucket exists
+  async function verifyPicturesBucketExists(): Promise<void> {
     try {
       // Check if the 'pictures' bucket exists
       const { data, error } = await supabase.storage.getBucket('pictures');

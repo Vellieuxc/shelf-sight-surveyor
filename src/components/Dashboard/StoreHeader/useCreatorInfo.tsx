@@ -3,6 +3,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 
+interface CreatorProfile {
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+}
+
 export const useCreatorInfo = (creatorId: string) => {
   const [creatorName, setCreatorName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -25,10 +31,11 @@ export const useCreatorInfo = (creatorId: string) => {
         if (error) throw error;
         
         if (data) {
-          if (data.first_name && data.last_name) {
-            setCreatorName(`${data.first_name} ${data.last_name}`);
+          const profile = data as CreatorProfile;
+          if (profile.first_name && profile.last_name) {
+            setCreatorName(`${profile.first_name} ${profile.last_name}`);
           } else {
-            setCreatorName(data.email);
+            setCreatorName(profile.email);
           }
         } else {
           // Display creator ID as email-like format when profile not found

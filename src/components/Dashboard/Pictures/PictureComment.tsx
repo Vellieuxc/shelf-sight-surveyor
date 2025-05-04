@@ -21,6 +21,12 @@ interface Comment {
   user_name?: string;
 }
 
+interface UserProfile {
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+}
+
 const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
@@ -49,7 +55,7 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         if (error) throw error;
         
         // Fetch user information for each comment
-        const commentsWithUser = await Promise.all((data || []).map(async (comment: any) => {
+        const commentsWithUser = await Promise.all((data || []).map(async (comment: Comment) => {
           const { data: userData, error: userError } = await supabase
             .from("profiles")
             .select("first_name, last_name, email")
@@ -66,12 +72,13 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
           
           let userName = "Unknown User";
           if (userData) {
-            userName = userData.first_name && userData.last_name 
-              ? `${userData.first_name} ${userData.last_name}` 
-              : userData.email;
+            const profile = userData as UserProfile;
+            userName = profile.first_name && profile.last_name 
+              ? `${profile.first_name} ${profile.last_name}` 
+              : profile.email;
           }
           
-          return { ...comment, user_name: userName } as Comment;
+          return { ...comment, user_name: userName };
         }));
         
         setComments(commentsWithUser);
@@ -116,7 +123,7 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
         user_name: profile?.firstName && profile?.lastName 
           ? `${profile.firstName} ${profile.lastName}` 
           : user.email || "You"
-      };
+      } as Comment;
     }, {
       operation: 'addComment',
       fallbackMessage: "Failed to add comment",

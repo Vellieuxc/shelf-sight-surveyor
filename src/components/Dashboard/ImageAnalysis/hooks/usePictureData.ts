@@ -5,7 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 
-export const usePictureData = (pictureId: string | null) => {
+interface PictureData {
+  id: string;
+  image_url: string;
+  analysis_data: AnalysisData[] | null;
+  store_id: string;
+  created_at: string;
+  uploaded_by: string;
+}
+
+interface UsePictureDataReturn {
+  isLoading: boolean;
+  selectedImage: string | null;
+  currentPictureId: string | null;
+  analysisData: AnalysisData[] | null;
+  setSelectedImage: React.Dispatch<React.SetStateAction<string | null>>;
+  setCurrentPictureId: React.Dispatch<React.SetStateAction<string | null>>;
+  setAnalysisData: React.Dispatch<React.SetStateAction<AnalysisData[] | null>>;
+}
+
+export const usePictureData = (pictureId: string | null): UsePictureDataReturn => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -30,7 +49,7 @@ export const usePictureData = (pictureId: string | null) => {
             .single();
 
           if (error) throw error;
-          return data;
+          return data as PictureData;
         }, {
           fallbackMessage: "Failed to load picture data",
           additionalData: { pictureId }

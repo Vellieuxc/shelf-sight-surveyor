@@ -9,7 +9,37 @@ import { UserRole } from "@/types";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { handleDatabaseError } from "@/utils/errors";
 
-export const useUserManagement = () => {
+interface ProfileData {
+  id: string;
+  email: string;
+  created_at?: string;
+  role: UserRole;
+  is_blocked?: boolean;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface UseUserManagementReturn {
+  users: UserData[];
+  isLoading: boolean;
+  searchTerm: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  showRoleDialog: boolean;
+  setShowRoleDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  showBlockDialog: boolean;
+  setShowBlockDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedUser: UserData | null;
+  setSelectedUser: React.Dispatch<React.SetStateAction<UserData | null>>;
+  selectedRole: UserRole | null;
+  setSelectedRole: React.Dispatch<React.SetStateAction<UserRole | null>>;
+  handleRoleChange: () => Promise<void>;
+  handleToggleBlockUser: () => Promise<void>;
+  openRoleDialog: (user: UserData) => void;
+  openBlockDialog: (user: UserData) => void;
+  profile: import("@/contexts/auth/types").UserProfile | null;
+}
+
+export const useUserManagement = (): UseUserManagementReturn => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,14 +77,14 @@ export const useUserManagement = () => {
         
       if (error) throw error;
       
-      return data;
+      return data as ProfileData[];
     }, { 
       operation: 'fetchUsers',
       fallbackMessage: "Failed to load users data"
     });
     
     if (!error && data) {
-      const mappedUsers = data.map((user: any) => ({
+      const mappedUsers = data.map((user: ProfileData) => ({
         id: user.id,
         email: user.email,
         created_at: user.created_at || "Unknown",

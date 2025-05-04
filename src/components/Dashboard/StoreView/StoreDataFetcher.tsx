@@ -7,12 +7,14 @@ interface StoreDataFetcherProps {
   storeId: string;
   onError?: (message: string) => void;
   onLoading?: (loading: boolean) => void;
-  children: (data: {
-    store: Store | null;
-    pictures: Picture[];
-    isLoading: boolean;
-    isProjectClosed: boolean;
-  }) => React.ReactNode;
+  children: (data: StoreDataProps) => React.ReactNode;
+}
+
+interface StoreDataProps {
+  store: Store | null;
+  pictures: Picture[];
+  isLoading: boolean;
+  isProjectClosed: boolean;
 }
 
 const StoreDataFetcher: React.FC<StoreDataFetcherProps> = ({ 

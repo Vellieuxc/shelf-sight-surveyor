@@ -29,3 +29,31 @@ export interface FormattedError {
   originalError: unknown;
   context?: ErrorContext;
 }
+
+// Specific database error types
+export interface DatabaseError {
+  code: string;
+  details?: string;
+  hint?: string;
+  message: string;
+}
+
+// Specific storage error types
+export interface StorageError {
+  name: string;
+  message: string;
+  status?: number;
+  statusText?: string;
+}
+
+// Specific auth error types
+export interface AuthError {
+  message: string;
+  status?: number;
+}
+
+// Typed version of runSafely return
+export type SafeResponse<T> = {
+  data: T | null;
+  error: Error | null;
+};

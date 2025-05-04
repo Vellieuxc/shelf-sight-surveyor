@@ -3,6 +3,24 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Picture, Store } from "@/types";
 import { transformAnalysisData } from "@/utils/dataTransformers";
+import { Json } from "@/integrations/supabase/types";
+
+interface StoreWithProject extends Store {
+  projects: {
+    is_closed: boolean;
+  };
+}
+
+interface RawPictureData {
+  id: string;
+  image_url: string;
+  analysis_data: Json[] | null;
+  store_id: string;
+  created_at: string;
+  uploaded_by: string;
+  last_edited_at?: string | null;
+  last_edited_by?: string | null;
+}
 
 interface UseStoreDataProps {
   storeId: string;
@@ -10,7 +28,15 @@ interface UseStoreDataProps {
   onLoading?: (loading: boolean) => void;
 }
 
-export const useStoreData = ({ storeId, onError, onLoading }: UseStoreDataProps) => {
+interface UseStoreDataReturn {
+  store: StoreWithProject | null;
+  pictures: Picture[];
+  isLoading: boolean;
+  isProjectClosed: boolean;
+  refetchPictures: () => Promise<unknown>;
+}
+
+export const useStoreData = ({ storeId, onError, onLoading }: UseStoreDataProps): UseStoreDataReturn => {
   // Fetch store data
   const { data: store, isLoading: storeLoading } = useQuery({
     queryKey: ['store', storeId],
@@ -23,7 +49,7 @@ export const useStoreData = ({ storeId, onError, onLoading }: UseStoreDataProps)
           .single();
           
         if (error) throw error;
-        return data;
+        return data as StoreWithProject;
       } catch (error: any) {
         onError?.(error.message || "Failed to fetch store data");
         return null;
@@ -48,10 +74,10 @@ export const useStoreData = ({ storeId, onError, onLoading }: UseStoreDataProps)
           .order('created_at', { ascending: false });
           
         if (error) throw error;
-        return data;
+        return data as RawPictureData[];
       } catch (error: any) {
         onError?.(error.message || "Failed to fetch pictures");
-        return [];
+        return [] as RawPictureData[];
       }
     },
     enabled: !!storeId
