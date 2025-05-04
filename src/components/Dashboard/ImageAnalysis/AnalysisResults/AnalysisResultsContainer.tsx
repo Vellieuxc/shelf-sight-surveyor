@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { AnalysisData } from "@/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Edit, Check, X } from "lucide-react";
+import { FileSpreadsheet, Edit, Check, X, Code } from "lucide-react";
+import { AnalysisResultsTable } from "./AnalysisResultsTable";
 import { AnalysisLoadingState } from "./AnalysisLoadingState";
 import { AnalysisEmptyState } from "./AnalysisEmptyState";
 
@@ -24,6 +25,7 @@ const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [editableData, setEditableData] = useState<AnalysisData[] | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
 
   useEffect(() => {
     // When analysis data changes, update the editable copy
@@ -67,41 +69,67 @@ const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
     setEditMode(false);
   };
 
+  const toggleViewMode = () => {
+    setShowRawJson(!showRawJson);
+  };
+
   return (
     <Card className="card-shadow">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Analysis Results</CardTitle>
-        {analysisData && !isLoading && !isAnalyzing && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => editMode ? saveChanges() : setEditMode(true)}
-          >
-            {editMode ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Save
-              </>
-            ) : (
-              <>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {analysisData && !isLoading && !isAnalyzing && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleViewMode}
+              >
+                <Code className="mr-2 h-4 w-4" />
+                {showRawJson ? "Show Table" : "Show JSON"}
+              </Button>
+              {!showRawJson && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => editMode ? saveChanges() : setEditMode(true)}
+                >
+                  {editMode ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <AnalysisLoadingState message="Loading data..." />
         ) : isAnalyzing ? (
           <AnalysisLoadingState message="Analyzing shelf contents with AI..." />
-        ) : analysisData ? (
-          <div className="overflow-auto">
-            <pre className="text-xs bg-slate-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
-              {JSON.stringify(analysisData, null, 2)}
-            </pre>
-          </div>
+        ) : editableData ? (
+          showRawJson ? (
+            <div className="overflow-auto">
+              <pre className="text-xs bg-slate-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
+                {JSON.stringify(analysisData, null, 2)}
+              </pre>
+            </div>
+          ) : (
+            <AnalysisResultsTable 
+              data={editableData} 
+              editMode={editMode} 
+              onInputChange={handleInputChange}
+            />
+          )
         ) : (
           <AnalysisEmptyState />
         )}
@@ -117,7 +145,7 @@ const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
             Export to Excel
           </Button>
           
-          {editMode && (
+          {editMode && !showRawJson && (
             <Button 
               variant="outline"
               className="flex items-center gap-2"
