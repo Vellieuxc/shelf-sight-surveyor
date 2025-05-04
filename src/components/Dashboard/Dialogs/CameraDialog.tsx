@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, 
@@ -9,9 +9,10 @@ import {
   DialogDescription, 
   DialogFooter 
 } from "@/components/ui/dialog";
-import { Camera } from "lucide-react";
+import { Camera, SwitchCamera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFileFromCanvas } from "@/utils/imageUtils";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
 
 interface CameraDialogProps {
   open: boolean;
@@ -21,9 +22,11 @@ interface CameraDialogProps {
 
 const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCapture }) => {
   const { toast } = useToast();
+  const { isOnline } = useOfflineMode();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
 
   useEffect(() => {
     if (open) {
@@ -35,12 +38,12 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
     return () => {
       stopCamera();
     };
-  }, [open]);
+  }, [open, facingMode]);
 
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" }
+        video: { facingMode }
       });
       
       if (videoRef.current) {
@@ -63,6 +66,10 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+  };
+  
+  const toggleFacingMode = () => {
+    setFacingMode(prev => prev === "environment" ? "user" : "environment");
   };
   
   const takePicture = async () => {
@@ -116,7 +123,10 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
         <DialogHeader>
           <DialogTitle>Take a Picture</DialogTitle>
           <DialogDescription>
-            Use your camera to take a picture of the store.
+            {isOnline ? 
+              "Take a picture of the store." : 
+              "You're offline. Pictures will be saved locally and uploaded when you reconnect."
+            }
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -128,6 +138,15 @@ const CameraDialog: React.FC<CameraDialogProps> = ({ open, onOpenChange, onCaptu
               className="w-full h-full object-cover"
             />
             <canvas ref={canvasRef} className="hidden" />
+            
+            <Button 
+              size="icon"
+              variant="secondary"
+              className="absolute top-2 right-2 p-1.5 h-8 w-8 opacity-80"
+              onClick={toggleFacingMode}
+            >
+              <SwitchCamera className="h-4 w-4" />
+            </Button>
           </div>
         </div>
         <DialogFooter>

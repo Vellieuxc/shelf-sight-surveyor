@@ -1,13 +1,14 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase, verifyPicturesBucketExists } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { Camera, Upload } from "lucide-react";
-import CameraDialog from "./CameraDialog";
-import UploadDialog from "./UploadDialog";
+import { UploadDialog, CameraDialog } from "./Dialogs";
 import { createImagePreview } from "@/utils/imageUtils";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
+import OfflineStatus from "@/components/OfflineStatus";
 
 interface PictureUploadProps {
   storeId: string;
@@ -22,6 +23,7 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOnline, captureOfflineImage } = useOfflineMode();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -62,7 +64,26 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
     setIsUploading(true);
     
     try {
-      // Verify the pictures bucket exists
+      if (!isOnline) {
+        // Save the image locally if offline
+        await captureOfflineImage(
+          storeId, 
+          selectedFile,
+          selectedFile.name
+        );
+        
+        toast({
+          title: "Saved Offline", 
+          description: "Picture saved locally and will be uploaded when you're online."
+        });
+        setIsUploadDialogOpen(false);
+        setSelectedFile(null);
+        setImagePreview(null);
+        onPictureUploaded();
+        return;
+      }
+      
+      // If online, proceed with normal upload flow
       await verifyPicturesBucketExists();
       
       // Upload the file to Supabase Storage
@@ -124,15 +145,20 @@ const PictureUpload: React.FC<PictureUploadProps> = ({ storeId, onPictureUploade
 
   return (
     <>
-      <div className="flex gap-2">
-        <Button onClick={() => setIsUploadDialogOpen(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload a picture
-        </Button>
-        <Button onClick={() => setIsCameraDialogOpen(true)} variant="secondary">
-          <Camera className="mr-2 h-4 w-4" />
-          Take a picture
-        </Button>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Button onClick={() => setIsUploadDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload a picture
+          </Button>
+          <Button onClick={() => setIsCameraDialogOpen(true)} variant="secondary">
+            <Camera className="mr-2 h-4 w-4" />
+            Take a picture
+          </Button>
+        </div>
+        
+        {/* Offline Status */}
+        <OfflineStatus />
       </div>
 
       {/* Upload Dialog */}
