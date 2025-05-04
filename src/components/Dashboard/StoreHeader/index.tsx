@@ -34,8 +34,8 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({ store, onSynthesizeStore }) =
           creatorName={creatorName}
         />
         
-        <div className={`${isMobile ? 'w-full' : ''}`}>
-          <SynthesizeButton onSynthesizeStore={onSynthesizeStore} />
+        <div className={isMobile ? 'w-full mt-2' : ''}>
+          <SynthesizeButton onSynthesizeStore={onSynthesizeStore} className={isMobile ? 'w-full' : ''} />
         </div>
       </div>
     </div>

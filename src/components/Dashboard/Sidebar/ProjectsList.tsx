@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project } from "@/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -23,6 +24,8 @@ const ProjectsList: React.FC<ProjectsListProps> = ({
   activeProjectId,
   onProjectClick
 }) => {
+  const isMobile = useIsMobile();
+  
   const isProjectActive = (projectId: string) => {
     return activeProjectId === projectId;
   };
@@ -33,8 +36,16 @@ const ProjectsList: React.FC<ProjectsListProps> = ({
     }
   };
 
+  // Calculate appropriate height based on device and number of projects
+  const getHeight = () => {
+    if (projects.length > 10) {
+      return isMobile ? "200px" : "300px";
+    }
+    return "auto";
+  };
+
   return (
-    <ScrollArea className={projects.length > 10 ? "h-[300px]" : "h-auto"}>
+    <ScrollArea className={`h-${getHeight()}`} style={{ height: getHeight() }}>
       <SidebarMenu>
         {isLoading ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
@@ -48,9 +59,9 @@ const ProjectsList: React.FC<ProjectsListProps> = ({
                 isActive={isProjectActive(project.id)}
                 onClick={(e) => handleClick(project.id, e as React.MouseEvent)}
               >
-                <Link to={`/dashboard/projects/${project.id}/stores`}>
+                <Link to={`/dashboard/projects/${project.id}/stores`} className="flex items-center truncate w-full">
                   <Folder size={18} />
-                  <span className="truncate">{project.title}</span>
+                  <span className="truncate ml-2">{project.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

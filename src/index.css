@@ -137,3 +137,22 @@
 .responsive-py {
   @apply py-4 sm:py-6 md:py-8;
 }
+
+/* Extra small screens */
+@screen xs {
+  /* styles for extra small screens */
+}
+
+/* Fix for scrolling issues on mobile */
+.overflow-fix {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Utility class to prevent text overflow in mobile layouts */
+.mobile-truncate {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}

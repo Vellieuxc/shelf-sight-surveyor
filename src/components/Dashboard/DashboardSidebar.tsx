@@ -20,6 +20,7 @@ import ProjectsList from "./Sidebar/ProjectsList";
 import StoresList from "./Sidebar/StoresList";
 import SidebarHeader from "./Sidebar/SidebarHeader";
 import SidebarNavigation from "./Sidebar/SidebarNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function DashboardSidebar() {
   const { signOut, profile } = useAuth();
@@ -30,6 +31,7 @@ export function DashboardSidebar() {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -126,7 +128,7 @@ export function DashboardSidebar() {
     <Sidebar>
       <SidebarHeader />
       
-      <SidebarContent>
+      <SidebarContent className="overflow-y-auto">
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -141,7 +143,7 @@ export function DashboardSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel>Projects & Stores</SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="max-h-[60vh] overflow-y-auto">
             {isLoading ? (
               <div className="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
             ) : (

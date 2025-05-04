@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Store as StoreType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StoresListProps {
   projectId: string;
@@ -21,6 +22,7 @@ const StoresList: React.FC<StoresListProps> = ({ projectId, activeStoreId }) => 
   const [stores, setStores] = useState<StoreType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -66,8 +68,11 @@ const StoresList: React.FC<StoresListProps> = ({ projectId, activeStoreId }) => 
     return null;
   }
 
+  // Determine the max height based on the device
+  const maxHeight = isMobile ? "150px" : "calc(50vh - 100px)";
+
   return (
-    <ScrollArea className="h-[200px] max-h-[50vh]">
+    <ScrollArea className={`h-auto max-h-[${maxHeight}]`} style={{ maxHeight }}>
       <SidebarMenu>
         {isLoading ? (
           <div className="px-4 py-2 text-sm text-muted-foreground">Loading stores...</div>
@@ -79,9 +84,9 @@ const StoresList: React.FC<StoresListProps> = ({ projectId, activeStoreId }) => 
           stores.map((store) => (
             <SidebarMenuItem key={store.id}>
               <SidebarMenuButton asChild isActive={isStoreActive(store.id)}>
-                <Link to={`/dashboard/stores/${store.id}`}>
+                <Link to={`/dashboard/stores/${store.id}`} className="flex items-center truncate w-full">
                   {isStoreActive(store.id) ? <Store size={18} /> : <ShoppingBag size={18} />}
-                  <span className="truncate">{store.name}</span>
+                  <span className="truncate ml-2">{store.name}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import StoreDataFetcher from "./StoreDataFetcher";
 import { useToast } from "@/hooks/use-toast";
 import StoreView from "./index";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StoreViewContainerProps {
   storeId: string;
@@ -15,6 +16,7 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Redirect if not authenticated
   if (!user) {
@@ -23,28 +25,30 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
   }
 
   return (
-    <StoreDataFetcher
-      storeId={storeId}
-      onError={(message) => {
-        toast({
-          title: "Error",
-          description: message,
-          variant: "destructive",
-        });
-        navigate("/dashboard");
-      }}
-      onLoading={(loading) => setIsLoading(loading)}
-    >
-      {(data) => (
-        <StoreView 
-          store={data.store} 
-          pictures={data.pictures} 
-          isLoading={data.isLoading} 
-          isProjectClosed={data.isProjectClosed}
-          userId={user.id} 
-        />
-      )}
-    </StoreDataFetcher>
+    <div className={isMobile ? "px-2" : "px-4"}>
+      <StoreDataFetcher
+        storeId={storeId}
+        onError={(message) => {
+          toast({
+            title: "Error",
+            description: message,
+            variant: "destructive",
+          });
+          navigate("/dashboard");
+        }}
+        onLoading={(loading) => setIsLoading(loading)}
+      >
+        {(data) => (
+          <StoreView 
+            store={data.store} 
+            pictures={data.pictures} 
+            isLoading={data.isLoading} 
+            isProjectClosed={data.isProjectClosed}
+            userId={user.id} 
+          />
+        )}
+      </StoreDataFetcher>
+    </div>
   );
 };
 

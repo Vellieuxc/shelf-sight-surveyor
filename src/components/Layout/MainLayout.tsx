@@ -25,16 +25,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showNav = true }) => 
             <DashboardSidebar />
             <main className="flex-1 overflow-auto relative">
               {isMobile && (
-                <div className="absolute top-4 left-4 z-10">
+                <div className="fixed top-4 left-4 z-40">
                   <SidebarTrigger>
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 shadow-sm">
                       <Menu className="h-4 w-4" />
                       <span className="sr-only">Toggle menu</span>
                     </Button>
                   </SidebarTrigger>
                 </div>
               )}
-              {children}
+              <div className={`p-4 sm:p-6 ${isMobile ? 'pt-16' : ''}`}>
+                {children}
+              </div>
             </main>
           </div>
         ) : (

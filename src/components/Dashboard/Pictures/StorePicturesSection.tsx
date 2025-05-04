@@ -56,7 +56,9 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
               className="flex items-center gap-1 flex-1 sm:flex-auto justify-center"
             >
               <Plus size={16} />
-              <span>Upload a picture</span>
+              <span className={isMobile ? "text-sm" : ""}>
+                {isMobile ? "Upload" : "Upload a picture"}
+              </span>
             </Button>
             <Button
               onClick={onCaptureClick}
@@ -65,7 +67,9 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
               className="flex items-center gap-1 flex-1 sm:flex-auto justify-center"
             >
               <Camera size={16} />
-              <span>Take a picture</span>
+              <span className={isMobile ? "text-sm" : ""}>
+                {isMobile ? "Capture" : "Take a picture"}
+              </span>
             </Button>
           </div>
         )}
