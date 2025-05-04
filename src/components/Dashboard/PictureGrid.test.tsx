@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@/test/utils';
-import PictureGrid from './PictureGrid';
+import PictureGrid from './Pictures/PictureGrid';
 import { Picture } from '@/types';
 
 // Mock react-window to avoid rendering issues in tests
@@ -27,7 +27,7 @@ window.ResizeObserver = vi.fn().mockImplementation(() => ({
 
 describe('PictureGrid Component', () => {
   it('renders an empty state message when there are no pictures', () => {
-    render(<PictureGrid pictures={[]} onDeletePicture={() => {}} />);
+    render(<PictureGrid pictures={[]} onPictureDeleted={() => {}} />);
     
     expect(screen.getByText('No pictures available')).toBeInTheDocument();
     expect(screen.getByText('Upload some pictures to analyze this store')).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('PictureGrid Component', () => {
     render(
       <PictureGrid 
         pictures={mockPictures} 
-        onDeletePicture={mockDeleteHandler} 
+        onPictureDeleted={mockDeleteHandler} 
         creatorMap={mockCreatorMap}
       />
     );
@@ -78,7 +78,7 @@ describe('PictureGrid Component', () => {
     }
   });
 
-  it('respects the allowEditing prop', () => {
+  it('respects the allowDelete prop', () => {
     const mockPictures: Picture[] = [
       {
         id: '1',
@@ -96,21 +96,21 @@ describe('PictureGrid Component', () => {
     const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
     Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 1000 });
     
-    // First render with allowEditing=false
+    // First render with allowDelete=false
     const { rerender } = render(
       <PictureGrid 
         pictures={mockPictures} 
-        onDeletePicture={mockDeleteHandler}
-        allowEditing={false}
+        onPictureDeleted={mockDeleteHandler}
+        allowDelete={false}
       />
     );
     
-    // Then rerender with allowEditing=true
+    // Then rerender with allowDelete=true
     rerender(
       <PictureGrid 
         pictures={mockPictures} 
-        onDeletePicture={mockDeleteHandler}
-        allowEditing={true}
+        onPictureDeleted={mockDeleteHandler}
+        allowDelete={true}
       />
     );
     
