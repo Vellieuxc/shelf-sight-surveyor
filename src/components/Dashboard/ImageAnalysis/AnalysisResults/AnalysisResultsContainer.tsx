@@ -4,7 +4,6 @@ import { AnalysisData } from "@/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Edit, Check, X } from "lucide-react";
-import { AnalysisResultsTable } from "./AnalysisResultsTable";
 import { AnalysisLoadingState } from "./AnalysisLoadingState";
 import { AnalysisEmptyState } from "./AnalysisEmptyState";
 
@@ -97,12 +96,12 @@ const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
           <AnalysisLoadingState message="Loading data..." />
         ) : isAnalyzing ? (
           <AnalysisLoadingState message="Analyzing shelf contents with AI..." />
-        ) : editableData ? (
-          <AnalysisResultsTable 
-            data={editableData} 
-            editMode={editMode} 
-            onInputChange={handleInputChange}
-          />
+        ) : analysisData ? (
+          <div className="overflow-auto">
+            <pre className="text-xs bg-slate-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
+              {JSON.stringify(analysisData, null, 2)}
+            </pre>
+          </div>
         ) : (
           <AnalysisEmptyState />
         )}
