@@ -4,6 +4,13 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useStoreData } from './useStoreData';
 import { supabase } from '@/integrations/supabase/client';
 
+// Mock Supabase client
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn(),
+  }
+}));
+
 // Create a wrapper component that provides the auth context
 const wrapper = ({ children }: { children: React.ReactNode }) => {
   return children;

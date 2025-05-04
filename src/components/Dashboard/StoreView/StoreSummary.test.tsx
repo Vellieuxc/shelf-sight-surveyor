@@ -63,8 +63,8 @@ describe('StoreSummary Component', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     
-    // Mock toast - fixed the type issue
-    (useToast as ReturnType<typeof vi.fn>).mockReturnValue({
+    // Mock toast
+    (useToast as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       toast: vi.fn()
     });
   });
@@ -79,7 +79,7 @@ describe('StoreSummary Component', () => {
 
   it('shows loading state when generating summary', async () => {
     // Mock the Supabase function to return a promise that doesn't resolve immediately
-    (supabase.functions.invoke as ReturnType<typeof vi.fn>).mockReturnValue(
+    (supabase.functions.invoke as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
       new Promise(() => {})
     );
     
@@ -92,7 +92,7 @@ describe('StoreSummary Component', () => {
 
   it('displays summary data when successful', async () => {
     // Mock successful response
-    (supabase.functions.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (supabase.functions.invoke as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: mockSummaryData,
       error: null
     });
@@ -112,7 +112,7 @@ describe('StoreSummary Component', () => {
 
   it('displays error message on failure', async () => {
     // Mock error response
-    (supabase.functions.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (supabase.functions.invoke as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: null,
       error: new Error('Failed to connect')
     });
