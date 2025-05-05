@@ -1,4 +1,3 @@
-
 import { ExternalServiceError } from "./error-handler.ts";
 
 // Maximum retries for external API calls
@@ -263,16 +262,18 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
                        [null, textContent];
                        
       const jsonContent = jsonMatch[1] || textContent;
-      productsArray = JSON.parse(jsonContent);
+      const parsedResponse = JSON.parse(jsonContent);
       
-      if (!Array.isArray(productsArray) && productsArray.SKUs && Array.isArray(productsArray.SKUs)) {
-        // If we get the {SKUs: []} format from the new prompt
-        productsArray = productsArray.SKUs;
-      } else if (!Array.isArray(productsArray)) {
-        throw new Error("Claude did not return an array of products");
+      // Handle the SKUs wrapper format from the new prompt
+      if (parsedResponse && parsedResponse.SKUs && Array.isArray(parsedResponse.SKUs)) {
+        productsArray = parsedResponse; // Return the whole structure with SKUs property
+      } else if (Array.isArray(parsedResponse)) {
+        productsArray = parsedResponse;
+      } else {
+        throw new Error("Claude did not return a valid response format");
       }
       
-      console.log(`Parsed ${productsArray.length} products from Claude response [${requestId}]`);
+      console.log(`Parsed ${Array.isArray(parsedResponse.SKUs) ? parsedResponse.SKUs.length : 'unknown'} products from Claude response [${requestId}]`);
     } catch (error) {
       console.error(`Error parsing Claude response [${requestId}]:`, error);
       throw new Error(`Failed to parse Claude response: ${error.message}`);

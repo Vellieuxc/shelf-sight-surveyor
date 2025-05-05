@@ -47,14 +47,10 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
     
     console.log(`Analysis completed in ${processingTimeMs}ms [${requestId}]`);
     
-    // Transform the data to match our expected format
-    console.log(`Transforming analysis data [${requestId}]`);
-    const transformedData = transformAnalysisData(analysisData);
-    
     // Update job status to completed with results
     console.log(`Updating job status to completed [${requestId}]`);
     await updateJobStatus(job.jobId, 'completed', {
-      data: transformedData,
+      data: analysisData,
       processingTimeMs
     });
     
@@ -65,7 +61,7 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
       jobId: job.jobId,
       imageId: job.imageId,
       processingTimeMs,
-      data: transformedData
+      data: analysisData
     }), {
       headers: securityHeaders,
       status: 200

@@ -12,6 +12,7 @@ export function ensureAnalysisDataType(data: Json[] | null): AnalysisData[] {
     return [];
   }
   
+  // Preserve the raw structure from Claude and adapt it to our frontend format
   return data.map(item => {
     if (typeof item !== 'object' || item === null) {
       console.warn("Invalid analysis item", item);
@@ -20,21 +21,17 @@ export function ensureAnalysisDataType(data: Json[] | null): AnalysisData[] {
     
     const typedItem = item as Record<string, any>;
     
-    // Return properly formatted analysis data
+    // Map the original fields to our frontend structure
     return {
-      brand: typedItem.brand || typedItem.SKUBrand || "",
-      sku_name: typedItem.sku_name || typedItem.SKUFullName || "",
-      sku_count: typeof typedItem.sku_count === 'number' 
-        ? typedItem.sku_count 
-        : (typeof typedItem.NumberFacings === 'number' ? typedItem.NumberFacings : 1),
-      sku_price: typeof typedItem.sku_price === 'number' 
-        ? typedItem.sku_price 
-        : parseFloatPrice(typedItem.PriceSKU || "0"),
-      sku_position: typedItem.sku_position || typedItem.ShelfSection || "middle",
-      sku_confidence: typedItem.sku_confidence || determineSKUConfidence(typedItem),
+      brand: typedItem.SKUBrand || "",
+      sku_name: typedItem.SKUFullName || "",
+      sku_count: typeof typedItem.NumberFacings === 'number' ? typedItem.NumberFacings : 1,
+      sku_price: typeof typedItem.PriceSKU === 'string' ? parseFloatPrice(typedItem.PriceSKU) : 0,
+      sku_position: typedItem.ShelfSection || "middle",
+      sku_confidence: determineSKUConfidence(typedItem),
       empty_space_estimate: typedItem.empty_space_estimate || 0,
       color: typedItem.color || "",
-      package_size: typedItem.package_size || ""
+      package_size: typedItem.PackSize || ""
     };
   });
 }
@@ -106,15 +103,19 @@ export function transformAnalysisResult(response: any): AnalysisData[] {
     return [];
   }
   
-  if (!Array.isArray(response.data)) {
-    console.warn("Analysis data is not an array", response.data);
-    return [];
+  // The data might be already in the expected format or needs processing
+  const responseData = response.data;
+  
+  // Handle SKUs wrapper format
+  if (responseData.SKUs && Array.isArray(responseData.SKUs)) {
+    return ensureAnalysisDataType(responseData.SKUs);
   }
   
-  if (response.data.length === 0) {
-    console.warn("Analysis data array is empty", response);
-    return [];
+  // Handle direct array format
+  if (Array.isArray(responseData)) {
+    return ensureAnalysisDataType(responseData);
   }
   
-  return ensureAnalysisDataType(response.data);
+  console.warn("Analysis data is not in expected format", responseData);
+  return [];
 }

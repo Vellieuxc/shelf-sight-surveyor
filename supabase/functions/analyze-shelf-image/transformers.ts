@@ -8,38 +8,13 @@ export function transformAnalysisData(analysisData: any[]): any[] {
     return [];
   }
 
-  return analysisData.map(item => {
-    if (typeof item !== 'object' || item === null) {
-      console.warn("Invalid analysis item:", item);
-      return createEmptyAnalysisItem();
-    }
+  // Handle the case where we might receive the SKUs wrapper object format
+  if (!Array.isArray(analysisData) && analysisData.SKUs && Array.isArray(analysisData.SKUs)) {
+    return analysisData.SKUs;
+  }
 
-    // Handle both formats - old direct array format and new SKUs wrapper format
-    const dataItem = item;
-    
-    // Return standardized format with new fields from the enhanced prompt
-    return {
-      brand: dataItem.SKUBrand || "",
-      sku_name: dataItem.SKUFullName || "",
-      sku_count: typeof dataItem.NumberFacings === 'number' ? dataItem.NumberFacings : 1,
-      sku_price: typeof dataItem.PriceSKU === 'string' ? parseFloatPrice(dataItem.PriceSKU) : 0,
-      sku_position: dataItem.ShelfSection || "middle",
-      sku_confidence: determineSKUConfidence(dataItem),
-      empty_space_estimate: dataItem.empty_space_estimate || 0,
-      category1: dataItem.ProductCategory1 || null,
-      category2: dataItem.ProductCategory2 || null,
-      category3: dataItem.ProductCategory3 || null,
-      pack_size: dataItem.PackSize || null,
-      flavor: dataItem.Flavor || null,
-      out_of_stock: dataItem.OutofStock === true,
-      misplaced: dataItem.Misplaced === true,
-      bounding_box: dataItem.BoundingBox || null,
-      tags: Array.isArray(dataItem.Tags) ? dataItem.Tags : [],
-      image_id: dataItem.ImageID || null,
-      color: dataItem.color || "",
-      package_size: dataItem.package_size || ""
-    };
-  });
+  // If it's already an array, just return it as is (preserving the raw structure)
+  return analysisData;
 }
 
 /**
@@ -65,25 +40,21 @@ function determineSKUConfidence(item: Record<string, any>): string {
  */
 function createEmptyAnalysisItem(): any {
   return {
-    brand: "",
-    sku_name: "",
-    sku_count: 1,
-    sku_price: 0,
-    sku_position: "middle",
-    sku_confidence: "medium",
-    empty_space_estimate: 0,
-    category1: null,
-    category2: null,
-    category3: null,
-    pack_size: null,
-    flavor: null,
-    out_of_stock: false,
-    misplaced: false,
-    bounding_box: null,
-    tags: ["Unrecognized SKU"],
-    image_id: null,
-    color: "",
-    package_size: ""
+    SKUFullName: "",
+    SKUBrand: "",
+    NumberFacings: 1,
+    PriceSKU: "0",
+    ShelfSection: "middle",
+    OutofStock: false,
+    Misplaced: false,
+    BoundingBox: null,
+    Tags: ["Unrecognized SKU"],
+    ProductCategory1: null,
+    ProductCategory2: null,
+    ProductCategory3: null,
+    PackSize: null,
+    Flavor: null,
+    ImageID: null
   };
 }
 

@@ -46,15 +46,14 @@ export async function handleAnalyzeRequest(req: Request, requestId: string): Pro
       
       console.log(`Analysis completed in ${processingTimeMs}ms [${requestId}]`);
       
-      // Transform the data to match our expected format
-      console.log(`Transforming analysis data [${requestId}]`);
-      const transformedData = transformAnalysisData(analysisData);
+      // We now return the raw data from Claude without transformation
+      // to preserve the original JSON structure with SKUs
       
       return new Response(JSON.stringify({ 
         success: true,
         status: "completed",
         imageId,
-        data: transformedData,
+        data: analysisData, // Return raw data from Claude
         processingTime: processingTimeMs,
         requestId
       }), {
