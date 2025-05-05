@@ -35,7 +35,7 @@ export function extractErrorMessage(error: unknown, fallbackMessage: string = "A
       }
     }
     
-    // Check for JSON stringified error
+    // Try JSON stringifying for complex objects
     try {
       const stringified = JSON.stringify(error);
       if (stringified && stringified !== '{}') {
@@ -65,7 +65,7 @@ export function extractStatusCode(error: unknown): number | undefined {
   
   const errorObj = error as Record<string, any>;
   
-  // Check direct status code
+  // Check direct status code properties
   if (typeof errorObj.status === 'number') {
     return errorObj.status;
   }

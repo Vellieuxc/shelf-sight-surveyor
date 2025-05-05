@@ -21,7 +21,7 @@ export function handleAuthError(
   if (error && typeof error === 'object') {
     const authError = error as any;
     
-    // Handle common Supabase auth errors
+    // Handle common auth errors
     if (authError.code === 'auth/invalid-email') {
       errorMessage = "Please enter a valid email address";
     } else if (authError.code === 'auth/invalid-password') {

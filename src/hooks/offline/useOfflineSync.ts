@@ -60,7 +60,9 @@ export function useOfflineSync() {
     }
   }, [isInitialized, countPendingUploads]);
   
-  // Import the necessary function for storage verification
+  /**
+   * Verify that the pictures bucket exists in Supabase storage
+   */
   async function verifyPicturesBucketExists() {
     try {
       // Check if the 'pictures' bucket exists
@@ -88,7 +90,9 @@ export function useOfflineSync() {
     }
   }
   
-  // Sync offline images
+  /**
+   * Sync offline images to Supabase when online
+   */
   const syncOfflineImages = async (): Promise<number> => {
     if (!db || !isOnline) return 0;
 

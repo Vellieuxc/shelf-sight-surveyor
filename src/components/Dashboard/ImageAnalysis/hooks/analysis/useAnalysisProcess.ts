@@ -41,10 +41,10 @@ export function useAnalysisProcess(options: UseAnalysisProcessOptions = {}) {
     try {
       console.log("Analyzing image ID:", imageId);
       
-      // Use the refactored analysis service
+      // Use the analysis service
       const analysisResults = await analyzeShelfImage(image, imageId);
       
-      console.log("Analysis results:", analysisResults);
+      console.log("Analysis results received:", analysisResults.length);
       
       // Call the onComplete callback if provided
       onComplete?.(analysisResults);

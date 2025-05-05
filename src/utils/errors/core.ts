@@ -64,7 +64,6 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
   if (logToService) {
     // Implementation for error monitoring service (e.g., Sentry)
     // This would be implemented when you add an error monitoring service
-    // Example: Sentry.captureException(error, { extra: context });
   }
   
   // Show toast notification

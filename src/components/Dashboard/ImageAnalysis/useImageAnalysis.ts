@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
 import { AnalysisData } from "@/types";
@@ -21,8 +21,7 @@ export const useImageAnalysis = (storeId?: string) => {
   const { toast } = useToast();
   const { handleError } = useErrorHandling({
     source: 'ui',
-    componentName: 'ImageAnalysis',
-    operation: 'saveAnalysisData'
+    componentName: 'ImageAnalysis'
   });
   const { pendingUploads, isOnline, syncOfflineImages } = useOfflineMode();
   
@@ -99,7 +98,7 @@ export const useImageAnalysis = (storeId?: string) => {
     isOnline,
     pendingUploads,
     syncOfflineImages: syncOfflineImagesWrapper,
-    refetchPictures: () => {} // This is intentionally empty as refetchPictures is not used in the original code
+    refetchPictures: () => {} // This is intentionally empty as refetchPictures is not used
   });
   
   // Data export functionality

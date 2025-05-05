@@ -1,7 +1,6 @@
 
 import { handleError } from "./core";
 import { ErrorOptions } from "./types";
-import { toast } from "sonner";
 
 /**
  * Specialized handler for database errors
