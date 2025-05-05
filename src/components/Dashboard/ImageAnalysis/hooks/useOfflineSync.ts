@@ -21,6 +21,7 @@ export const useOfflineSync = ({
   // Auto-sync when coming online
   useEffect(() => {
     if (isOnline && pendingUploads > 0) {
+      // Convert the Promise<number> to Promise<void> by ignoring the return value
       syncOfflineImages().then(() => {
         refetchPictures();
       });

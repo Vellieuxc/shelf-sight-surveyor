@@ -89,11 +89,16 @@ export const useImageAnalysis = (storeId?: string) => {
   // Use either the picture analysis data or analysis result
   const analysisData = pictureAnalysisData || analysisResult;
   
-  // Handle offline sync
+  // Handle offline sync with modified interface that expects Promise<void>
+  const syncOfflineImagesWrapper = async (): Promise<void> => {
+    // Ignore the return value from the original function
+    await syncOfflineImages();
+  };
+  
   useOfflineSync({
     isOnline,
     pendingUploads,
-    syncOfflineImages,
+    syncOfflineImages: syncOfflineImagesWrapper,
     refetchPictures: () => {} // This is intentionally empty as refetchPictures is not used in the original code
   });
   
