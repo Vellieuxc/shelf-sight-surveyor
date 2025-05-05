@@ -130,10 +130,10 @@ Deno.test("Integration: Direct Process Next URL Access", async () => {
     const claudeStub = stub(claudeService, "analyzeImageWithClaude", () => {
       return Promise.resolve([
         {
-          brand: "Direct Brand",
-          product: "Direct Product",
-          visibility: 5,
-          position: "top"
+          SKUFullName: "Direct Product",
+          SKUBrand: "Direct Brand",
+          NumberFacings: 5,
+          ShelfSection: "top"
         }
       ]);
     });
@@ -155,33 +155,4 @@ Deno.test("Integration: Direct Process Next URL Access", async () => {
     restore();
     Object.defineProperty(Deno, "env", { value: originalEnv });
   }
-});
-
-// Run the tests
-Deno.test("Run the process-next tests", async () => {
-  const command = new Deno.Command(Deno.execPath(), {
-    args: [
-      "test",
-      "--allow-env",
-      "--allow-net",
-      "--allow-read",
-      "tests/integration/process-next-flow.test.ts"
-    ],
-    stdout: "piped",
-    stderr: "piped",
-  });
-
-  const { code, stdout, stderr } = await command.output();
-  
-  const textDecoder = new TextDecoder();
-  const output = textDecoder.decode(stdout);
-  const error = textDecoder.decode(stderr);
-  
-  console.log("Test Output:", output);
-  
-  if (error) {
-    console.error("Test Errors:", error);
-  }
-  
-  assertEquals(code, 0, "Tests should pass with exit code 0");
 });
