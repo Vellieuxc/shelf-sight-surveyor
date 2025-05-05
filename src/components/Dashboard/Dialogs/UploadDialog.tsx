@@ -64,7 +64,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex justify-between sm:justify-between">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -72,7 +72,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             onClick={() => onUpload(selectedFile || undefined)}
             disabled={isUploading || !selectedFile}
           >
-            {isUploading ? "Uploading..." : "Upload a picture"}
+            {isUploading ? "Uploading..." : "Upload"}
           </Button>
         </DialogFooter>
       </DialogContent>

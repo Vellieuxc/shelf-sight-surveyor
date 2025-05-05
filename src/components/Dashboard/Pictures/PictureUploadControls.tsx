@@ -7,14 +7,16 @@ import OfflineStatus from "@/components/OfflineStatus";
 interface PictureUploadControlsProps {
   onUploadClick: () => void;
   onCaptureClick: () => void;
+  className?: string;
 }
 
 const PictureUploadControls: React.FC<PictureUploadControlsProps> = ({
   onUploadClick,
-  onCaptureClick
+  onCaptureClick,
+  className = ""
 }) => {
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${className}`}>
       <div className="flex gap-2">
         <Button onClick={onUploadClick}>
           <Upload className="mr-2 h-4 w-4" />

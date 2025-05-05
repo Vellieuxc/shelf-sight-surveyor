@@ -65,6 +65,14 @@ export function useImageUpload(options: ImageUploadOptions = {}) {
   };
   
   const handleCaptureFromCamera = (file: File, previewUrl: string) => {
+    // Validate file size
+    if (!validateImageSize(file, maxSizeMB)) {
+      const message = `File size must be less than ${maxSizeMB}MB`;
+      toast({ title: "Error", description: message, variant: "destructive" });
+      onError?.(message);
+      return;
+    }
+    
     setSelectedFile(file);
     setImagePreview(previewUrl);
     onSuccess?.(file, previewUrl);
