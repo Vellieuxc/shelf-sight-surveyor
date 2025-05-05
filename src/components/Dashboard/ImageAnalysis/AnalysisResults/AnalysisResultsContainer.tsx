@@ -119,7 +119,7 @@ const AnalysisResultsContainer: React.FC<AnalysisResultsContainerProps> = ({
         ) : editableData ? (
           showRawJson ? (
             <div className="overflow-auto">
-              <pre className="text-xs bg-slate-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
+              <pre className="text-xs bg-slate-50 dark:bg-slate-800 p-4 rounded-md max-h-[500px] overflow-y-auto">
                 {JSON.stringify(analysisData, null, 2)}
               </pre>
             </div>
