@@ -3,11 +3,20 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { handleCorsOptions, corsHeaders } from "./cors.ts";
 import { analyzeImageWithClaude } from "./claude-service.ts";
-import { handleError } from "./error-handler.ts";
+import { handleError, ValidationError, AuthError } from "./error-handler.ts";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+
+// Helper function to generate request IDs
+function generateRequestId(): string {
+  const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+  return [...randomBytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 serve(async (req) => {
-  console.log("Edge Function received request:", req.method);
-  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+  // Generate a unique request ID for this request
+  const requestId = generateRequestId();
+  console.log(`Edge Function received request [${requestId}]:`, req.method);
+  console.log(`Request headers [${requestId}]:`, Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests properly
   if (req.method === 'OPTIONS') {
@@ -16,24 +25,30 @@ serve(async (req) => {
 
   try {
     const requestData = await req.json().catch(error => {
-      console.error("Failed to parse request body:", error);
-      throw new Error("Invalid request body format");
+      console.error(`Failed to parse request body [${requestId}]:`, error);
+      throw new ValidationError("Invalid request body format");
     });
     
     const { imageUrl, imageId } = requestData;
     
     if (!imageUrl) {
-      console.error("Image URL is required but was not provided");
-      throw new Error("Image URL is required");
+      console.error(`Image URL is required but was not provided [${requestId}]`);
+      throw new ValidationError("Image URL is required");
     }
 
-    console.log(`Processing analysis for image: ${imageId}`);
-    console.log(`Image URL: ${imageUrl}`);
+    // Check for authentication headers if required
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader && process.env.REQUIRE_AUTH === 'true') {
+      throw new AuthError("Authentication required");
+    }
+
+    console.log(`Processing analysis for image [${requestId}]: ${imageId}`);
+    console.log(`Image URL [${requestId}]: ${imageUrl}`);
 
     // Call the Claude service to analyze the image
-    const analysisData = await analyzeImageWithClaude(imageUrl);
+    const analysisData = await analyzeImageWithClaude(imageUrl, requestId);
 
-    console.log("Successfully extracted and parsed data from Claude response");
+    console.log(`Successfully extracted and parsed data from Claude response [${requestId}]`);
     
     // Transform the data to match our expected format
     const transformedData = analysisData.map(item => {
@@ -51,11 +66,15 @@ serve(async (req) => {
       };
     });
     
-    // Return the response with CORS headers
-    return new Response(JSON.stringify({ success: true, data: transformedData }), {
+    // Return the response with CORS headers and request ID
+    return new Response(JSON.stringify({ 
+      success: true, 
+      data: transformedData,
+      requestId 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return handleError(error);
+    return handleError(error, requestId);
   }
 });
