@@ -17,12 +17,8 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     const base64Image = await fetchAndConvertImageToBase64(imageUrl, requestId);
     console.log(`Successfully converted image to base64 [${requestId}]`);
     
-    // Instead of loading from file, we'll use the embedded taxonomy
-    // This eliminates the file path dependency
-    const taxonomyIndustries = getEmbeddedTaxonomy(requestId);
-    
     // Prepare the Claude API request with the updated prompt
-    const prompt = generateAnalysisPrompt(taxonomyIndustries, requestId);
+    const prompt = generateSimplifiedPrompt(requestId);
     
     // Log the payload size for debugging
     const payloadSize = JSON.stringify({
@@ -44,7 +40,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
             },
             {
               type: "text",
-              text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified. Include the correct ProductCategory values from the taxonomy provided."
+              text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified."
             }
           ]
         }
@@ -83,7 +79,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
               },
               {
                 type: "text",
-                text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified. Include the correct ProductCategory values from the taxonomy provided."
+                text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified."
               }
             ]
           }
@@ -192,140 +188,9 @@ async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string)
   }
 }
 
-// Embed the taxonomy directly rather than loading from a file
-function getEmbeddedTaxonomy(requestId: string): any[] {
-  console.log(`Using embedded taxonomy data [${requestId}]`);
-  
-  // This is the same data as in TaxonomyIndustries.json
-  return [
-    {
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Carbonates",
-      "ProductCategory3": "Cola"
-    },
-    {
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Carbonates",
-      "ProductCategory3": "Lemon-Lime"
-    },
-    {
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Carbonates",
-      "ProductCategory3": "Orange"
-    },
-    {
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Energy Drinks",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Sports Drinks",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Water",
-      "ProductCategory2": "Still",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Water",
-      "ProductCategory2": "Sparkling",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Water",
-      "ProductCategory2": "Flavored",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Dairy",
-      "ProductCategory2": "Milk",
-      "ProductCategory3": "Regular"
-    },
-    {
-      "ProductCategory1": "Dairy",
-      "ProductCategory2": "Milk",
-      "ProductCategory3": "Low Fat"
-    },
-    {
-      "ProductCategory1": "Dairy",
-      "ProductCategory2": "Yogurt",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Snacks",
-      "ProductCategory2": "Chips",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Snacks",
-      "ProductCategory2": "Nuts",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Snacks",
-      "ProductCategory2": "Chocolate",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Snacks",
-      "ProductCategory2": "Cookies",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Healthcare",
-      "ProductCategory2": "Cold & Flu",
-      "ProductCategory3": "Cough Medicine"
-    },
-    {
-      "ProductCategory1": "Healthcare",
-      "ProductCategory2": "Cold & Flu",
-      "ProductCategory3": "Nasal Spray"
-    },
-    {
-      "ProductCategory1": "Healthcare",
-      "ProductCategory2": "Pain Relief",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Healthcare",
-      "ProductCategory2": "Digestive",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Personal Care",
-      "ProductCategory2": "Soap",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Personal Care",
-      "ProductCategory2": "Shampoo",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Personal Care",
-      "ProductCategory2": "Deodorant",
-      "ProductCategory3": null
-    },
-    {
-      "ProductCategory1": "Health & Wellness",
-      "ProductCategory2": "Cough, Cold & Flu",
-      "ProductCategory3": "Cough Liquids"
-    },
-    {
-      "ProductCategory1": "Health & Wellness",
-      "ProductCategory2": "Cough, Cold & Flu",
-      "ProductCategory3": "Cold & Flu Liquids"
-    }
-  ];
-}
-
-// Generate analysis prompt with the taxonomy data
-function generateAnalysisPrompt(taxonomyIndustries: any[], requestId: string): string {
-  console.log(`Generating analysis prompt with taxonomy data [${requestId}]`);
-  
-  const taxonomyJson = JSON.stringify(taxonomyIndustries, null, 2);
+// Generate simplified prompt without taxonomy data
+function generateSimplifiedPrompt(requestId: string): string {
+  console.log(`Generating simplified prompt without taxonomy [${requestId}]`);
   
   return `You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
@@ -339,9 +204,9 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
 
 * **SKUFullName**: Full product name as written on the label (e.g., "Coca-Cola 500ml Bottle")
 * **SKUBrand**: Brand only (e.g., "Coca-Cola")
-* **ProductCategory1**: Main product category, chosen based on the predefined list below
-* **ProductCategory2**: Subcategory, also chosen based on the predefined list
-* **ProductCategory3**: Subcategory, also chosen based on the predefined list
+* **ProductCategory1**: Set to null for now
+* **ProductCategory2**: Set to null for now
+* **ProductCategory3**: Set to null for now
 * **PackSize**: The size or volume of the product, including both number and unit (e.g., "500ml", "200g"). Use \`null\` if not available
 * **Flavor**: The flavor or variant if mentioned (e.g., "Lemon", "Vanilla"). Use \`null\` if not available
 * **NumberFacings**: How many visible facings of this product are on the shelf (front-facing only)
@@ -379,8 +244,8 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
     {
       "SKUFullName": "Coca-Cola 500ml Bottle",
       "SKUBrand": "Coca-Cola",
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Carbonates",
+      "ProductCategory1": null,
+      "ProductCategory2": null,
       "ProductCategory3": null,
       "PackSize": "500ml",
       "Flavor": null,
@@ -396,8 +261,8 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
     {
       "SKUFullName": "Pepsi 500ml Bottle",
       "SKUBrand": "Pepsi",
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Carbonates",
+      "ProductCategory1": null,
+      "ProductCategory2": null,
       "ProductCategory3": null,
       "PackSize": "500ml",
       "Flavor": null,
@@ -409,23 +274,6 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
       "BoundingBox": null,
       "Tags": ["Price Label Visible"],
       "ImageID": "image_002.jpg"
-    },
-    {
-      "SKUFullName": "Sprite 500ml Bottle",
-      "SKUBrand": "Sprite",
-      "ProductCategory1": "Soft Drinks",
-      "ProductCategory2": "Carbonates",
-      "ProductCategory3": null,
-      "PackSize": "500ml",
-      "Flavor": null,
-      "NumberFacings": 2,
-      "PriceSKU": "$1.20",
-      "ShelfSection": "Middle Center",
-      "OutofStock": false,
-      "Misplaced": true,
-      "BoundingBox": { "x": 310, "y": 370, "width": 85, "height": 190, "confidence": 0.88 },
-      "Tags": [],
-      "ImageID": "image_003.jpg"
     }
   ]
 }
@@ -447,10 +295,6 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
 * **PackSize**: Use standardized units (ml, g, kg, oz) with no space between number and unit.
 * **ShelfSection**: Use strictly "Top/Middle/Bottom" + "Left/Center/Right" combinations (e.g., "Top Left", "Middle Center").
 * **PackSize and Flavor**: Extract these using text parsing and OCR from SKUFullName or visible labels. Do not infer beyond visible text.
-* **Category Fields**: The fields \`ProductCategory1\`, \`ProductCategory2\`, and \`ProductCategory3\` must match an entry in the taxonomy data provided below. If no match exists, set them to \`null\` and tag the SKU as \`Unmatched SKU\`.
-
-### Taxonomy Data:
-${taxonomyJson}
 
 IMPORTANT: Your response MUST be in valid JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
 `;
