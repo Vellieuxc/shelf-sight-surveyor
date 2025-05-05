@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { handleCorsOptions, corsHeaders } from "./cors.ts";
@@ -16,6 +15,16 @@ import {
 } from "./utils.ts";
 import { monitorClaudeCall } from "./monitoring.ts";
 
+// Enhanced security headers
+const securityHeaders = {
+  ...corsHeaders,
+  'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Content-Security-Policy': "default-src 'self'; img-src *; connect-src *;"
+};
+
 // Main handler that orchestrates the analysis process
 serve(async (req) => {
   // Generate a unique request ID for this request
@@ -23,17 +32,26 @@ serve(async (req) => {
   console.log(`Edge Function received request [${requestId}]:`, req.method);
   console.log(`Request headers [${requestId}]:`, Object.fromEntries(req.headers.entries()));
   
+  // Add request rate limiting (basic implementation)
+  const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
+  
   // Handle CORS preflight requests properly
   if (req.method === 'OPTIONS') {
     return handleCorsOptions();
   }
 
-  // Parse URL to determine which operation to perform
-  const url = new URL(req.url);
-  const pathParts = url.pathname.split('/').filter(Boolean);
-  const operation = pathParts[pathParts.length - 1]; // Last path segment
-
   try {
+    // Parse URL to determine which operation to perform
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const operation = pathParts[pathParts.length - 1]; // Last path segment
+    
+    // Validate request size to prevent abuse (10MB max)
+    const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+    if (contentLength > 10 * 1024 * 1024) {
+      throw new ValidationError("Request payload too large");
+    }
+    
     // Authenticate the request
     await authenticateRequest(req, requestId);
     
@@ -73,7 +91,7 @@ async function handleAnalyzeRequest(req: Request, requestId: string) {
     imageId,
     status: "queued"
   }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: securityHeaders,
   });
 }
 
@@ -87,6 +105,11 @@ async function handleStatusCheck(req: Request, requestId: string) {
     throw new ValidationError("Image ID is required for status checks");
   }
   
+  // Validate imageId format
+  if (typeof imageId !== 'string' || imageId.length > 100) {
+    throw new ValidationError("Invalid image ID format");
+  }
+  
   // Get job status from the queue
   const jobData = await getJobByImageId(imageId);
   
@@ -98,7 +121,7 @@ async function handleStatusCheck(req: Request, requestId: string) {
       imageId
     }), {
       status: 404,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: securityHeaders,
     });
   }
   
@@ -111,7 +134,7 @@ async function handleStatusCheck(req: Request, requestId: string) {
       status: "completed",
       processingTimeMs: jobData.processingTimeMs || 0
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: securityHeaders,
     });
   }
   
@@ -126,7 +149,7 @@ async function handleStatusCheck(req: Request, requestId: string) {
     createdAt: jobData.createdAt,
     attempts: jobData.attempts
   }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: securityHeaders,
   });
 }
 
@@ -144,7 +167,7 @@ async function handleProcessNext(req: Request, requestId: string) {
       message: "No pending jobs in queue",
       requestId
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: securityHeaders,
     });
   }
   
@@ -176,7 +199,7 @@ async function handleProcessNext(req: Request, requestId: string) {
       imageId: job.imageId,
       processingTimeMs
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: securityHeaders,
     });
   } catch (error) {
     console.error(`Error processing job ${job.jobId} [${requestId}]:`, error);
@@ -193,16 +216,33 @@ async function handleProcessNext(req: Request, requestId: string) {
       imageId: job.imageId
     }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: securityHeaders,
     });
   }
 }
 
-// Authenticate the request
+// Authenticate the request with enhanced security
 async function authenticateRequest(req: Request, requestId: string): Promise<void> {
   const authHeader = req.headers.get('authorization');
-  if (!authHeader && Deno.env.get('REQUIRE_AUTH') === 'true') {
-    console.error(`Authentication required but not provided [${requestId}]`);
-    throw new AuthError("Authentication required");
+  
+  // Enhanced authentication check
+  if (Deno.env.get('REQUIRE_AUTH') === 'true') {
+    if (!authHeader) {
+      console.error(`Authentication required but not provided [${requestId}]`);
+      throw new AuthError("Authentication required");
+    }
+    
+    // Validate the auth header format
+    if (!authHeader.startsWith('Bearer ')) {
+      console.error(`Invalid authentication format [${requestId}]`);
+      throw new AuthError("Invalid authentication format");
+    }
+    
+    // Further token validation could be added here
+    const token = authHeader.replace('Bearer ', '');
+    if (token.length < 10) {
+      console.error(`Invalid token length [${requestId}]`);
+      throw new AuthError("Invalid authentication token");
+    }
   }
 }

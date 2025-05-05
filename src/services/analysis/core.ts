@@ -5,6 +5,7 @@ import { AnalysisOptions, AnalysisResponse } from "./types";
 
 /**
  * Invokes the edge function to analyze a shelf image
+ * with enhanced input validation and security
  * 
  * @param imageUrl URL of the image to analyze
  * @param imageId Identifier for the image
@@ -20,12 +21,31 @@ export async function invokeAnalysisFunction(
   console.log(`Invoking analyze-shelf-image edge function for image ${imageId}`);
   console.log(`Using image URL: ${imageUrl}`);
   
+  // Input validation before sending to edge function
+  if (!imageUrl) {
+    throw new Error("Image URL is required");
+  }
+  
+  if (typeof imageUrl !== 'string') {
+    throw new Error("Image URL must be a string");
+  }
+  
   try {
-    // Invoke the edge function
+    new URL(imageUrl);
+  } catch (e) {
+    throw new Error("Invalid image URL format");
+  }
+  
+  if (!imageId || typeof imageId !== 'string') {
+    throw new Error("Valid image ID is required");
+  }
+  
+  try {
+    // Invoke the edge function with validated inputs
     const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image', {
       body: {
-        imageUrl,
-        imageId,
+        imageUrl: imageUrl.trim(),
+        imageId: imageId.trim(),
         includeConfidence
       }
     });
@@ -57,7 +77,7 @@ export async function invokeAnalysisFunction(
 }
 
 /**
- * Poll for analysis completion
+ * Poll for analysis completion with enhanced security
  * 
  * @param imageId The image ID being analyzed
  * @param jobId The job ID from the queue
@@ -75,13 +95,17 @@ async function waitForAnalysisCompletion(
   // Function to delay execution
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   
+  // Input validation for security
+  if (!imageId || typeof imageId !== 'string') {
+    throw new Error("Valid image ID is required for status check");
+  }
+  
   // Poll for job completion
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     // Wait before checking
     await delay(delayMs);
     
     // Check job status - Using proper parameter structure for invoke
-    // Fix: Use the proper parameters format without 'query' which is causing the type error
     const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image/status', {
       body: { imageId }
     });
@@ -93,9 +117,21 @@ async function waitForAnalysisCompletion(
     
     console.log(`Job status check (attempt ${attempt}):`, response);
     
-    // If job completed, return results
+    // Validate response before using it
+    if (!response || typeof response !== 'object') {
+      console.error(`Invalid response format on attempt ${attempt}`);
+      continue;
+    }
+    
+    // If job completed, validate and return results
     if (response.status === "completed" && response.data) {
       console.log(`Analysis completed for image ${imageId}`);
+      
+      // Validate the analysis result format
+      if (!Array.isArray(response.data)) {
+        throw new Error("Invalid analysis result format");
+      }
+      
       return response as AnalysisResponse;
     }
     
