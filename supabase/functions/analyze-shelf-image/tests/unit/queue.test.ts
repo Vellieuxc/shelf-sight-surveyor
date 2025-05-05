@@ -34,7 +34,7 @@ Deno.test("Queue operations", async () => {
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "test-key");
   
   // Stub the createClient function to return our mock
-  const createClientModule = await import("@supabase/supabase-js");
+  const createClientModule = await import("https://esm.sh/@supabase/supabase-js@2.39.0");
   stub(createClientModule, "createClient", () => mockSupabaseClient);
   
   try {
