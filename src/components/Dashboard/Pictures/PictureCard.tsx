@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -39,7 +38,8 @@ const PictureCard: React.FC<PictureCardProps> = ({
   const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'PictureCard',
-    operation: 'fetchCreator'
+    operation: 'fetchCreator',
+    silent: true // Don't show error toasts for this non-critical feature
   });
   
   // Responsive button size based on screen size
@@ -48,7 +48,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
   const iconSize = isMobile ? 16 : 18;
 
   useEffect(() => {
-    // Only fetch the creator if it wasn't provided as prop
+    // Only fetch the creator if it wasn't provided as prop and there's an uploaded_by value
     if (!createdByName && picture.uploaded_by) {
       const fetchCreator = async () => {
         try {
@@ -63,19 +63,18 @@ const PictureCard: React.FC<PictureCardProps> = ({
           if (data) {
             if (data.first_name && data.last_name) {
               setCreator(`${data.first_name} ${data.last_name}`);
-            } else {
+            } else if (data.email) {
               setCreator(data.email);
+            } else {
+              // Fallback if profile exists but has no name or email
+              setCreator(`User ${picture.uploaded_by.slice(0, 6)}...`);
             }
           } else {
             // Display uploader ID as shortened format when profile not found
-            setCreator(`${picture.uploaded_by.slice(0, 6)}...`);
+            setCreator(`User ${picture.uploaded_by.slice(0, 6)}...`);
           }
         } catch (error) {
-          handleError(error, {
-            fallbackMessage: "Failed to fetch picture creator",
-            silent: true, // Don't show toast for this non-critical error
-            additionalData: { uploadedBy: picture.uploaded_by }
-          });
+          console.error("Error fetching creator:", error);
           
           // Provide a fallback display name on error
           setCreator(`User ${picture.uploaded_by.slice(0, 6)}...`);
@@ -83,8 +82,11 @@ const PictureCard: React.FC<PictureCardProps> = ({
       };
       
       fetchCreator();
+    } else if (!createdByName && !picture.uploaded_by) {
+      // If no uploaded_by field is available
+      setCreator("Unknown");
     }
-  }, [picture.uploaded_by, createdByName, handleError]);
+  }, [picture.uploaded_by, createdByName]);
 
   const handleDownload = () => {
     try {

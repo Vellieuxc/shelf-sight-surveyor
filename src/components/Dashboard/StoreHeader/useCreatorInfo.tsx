@@ -16,10 +16,12 @@ export const useCreatorInfo = (creatorId: string) => {
   const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'useCreatorInfo',
-    operation: 'fetchCreator'
+    operation: 'fetchCreator',
+    silent: true // Don't show error toasts for this non-critical feature
   });
   
   useEffect(() => {
+    // If no creatorId is provided, return early with a default value
     if (!creatorId) {
       setCreatorName("Unknown");
       setIsLoading(false);
@@ -45,18 +47,13 @@ export const useCreatorInfo = (creatorId: string) => {
             setCreatorName(profile.email);
           }
         } else {
-          // Display creator ID as email-like format when profile not found
-          setCreatorName(`${creatorId.slice(0, 6)}...`);
+          // Display creator ID as shortened format when profile not found
+          setCreatorName(`User ${creatorId.slice(0, 6)}...`);
         }
       } catch (error) {
-        handleError(error, {
-          fallbackMessage: "Failed to fetch creator information",
-          silent: true, // Don't show toast for this non-critical error
-          additionalData: { creatorId }
-        });
-        
+        console.error("Creator info fetch error:", error);
         setError(error as Error);
-        // Provide a fallback display value
+        // Provide a fallback display name on error
         setCreatorName(`User ${creatorId.slice(0, 6)}...`);
       } finally {
         setIsLoading(false);
@@ -64,7 +61,7 @@ export const useCreatorInfo = (creatorId: string) => {
     };
     
     fetchCreator();
-  }, [creatorId, handleError]);
+  }, [creatorId]);
   
   return { creatorName, isLoading, error };
 };

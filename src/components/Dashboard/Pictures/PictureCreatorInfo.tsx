@@ -9,7 +9,7 @@ interface PictureCreatorInfoProps {
 
 const PictureCreatorInfo: React.FC<PictureCreatorInfoProps> = ({ creator }) => {
   // Ensure creator is a string and not undefined/null
-  const displayName = creator ? creator : "Unknown";
+  const displayName = creator && creator.trim() ? creator : "Unknown";
   
   return (
     <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
