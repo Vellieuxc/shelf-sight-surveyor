@@ -1,9 +1,7 @@
 
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeShelfImage } from "@/services/analysis";
 import { AnalysisData } from "@/types";
-import { useErrorHandling } from "@/hooks";
+import { useAnalysisProcess, useAnalysisState } from "./analysis";
 
 interface UseImageAnalyzerOptions {
   selectedImage: string | null;
@@ -19,13 +17,26 @@ export const useImageAnalyzer = ({
   currentPictureId,
   onAnalysisComplete,
 }: UseImageAnalyzerOptions) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const { toast } = useToast();
-  const { handleError } = useErrorHandling({
-    source: 'api',
-    componentName: 'ImageAnalyzer',
-    operation: 'analyzeImage'
+  
+  // Use extracted hooks for state and process management
+  const {
+    isAnalyzing,
+    analysisData,
+    setAnalysisData,
+    startAnalysis,
+    completeAnalysis
+  } = useAnalysisState();
+  
+  const { processAnalysis } = useAnalysisProcess({
+    onComplete: (data) => {
+      onAnalysisComplete?.(data);
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Image has been analyzed successfully.",
+      });
+    }
   });
 
   const handleAnalyzeImage = async () => {
@@ -38,37 +49,16 @@ export const useImageAnalyzer = ({
       return;
     }
 
-    setIsAnalyzing(true);
+    startAnalysis();
     
     try {
-      console.log("Analyzing image ID:", currentPictureId);
+      const results = await processAnalysis(selectedImage, currentPictureId);
       
-      // Use the refactored analysis service
-      const analysisResults = await analyzeShelfImage(selectedImage, currentPictureId);
-      
-      console.log("Analysis results:", analysisResults);
-      
-      setAnalysisData(analysisResults);
-      
-      // Call the onAnalysisComplete callback if provided
-      if (onAnalysisComplete) {
-        onAnalysisComplete(analysisResults);
+      if (results) {
+        setAnalysisData(results);
       }
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Image has been analyzed successfully.",
-      });
-      
-    } catch (error) {
-      handleError(error, {
-        fallbackMessage: "Error analyzing image. Please try again.",
-        additionalData: { imageId: currentPictureId },
-        useShadcnToast: true,
-        retry: handleAnalyzeImage
-      });
     } finally {
-      setIsAnalyzing(false);
+      completeAnalysis();
     }
   };
 
