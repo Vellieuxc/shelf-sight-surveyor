@@ -5,6 +5,7 @@ import { AnalysisOptions, AnalysisResponse } from "./types";
 
 /**
  * Handles retry logic for image analysis with exponential backoff
+ * Improved for better error handling and diagnostics
  * 
  * @param imageUrl URL of the image to analyze
  * @param imageId Identifier for the image
@@ -21,6 +22,10 @@ export async function executeWithRetry(
     retryCount = 3, 
     timeout = 120000 // 2 minutes default timeout
   } = options;
+  
+  // Additional diagnostics for troubleshooting
+  console.log(`Starting analysis for image ${imageId} with ${retryCount} retry attempts`);
+  console.log(`Image URL: ${imageUrl}`);
   
   for (let attempt = 0; attempt < retryCount; attempt++) {
     try {
@@ -63,6 +68,17 @@ export async function executeWithRetry(
       const errorMessage = `Analysis attempt ${attempt + 1} failed: ${error.message || 'Unknown error'}`;
       console.error(errorMessage);
       
+      // Enhanced diagnostics for errors
+      console.log(`Error details:`, error);
+      if (error.response) {
+        try {
+          const errorBody = await error.response.text();
+          console.log(`Error response body:`, errorBody);
+        } catch (e) {
+          console.log(`Could not extract error response body`);
+        }
+      }
+      
       // Check if this was a timeout
       const isTimeout = error.name === 'AbortError' || 
                       error.message?.includes('timeout') ||
@@ -74,7 +90,7 @@ export async function executeWithRetry(
           silent: false, 
           fallbackMessage: isTimeout 
             ? `Image analysis timed out after ${retryCount} attempts. The image may be too complex.` 
-            : `Image analysis failed after ${retryCount} attempts`, 
+            : `Image analysis failed after ${retryCount} attempts. Error: ${error.message}`, 
           context: {
             source: 'api',
             operation: 'analyzeShelfImage',

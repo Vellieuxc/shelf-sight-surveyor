@@ -68,7 +68,12 @@ export const useImageAnalyzer = ({
         console.log("Queue processing triggered successfully");
       } catch (error) {
         console.error("Error processing queue:", error);
-        // Continue anyway since the job is already queued
+        // Don't fail the whole operation if queue processing fails
+        // The job is already queued and will be processed by scheduled tasks
+        toast({
+          title: "Queue Processing",
+          description: "Analysis job is queued and will be processed shortly.",
+        });
       }
       
       if (results) {
