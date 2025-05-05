@@ -65,6 +65,10 @@ export async function invokeAnalysisFunction(
     
     // Check if the analysis was queued (new queue system)
     if (response.status === "queued" && response.jobId) {
+      console.log(`Analysis job queued with job ID ${response.jobId}`);
+      // Immediately trigger processing of the job
+      await processNextQueuedAnalysis();
+      
       return await waitForAnalysisCompletion(imageId, response.jobId);
     }
     
@@ -105,42 +109,53 @@ async function waitForAnalysisCompletion(
     // Wait before checking
     await delay(delayMs);
     
-    // Check job status - Using proper parameter structure for invoke
-    const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image/status', {
-      body: { imageId }
-    });
-    
-    if (error) {
-      console.error(`Error checking job status (attempt ${attempt}):`, error);
-      continue;
-    }
-    
-    console.log(`Job status check (attempt ${attempt}):`, response);
-    
-    // Validate response before using it
-    if (!response || typeof response !== 'object') {
-      console.error(`Invalid response format on attempt ${attempt}`);
-      continue;
-    }
-    
-    // If job completed, validate and return results
-    if (response.status === "completed" && response.data) {
-      console.log(`Analysis completed for image ${imageId}`);
+    try {
+      // Check job status - Using proper parameter structure for invoke
+      console.log(`Checking job status (attempt ${attempt})...`);
+      const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image/status', {
+        body: { imageId }
+      });
       
-      // Validate the analysis result format
-      if (!Array.isArray(response.data)) {
-        throw new Error("Invalid analysis result format");
+      if (error) {
+        console.error(`Error checking job status (attempt ${attempt}):`, error);
+        continue;
       }
       
-      return response as AnalysisResponse;
+      console.log(`Job status check (attempt ${attempt}):`, response);
+      
+      // Validate response before using it
+      if (!response || typeof response !== 'object') {
+        console.error(`Invalid response format on attempt ${attempt}`);
+        continue;
+      }
+      
+      // If job completed, validate and return results
+      if (response.status === "completed" && response.data) {
+        console.log(`Analysis completed for image ${imageId}`);
+        
+        // Validate the analysis result format
+        if (!Array.isArray(response.data)) {
+          throw new Error("Invalid analysis result format");
+        }
+        
+        return response as AnalysisResponse;
+      }
+      
+      // If job failed, throw error
+      if (response.status === "failed") {
+        throw new Error(`Analysis failed: ${response.message}`);
+      }
+      
+      console.log(`Job still processing (status: ${response.status}), waiting...`);
+      
+      // On every 3rd attempt, try to trigger job processing again
+      if (attempt % 3 === 0) {
+        console.log("Triggering job processing again");
+        await processNextQueuedAnalysis();
+      }
+    } catch (err) {
+      console.error(`Error during status check (attempt ${attempt}):`, err);
     }
-    
-    // If job failed, throw error
-    if (response.status === "failed") {
-      throw new Error(`Analysis failed: ${response.message}`);
-    }
-    
-    console.log(`Job still processing (status: ${response.status}), waiting...`);
   }
   
   // If we've hit max attempts
@@ -153,6 +168,7 @@ async function waitForAnalysisCompletion(
  */
 export async function processNextQueuedAnalysis(): Promise<void> {
   try {
+    console.log("Manually triggering queue processing");
     const { data, error } = await supabase.functions.invoke('analyze-shelf-image/process-next', {
       body: {}
     });
@@ -163,6 +179,7 @@ export async function processNextQueuedAnalysis(): Promise<void> {
     }
     
     console.log("Queue processing response:", data);
+    return;
   } catch (error) {
     console.error("Failed to trigger queue processing:", error);
     throw error;

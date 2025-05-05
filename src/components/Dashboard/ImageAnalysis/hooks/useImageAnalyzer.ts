@@ -2,6 +2,7 @@
 import { useToast } from "@/hooks/use-toast";
 import { AnalysisData } from "@/types";
 import { useAnalysisProcess, useAnalysisState } from "./analysis";
+import { processNextQueuedAnalysis } from "@/services/analysis/core";
 
 interface UseImageAnalyzerOptions {
   selectedImage: string | null;
@@ -52,11 +53,32 @@ export const useImageAnalyzer = ({
     startAnalysis();
     
     try {
+      // Show queuing toast
+      toast({
+        title: "Analysis Started",
+        description: "Your image is being queued for analysis...",
+      });
+      
+      // Queue the analysis
       const results = await processAnalysis(selectedImage, currentPictureId);
+      
+      // Explicitly trigger queue processing
+      try {
+        await processNextQueuedAnalysis();
+      } catch (error) {
+        console.error("Error processing queue:", error);
+      }
       
       if (results) {
         setAnalysisData(results);
       }
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
     } finally {
       completeAnalysis();
     }

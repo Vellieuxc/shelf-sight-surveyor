@@ -14,8 +14,8 @@ export function transformAnalysisResult(response: AnalysisResponse): AnalysisDat
   
   console.log(`Transforming analysis result with ${response.data.length} items`);
   
-  // Direct return if data is already in the expected format
-  return response.data;
+  // Convert to proper AnalysisData format
+  return ensureAnalysisDataType(response.data);
 }
 
 /**
@@ -30,8 +30,8 @@ export function ensureAnalysisDataType(data: any[]): AnalysisData[] {
   return data.map(item => ({
     brand: item.brand || "",
     sku_name: item.sku_name || item.product || "",
-    sku_count: parseInt(item.sku_count) || parseInt(item.visibility) || 1,
-    sku_price: parseFloat(item.sku_price) || 0,
+    sku_count: parseInt(String(item.sku_count)) || parseInt(String(item.visibility)) || 1,
+    sku_price: parseFloat(String(item.sku_price)) || 0,
     sku_position: item.sku_position || item.position || "",
     sku_confidence: item.sku_confidence || "high",
     color: item.color || "",

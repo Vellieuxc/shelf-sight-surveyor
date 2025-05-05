@@ -26,9 +26,10 @@ serve(async (req) => {
   console.log(`Process-next function invoked [${requestId}]`);
   
   try {
+    // Process the next job in the queue
     const result = await handleProcessNext(req, requestId);
     
-    console.log(`Process-next completed [${requestId}]`);
+    console.log(`Process-next completed successfully [${requestId}]`);
     
     return result;
   } catch (error) {

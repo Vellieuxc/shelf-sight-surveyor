@@ -38,6 +38,8 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
     // Process the image analysis with Claude
     const startTime = performance.now();
     console.log(`Starting Claude analysis for job ${job.jobId} [${requestId}]`);
+    console.log(`Using image URL: ${job.imageUrl} [${requestId}]`);
+    
     const analysisData = await analyzeImageWithClaude(job.imageUrl, requestId);
     const endTime = performance.now();
     const processingTimeMs = Math.round(endTime - startTime);
