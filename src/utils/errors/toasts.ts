@@ -1,4 +1,5 @@
 
+import React from "react";
 import { useToast as useShadcnToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { ToastVariant } from "./types";
@@ -63,7 +64,9 @@ export function useErrorToasts() {
           description: toastMessage.description,
           variant: toastMessage.variant,
           action: toastMessage.retry ? (
-            <button onClick={toastMessage.retry}>Try Again</button>
+            <React.Fragment>
+              <button onClick={toastMessage.retry}>Try Again</button>
+            </React.Fragment>
           ) : undefined
         });
         
