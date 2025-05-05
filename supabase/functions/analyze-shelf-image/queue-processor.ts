@@ -22,6 +22,7 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
   const job = await getNextAnalysisJob();
   
   if (!job) {
+    console.log(`No pending jobs in queue [${requestId}]`);
     return new Response(JSON.stringify({ 
       success: true, 
       message: "No pending jobs in queue",
@@ -31,11 +32,12 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
     });
   }
   
-  console.log(`Processing job ${job.jobId} for image ${job.imageId} (attempt ${job.attempts})`);
+  console.log(`Processing job ${job.jobId} for image ${job.imageId} (attempt ${job.attempts}) [${requestId}]`);
   
   try {
     // Process the image analysis with Claude
     const startTime = performance.now();
+    console.log(`Starting Claude analysis for job ${job.jobId} [${requestId}]`);
     const analysisData = await analyzeImageWithClaude(job.imageUrl, requestId);
     const endTime = performance.now();
     const processingTimeMs = Math.round(endTime - startTime);
@@ -43,9 +45,11 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
     console.log(`Analysis completed in ${processingTimeMs}ms [${requestId}]`);
     
     // Transform the data to match our expected format
+    console.log(`Transforming analysis data [${requestId}]`);
     const transformedData = transformAnalysisData(analysisData);
     
     // Update job status to completed with results
+    console.log(`Updating job status to completed [${requestId}]`);
     await updateJobStatus(job.jobId, 'completed', {
       data: transformedData,
       processingTimeMs

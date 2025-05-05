@@ -5,11 +5,12 @@ import { Anthropic } from "npm:@anthropic-ai/sdk@0.12.0";
 // Get Claude's interpretation of a shelf image
 export async function analyzeImageWithClaude(imageUrl: string, requestId: string): Promise<any[]> {
   try {
-    console.log(`🤖 Calling Claude for image analysis [${requestId}]`);
+    console.log(`🤖 Starting Claude analysis for image [${requestId}]`);
     
     // Get the API key from environment variables
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {
+      console.error(`Missing ANTHROPIC_API_KEY environment variable [${requestId}]`);
       throw new Error("Missing ANTHROPIC_API_KEY environment variable");
     }
     
@@ -19,7 +20,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     });
     
     // Fetch the image
-    console.log(`Fetching image from URL: ${imageUrl} [${requestId}]`);
+    console.log(`Fetching image from URL: ${imageUrl.substring(0, 50)}... [${requestId}]`);
     const imageResponse = await fetch(imageUrl, {
       headers: {
         "User-Agent": "ShelfAnalysis/1.0",
@@ -27,10 +28,12 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     });
     
     if (!imageResponse.ok) {
+      console.error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText} [${requestId}]`);
       throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
     }
     
     // Convert image to base64
+    console.log(`Converting image to base64 [${requestId}]`);
     const imageBuffer = await imageResponse.arrayBuffer();
     const base64Image = btoa(
       String.fromCharCode(...new Uint8Array(imageBuffer))
@@ -38,7 +41,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     const mimeType = imageResponse.headers.get("content-type") || "image/jpeg";
 
     // Call the Anthropic API using the SDK
-    console.log(`Sending request to Claude API [${requestId}]`);
+    console.log(`Sending request to Claude API with prompt [${requestId}]`);
     const message = await anthropic.messages.create({
       model: "claude-3-opus-20240229",
       max_tokens: 4000,
@@ -89,7 +92,7 @@ Example format:
 
     // Extract the content from Claude's response
     const responseText = message.content[0]?.text || "";
-    console.log(`Claude raw response [${requestId}]:`, responseText);
+    console.log(`Claude raw response received [${requestId}]. Length: ${responseText.length} chars`);
 
     // Extract JSON from response (Claude sometimes wraps it in markdown code blocks)
     let jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
@@ -103,10 +106,12 @@ Example format:
     
     // Parse the JSON response
     try {
+      console.log(`Parsing JSON response [${requestId}]`);
       const analysisData = JSON.parse(jsonText);
       
       // Validate that we got an array of products
       if (!Array.isArray(analysisData)) {
+        console.error(`Response is not an array [${requestId}]`);
         throw new Error("Response is not an array");
       }
       
@@ -114,6 +119,7 @@ Example format:
       return analysisData;
     } catch (parseError) {
       console.error(`Error parsing JSON response [${requestId}]:`, parseError);
+      console.error(`JSON text sample [${requestId}]:`, jsonText.substring(0, 200));
       throw new Error(`Failed to parse Claude's response: ${parseError.message}`);
     }
   } catch (error) {
