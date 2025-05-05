@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { handleCorsOptions, corsHeaders } from "./cors.ts";
@@ -78,9 +79,9 @@ async function handleAnalyzeRequest(req: Request, requestId: string) {
 
 // Check the status of a queued analysis job
 async function handleStatusCheck(req: Request, requestId: string) {
-  // Get the image ID from the request
-  const urlParams = new URL(req.url).searchParams;
-  const imageId = urlParams.get('imageId');
+  // Get the image ID from the request body instead of URL params
+  const requestData = await req.json().catch(() => ({}));
+  const imageId = requestData.imageId;
   
   if (!imageId) {
     throw new ValidationError("Image ID is required for status checks");

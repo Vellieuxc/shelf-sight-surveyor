@@ -80,10 +80,10 @@ async function waitForAnalysisCompletion(
     // Wait before checking
     await delay(delayMs);
     
-    // Check job status
+    // Check job status - Using proper parameter structure for invoke
+    // Fix: Use the proper parameters format without 'query' which is causing the type error
     const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image/status', {
-      body: {},
-      query: { imageId }
+      body: { imageId }
     });
     
     if (error) {
