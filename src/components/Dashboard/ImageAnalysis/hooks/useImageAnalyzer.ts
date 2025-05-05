@@ -65,12 +65,16 @@ export const useImageAnalyzer = ({
       // Explicitly trigger queue processing
       try {
         await processNextQueuedAnalysis();
+        console.log("Queue processing triggered successfully");
       } catch (error) {
         console.error("Error processing queue:", error);
+        // Continue anyway since the job is already queued
       }
       
       if (results) {
         setAnalysisData(results);
+      } else {
+        console.log("No results returned from processAnalysis");
       }
     } catch (error) {
       console.error("Analysis error:", error);

@@ -29,6 +29,7 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
       requestId
     }), {
       headers: securityHeaders,
+      status: 200
     });
   }
   
@@ -67,6 +68,7 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
       data: transformedData
     }), {
       headers: securityHeaders,
+      status: 200
     });
   } catch (error) {
     console.error(`Error processing job ${job.jobId} [${requestId}]:`, error);

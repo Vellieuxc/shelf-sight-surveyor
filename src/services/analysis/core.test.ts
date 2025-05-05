@@ -114,4 +114,68 @@ describe('Analysis Core Service', () => {
       });
     });
   });
+
+  describe('waitForAnalysisCompletion', () => {
+    it('should poll for status and return completed job', async () => {
+      // Override setTimeout to make tests run faster
+      vi.useFakeTimers();
+      
+      // Mock the status check to return completed after first call
+      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+        data: { 
+          success: true, 
+          status: 'completed',
+          jobId: 'test-job-id',
+          data: [{ brand: 'Test', sku_name: 'Product' }]
+        },
+        error: null
+      });
+      
+      const resultPromise = waitForAnalysisCompletion('test-image-id', 'test-job-id');
+      
+      // Fast-forward time to trigger the first status check
+      vi.advanceTimersByTime(2000);
+      
+      const result = await resultPromise;
+      
+      expect(result).toEqual({ 
+        success: true, 
+        status: 'completed',
+        jobId: 'test-job-id',
+        data: [{ brand: 'Test', sku_name: 'Product' }]
+      });
+      
+      // Verify the status check was called with correct parameters
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image/status', {
+        body: { imageId: 'test-image-id' }
+      });
+      
+      vi.useRealTimers();
+    });
+    
+    it('should throw error if analysis fails', async () => {
+      // Override setTimeout to make tests run faster
+      vi.useFakeTimers();
+      
+      // Mock the status check to return failed status
+      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+        data: { 
+          success: true, 
+          status: 'failed',
+          message: 'Analysis failed',
+          jobId: 'test-job-id'
+        },
+        error: null
+      });
+      
+      const resultPromise = waitForAnalysisCompletion('test-image-id', 'test-job-id');
+      
+      // Fast-forward time to trigger the first status check
+      vi.advanceTimersByTime(2000);
+      
+      await expect(resultPromise).rejects.toThrow('Analysis failed');
+      
+      vi.useRealTimers();
+    });
+  });
 });

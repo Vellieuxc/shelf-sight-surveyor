@@ -143,7 +143,7 @@ export async function waitForAnalysisCompletion(
       
       // If job failed, throw error
       if (response.status === "failed") {
-        throw new Error(`Analysis failed: ${response.message}`);
+        throw new Error(`Analysis failed: ${response.message || 'Unknown error'}`);
       }
       
       console.log(`Job still processing (status: ${response.status}), waiting...`);
