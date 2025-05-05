@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 
 console.log("🧪 Running React Component Tests...");
