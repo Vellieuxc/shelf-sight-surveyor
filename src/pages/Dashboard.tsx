@@ -43,6 +43,7 @@ const StoreViewRoute = () => {
 };
 
 const DashboardContent = () => {
+  // This useAuth call is causing the error
   const { profile } = useAuth();
   const isBoss = profile?.role === "boss";
   const isCrew = profile?.role === "crew";
