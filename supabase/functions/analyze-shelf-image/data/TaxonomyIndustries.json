@@ -109,5 +109,15 @@
     "ProductCategory1": "Personal Care",
     "ProductCategory2": "Deodorant",
     "ProductCategory3": null
+  },
+  {
+    "ProductCategory1": "Health & Wellness",
+    "ProductCategory2": "Cough, Cold & Flu",
+    "ProductCategory3": "Cough Liquids"
+  },
+  {
+    "ProductCategory1": "Health & Wellness",
+    "ProductCategory2": "Cough, Cold & Flu",
+    "ProductCategory3": "Cold & Flu Liquids"
   }
 ]

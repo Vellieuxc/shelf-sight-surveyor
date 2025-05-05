@@ -145,7 +145,7 @@ async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string)
 // Load the taxonomy industries JSON file
 async function loadTaxonomyIndustries(requestId: string): Promise<any[]> {
   try {
-    // Update the path to use the data subfolder
+    // Use the correct path with the data subfolder
     const taxonomyData = await Deno.readTextFile("./data/TaxonomyIndustries.json");
     console.log(`Successfully loaded TaxonomyIndustries.json [${requestId}]`);
     return JSON.parse(taxonomyData);
@@ -163,6 +163,16 @@ async function loadTaxonomyIndustries(requestId: string): Promise<any[]> {
         "ProductCategory1": "Soft Drinks",
         "ProductCategory2": "Carbonates",
         "ProductCategory3": "Lemon-Lime"
+      },
+      {
+        "ProductCategory1": "Health & Wellness",
+        "ProductCategory2": "Cough, Cold & Flu",
+        "ProductCategory3": "Cough Liquids"
+      },
+      {
+        "ProductCategory1": "Health & Wellness", 
+        "ProductCategory2": "Cough, Cold & Flu",
+        "ProductCategory3": "Cold & Flu Liquids"
       }
     ];
   }
@@ -302,4 +312,3 @@ ${taxonomyJson}
 IMPORTANT: Your response MUST be in valid JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
 `;
 }
-
