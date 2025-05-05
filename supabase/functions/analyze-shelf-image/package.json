@@ -2,14 +2,14 @@
 {
   "name": "analyze-shelf-image",
   "version": "1.0.0",
-  "description": "Edge function for analyzing retail shelf images",
+  "description": "Edge function for analyzing shelf images",
   "main": "index.ts",
   "scripts": {
-    "test": "deno test --allow-env --allow-read",
-    "test:unit": "deno test --allow-env --allow-read tests/unit/",
-    "test:integration": "deno test --allow-env --allow-read tests/integration/",
-    "test:watch": "deno test --watch --allow-env --allow-read"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
   },
   "author": "",
-  "license": "MIT"
+  "license": "ISC"
 }

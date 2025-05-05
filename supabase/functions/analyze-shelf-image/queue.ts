@@ -1,73 +1,95 @@
 
+import { createClient } from "@supabase/supabase-js";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
-const KV_NAMESPACE = "image_analysis_queue";
+// Create a Supabase client for storing queue data
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase credentials for queue processing');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // Add a job to the analysis queue
 export async function addToAnalysisQueue(job: { imageUrl: string, imageId: string }): Promise<string> {
   const jobId = crypto.randomUUID();
-  const kv = await Deno.openKv();
+  const supabase = getSupabaseClient();
   
   try {
-    // Store job in KV with status "pending"
-    // Format: [namespace, job_id] = { job data, status, timestamp }
-    await kv.set([KV_NAMESPACE, jobId], {
-      ...job,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      attempts: 0
-    });
+    // Store job in analysis_queue table
+    const { error } = await supabase
+      .from('analysis_queue')
+      .insert({
+        job_id: jobId,
+        image_id: job.imageId,
+        image_url: job.imageUrl,
+        status: "pending",
+        attempts: 0,
+        created_at: new Date().toISOString()
+      });
+      
+    if (error) {
+      console.error(`Error adding job to queue: ${error.message}`);
+      throw error;
+    }
     
     console.log(`Added job to queue: ${jobId} for image ${job.imageId}`);
-    
-    // Also store a reference by image ID for lookups
-    await kv.set([KV_NAMESPACE, "by_image_id", job.imageId], jobId);
-    
     return jobId;
-  } finally {
-    kv.close();
+  } catch (error) {
+    console.error(`Failed to add job to queue: ${error.message}`);
+    throw error;
   }
 }
 
 // Get the next job from the queue
 export async function getNextAnalysisJob(): Promise<{ jobId: string, imageUrl: string, imageId: string, attempts: number } | null> {
-  const kv = await Deno.openKv();
+  const supabase = getSupabaseClient();
   
   try {
-    // Get all pending jobs
-    const pendingJobs = kv.list<{ imageUrl: string, imageId: string, status: string, attempts: number }>({ 
-      prefix: [KV_NAMESPACE]
-    });
+    // Get oldest pending job
+    const { data, error } = await supabase
+      .from('analysis_queue')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single();
     
-    // Find the first pending job
-    for await (const entry of pendingJobs) {
-      const jobId = entry.key[1] as string;
-      const jobData = entry.value;
-      
-      // Skip entries that aren't actual jobs or aren't pending
-      if (typeof jobId !== 'string' || jobId === 'by_image_id' || jobData.status !== 'pending') {
-        continue;
+    if (error || !data) {
+      if (error && error.code !== 'PGRST116') { // Not error when no results
+        console.error(`Error fetching next job: ${error.message}`);
       }
-      
-      // Mark job as in-progress
-      await kv.set([KV_NAMESPACE, jobId], {
-        ...jobData,
-        status: "processing",
-        startedAt: new Date().toISOString(),
-        attempts: jobData.attempts + 1
-      });
-      
-      return { 
-        jobId, 
-        imageUrl: jobData.imageUrl, 
-        imageId: jobData.imageId,
-        attempts: jobData.attempts + 1
-      };
+      return null;
     }
     
-    return null;  // No pending jobs
-  } finally {
-    kv.close();
+    // Mark job as in-progress
+    const { error: updateError } = await supabase
+      .from('analysis_queue')
+      .update({
+        status: 'processing',
+        started_at: new Date().toISOString(),
+        attempts: data.attempts + 1
+      })
+      .eq('job_id', data.job_id);
+      
+    if (updateError) {
+      console.error(`Error updating job status: ${updateError.message}`);
+      return null;
+    }
+    
+    return {
+      jobId: data.job_id,
+      imageUrl: data.image_url,
+      imageId: data.image_id,
+      attempts: data.attempts + 1
+    };
+  } catch (error) {
+    console.error(`Error in getNextAnalysisJob: ${error.message}`);
+    return null;
   }
 }
 
@@ -78,55 +100,62 @@ export async function updateJobStatus(
   result?: any, 
   error?: string
 ): Promise<void> {
-  const kv = await Deno.openKv();
+  const supabase = getSupabaseClient();
   
   try {
-    // Get current job data
-    const jobEntry = await kv.get([KV_NAMESPACE, jobId]);
-    if (!jobEntry.value) {
-      console.error(`Job ${jobId} not found when updating status`);
-      return;
+    const { error: updateError } = await supabase
+      .from('analysis_queue')
+      .update({
+        status,
+        completed_at: new Date().toISOString(),
+        result: result || null,
+        error_message: error || null
+      })
+      .eq('job_id', jobId);
+      
+    if (updateError) {
+      console.error(`Error updating job status: ${updateError.message}`);
+      throw updateError;
     }
     
-    // Update with new status
-    await kv.set([KV_NAMESPACE, jobId], {
-      ...jobEntry.value,
-      status,
-      completedAt: new Date().toISOString(),
-      result: result || null,
-      error: error || null
-    });
-    
     console.log(`Updated job ${jobId} status to: ${status}`);
-  } finally {
-    kv.close();
+  } catch (error) {
+    console.error(`Error in updateJobStatus: ${error.message}`);
+    throw error;
   }
 }
 
 // Get job status by image ID
 export async function getJobByImageId(imageId: string): Promise<any | null> {
-  const kv = await Deno.openKv();
+  const supabase = getSupabaseClient();
   
   try {
-    // Get job ID from image ID reference
-    const jobIdEntry = await kv.get([KV_NAMESPACE, "by_image_id", imageId]);
-    if (!jobIdEntry.value) {
-      return null;
-    }
-    
-    const jobId = jobIdEntry.value as string;
-    
-    // Get actual job data
-    const jobEntry = await kv.get([KV_NAMESPACE, jobId]);
-    if (!jobEntry.value) {
+    const { data, error } = await supabase
+      .from('analysis_queue')
+      .select('*')
+      .eq('image_id', imageId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (error || !data) {
+      if (error && error.code !== 'PGRST116') { // Not error when no results
+        console.error(`Error fetching job by image ID: ${error.message}`);
+      }
       return null;
     }
     
     return {
-      jobId,
-      ...jobEntry.value
+      jobId: data.job_id,
+      status: data.status,
+      imageId: data.image_id,
+      imageUrl: data.image_url,
+      createdAt: data.created_at,
+      result: data.result,
+      error: data.error_message
     };
-  } finally {
-    kv.close();
+  } catch (error) {
+    console.error(`Error in getJobByImageId: ${error.message}`);
+    return null;
   }
 }
