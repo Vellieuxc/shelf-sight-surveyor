@@ -14,6 +14,14 @@ const securityHeaders = {
 
 // Simple endpoint to manually trigger queue processing
 serve(async (req) => {
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: securityHeaders,
+    });
+  }
+
   const requestId = generateRequestId();
   console.log(`Process-next function invoked [${requestId}]`);
   
