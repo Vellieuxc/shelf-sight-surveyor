@@ -1,6 +1,6 @@
 
 import { useCallback } from "react";
-import { ErrorContext, ErrorOptions, handleError } from "@/utils/errors";
+import { ErrorContext, ErrorOptions, FormattedError, handleError } from "@/utils/errors";
 
 interface UseErrorHandlingProps extends Partial<ErrorContext> {
   componentName?: string;
@@ -29,5 +29,21 @@ export function useErrorHandling(props: UseErrorHandlingProps = {}) {
     });
   }, [source, operation, componentName]);
   
-  return { handleError: handleErrorWithContext };
+  const runSafely = useCallback(async <T>(
+    fn: () => Promise<T>,
+    options: Omit<ErrorOptions, 'context'> = {}
+  ): Promise<{ data?: T; error?: unknown }> => {
+    try {
+      const data = await fn();
+      return { data };
+    } catch (error) {
+      handleErrorWithContext(error, options);
+      return { error };
+    }
+  }, [handleErrorWithContext]);
+  
+  return { 
+    handleError: handleErrorWithContext,
+    runSafely
+  };
 }

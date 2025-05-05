@@ -1,5 +1,5 @@
 
-export { useErrorHandling } from './use-error-handler';
+export { useErrorHandling } from './use-error-handling';
 export { useToast } from './use-toast';
 export { useIsMobile } from './use-mobile';
 export { useImageOperations } from './use-image-operations';
