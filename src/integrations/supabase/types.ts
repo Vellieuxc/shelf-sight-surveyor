@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analysis_queue: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          image_id: string
+          image_url: string
+          job_id: string
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at: string
+          error_message?: string | null
+          image_id: string
+          image_url: string
+          job_id: string
+          result?: Json | null
+          started_at?: string | null
+          status: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          image_id?: string
+          image_url?: string
+          job_id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       picture_comments: {
         Row: {
           content: string

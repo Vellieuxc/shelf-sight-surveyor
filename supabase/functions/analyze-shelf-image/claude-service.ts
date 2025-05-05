@@ -1,102 +1,175 @@
 
-import { ExternalServiceError } from "./error-handler.ts";
-import { withClaudeRetry } from "./retry.ts";
+import { corsHeaders } from "./cors.ts";
 
-/**
- * Analyzes an image with Claude API and returns structured data
- * @param imageUrl URL of the image to analyze
- * @param requestId Unique identifier for the request for tracing
- * @returns Analyzed data from the image
- */
-export async function analyzeImageWithClaude(imageUrl: string, requestId: string) {
-  console.log(`Starting Claude analysis for request [${requestId}]`);
-  
+// Anthropic Claude API types
+interface ClaudeRequest {
+  model: string;
+  messages: Message[];
+  max_tokens: number;
+  system?: string;
+}
+
+interface Message {
+  role: "user" | "assistant";
+  content: MessageContent[];
+}
+
+interface MessageContent {
+  type: "text" | "image";
+  source?: {
+    type: "base64";
+    media_type: string;
+    data: string;
+  };
+  text?: string;
+}
+
+interface ClaudeResponse {
+  id: string;
+  type: string;
+  role: string;
+  content: any[];
+  model: string;
+  stop_reason: string;
+  stop_sequence: string | null;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+  };
+}
+
+// Get Claude's interpretation of a shelf image
+export async function analyzeImageWithClaude(imageUrl: string, requestId: string): Promise<any[]> {
   try {
-    // Use the retry mechanism for the Claude API call
-    return await withClaudeRetry(async () => {
-      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-      if (!ANTHROPIC_API_KEY) {
-        throw new Error("Missing Anthropic API key");
-      }
-
-      const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-      
-      // Prepare the prompt for Claude
-      const systemPrompt = `You are a retail shelf analysis assistant. Analyze the image of retail shelves and identify all products visible.
-For each product (SKU) visible on the shelf, extract the following information:
-1. SKUFullName: The complete product name
-2. SKUBrand: The brand name
-3. NumberFacings: How many facings (units side by side) of this product are visible
-4. PriceSKU: The price if visible (include currency symbol)
-5. ShelfSection: Position on shelf (top, middle, bottom, etc.)
-6. OutofStock: Boolean indicating if there's an empty space where product should be
-7. BoundingBox: Object with confidence score between 0-1
-
-Return the data as a JSON array of objects, with each object representing one product. Be comprehensive and include all visible products.`;
-
-      // Prepare the request to Claude API
-      const response = await fetch(CLAUDE_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({
-          model: "claude-3-opus-20240229",
-          max_tokens: 4000,
-          system: systemPrompt,
-          messages: [
+    console.log(`🤖 Calling Claude for image analysis [${requestId}]`);
+    
+    // Get the API key from environment variables
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) {
+      throw new Error("Missing ANTHROPIC_API_KEY environment variable");
+    }
+    
+    // Fetch the image
+    console.log(`Fetching image from URL: ${imageUrl} [${requestId}]`);
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        "User-Agent": "ShelfAnalysis/1.0",
+      },
+    });
+    
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+    }
+    
+    // Convert image to base64
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const base64Image = btoa(
+      String.fromCharCode(...new Uint8Array(imageBuffer))
+    );
+    const mimeType = imageResponse.headers.get("content-type") || "image/jpeg";
+    
+    // Construct the Claude API payload
+    const payload: ClaudeRequest = {
+      model: "claude-3-opus-20240229",
+      max_tokens: 4000,
+      messages: [
+        {
+          role: "user",
+          content: [
             {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Please analyze this retail shelf image and provide detailed information about all products visible."
-                },
-                {
-                  type: "image",
-                  source: {
-                    type: "url",
-                    url: imageUrl
-                  }
-                }
-              ]
-            }
-          ]
-        })
-      });
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType,
+                data: base64Image,
+              },
+            },
+            {
+              type: "text",
+              text: `Analyze this shelf image and identify all products visible. 
+              
+For each product provide:
+1. Brand name
+2. Product name/type
+3. Package size/volume (if visible)
+4. Position on shelf (top, middle, bottom)
+5. Visibility score (1-10, where 10 is most visible)
+6. Color of packaging (primary colors)
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`Claude API error [${requestId}]:`, errorData);
-        throw new ExternalServiceError(`Claude API returned error: ${response.status} ${response.statusText}`);
+Return your analysis as valid JSON array only, with each product as an object. Do not include any explanatory text, ONLY the JSON array.
+
+Example format:
+[
+  {
+    "brand": "Brand Name",
+    "product": "Product Type",
+    "package_size": "Size or Volume",
+    "position": "top|middle|bottom",
+    "visibility": 8,
+    "color": "Main colors"
+  },
+  ...
+]`,
+            },
+          ],
+        },
+      ],
+      system: "You are a retail shelf analysis expert that identifies products on store shelves. Only respond with valid JSON."
+    };
+
+    // Call the Anthropic Claude API
+    console.log(`Sending request to Claude API [${requestId}]`);
+    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!claudeResponse.ok) {
+      const errorBody = await claudeResponse.text();
+      console.error(`Claude API error [${requestId}]:`, errorBody);
+      throw new Error(`Claude API returned ${claudeResponse.status}: ${errorBody}`);
+    }
+
+    // Parse the response
+    const data: ClaudeResponse = await claudeResponse.json();
+    console.log(`Claude API response received [${requestId}]`);
+
+    // Extract the content from Claude's response
+    const responseText = data.content[0]?.text || "";
+    console.log(`Claude raw response [${requestId}]:`, responseText);
+
+    // Extract JSON from response (Claude sometimes wraps it in markdown code blocks)
+    let jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                    responseText.match(/```\s*([\s\S]*?)\s*```/) || 
+                    [null, responseText];
+    
+    let jsonText = jsonMatch[1] || responseText;
+    
+    // Clean up any remaining text before or after the JSON
+    jsonText = jsonText.trim();
+    
+    // Parse the JSON response
+    try {
+      const analysisData = JSON.parse(jsonText);
+      
+      // Validate that we got an array of products
+      if (!Array.isArray(analysisData)) {
+        throw new Error("Response is not an array");
       }
-
-      const data = await response.json();
-      console.log(`Claude analysis completed for request [${requestId}]`);
-
-      // Extract the JSON from Claude's response
-      const responseContent = data.content[0].text;
       
-      // Find JSON in the response (between triple backticks or standalone)
-      const jsonMatch = responseContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                        responseContent.match(/```\s*([\s\S]*?)\s*```/) ||
-                        responseContent.match(/(\[[\s\S]*\])/);
-                        
-      if (!jsonMatch) {
-        console.error(`Failed to extract JSON from Claude response [${requestId}]`);
-        throw new ExternalServiceError("Could not extract structured data from Claude response");
-      }
-      
-      // Parse the extracted JSON
-      const jsonString = jsonMatch[1].trim();
-      const analysisData = JSON.parse(jsonString);
-      
+      console.log(`Successfully parsed JSON response with ${analysisData.length} products [${requestId}]`);
       return analysisData;
-    }, requestId);
+    } catch (parseError) {
+      console.error(`Error parsing JSON response [${requestId}]:`, parseError);
+      throw new Error(`Failed to parse Claude's response: ${parseError.message}`);
+    }
   } catch (error) {
-    console.error(`Claude analysis failed for request [${requestId}]:`, error);
-    throw new ExternalServiceError(`Failed to analyze image with Claude: ${error.message}`);
+    console.error(`Error in analyzeImageWithClaude [${requestId}]:`, error);
+    throw error;
   }
 }
