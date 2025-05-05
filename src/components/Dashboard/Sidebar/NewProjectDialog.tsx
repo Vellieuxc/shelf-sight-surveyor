@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,12 +10,26 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types";
 import { useAuth } from "@/contexts/auth";
+import { useForm } from "react-hook-form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import CountrySelect from "@/components/Common/CountrySelect";
 
 interface NewProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onProjectCreated?: (project: Project) => void;
 }
+
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  country: z.string().min(1, "Country is required"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ 
   open, 
@@ -24,23 +39,20 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newProject, setNewProject] = useState({
-    title: "",
-    description: "",
-    category: "",
-    country: ""
+  
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      category: "",
+      country: "",
+    },
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setNewProject((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newProject.title || !newProject.country) {
-      toast.error("Please fill in all required fields");
+  const handleCreateProject = async (values: FormValues) => {
+    if (!user) {
+      toast.error("You must be logged in to create a project");
       return;
     }
     
@@ -50,11 +62,11 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
       const { data, error } = await supabase
         .from("projects")
         .insert({
-          title: newProject.title,
-          description: newProject.description || null,
-          category: newProject.category || null,
-          country: newProject.country,
-          created_by: user?.id
+          title: values.title,
+          description: values.description || null,
+          category: values.category || null,
+          country: values.country,
+          created_by: user.id
         })
         .select()
         .single();
@@ -62,7 +74,7 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
       if (error) throw error;
       
       toast.success("Project created successfully!");
-      setNewProject({ title: "", description: "", category: "", country: "" });
+      form.reset();
       
       if (onProjectCreated && data) {
         onProjectCreated(data as Project);
@@ -90,57 +102,68 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
             Fill in the details for your new project. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleCreateProject}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                name="title"
-                value={newProject.title}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={newProject.description}
-                onChange={handleInputChange}
-                rows={3}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                name="category"
-                value={newProject.category}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="country">Country *</Label>
-              <Input
-                id="country"
-                name="country"
-                value={newProject.country}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Project"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleCreateProject)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="country"
+              render={() => (
+                <CountrySelect name="country" label="Country *" />
+              )}
+            />
+            
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Project"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

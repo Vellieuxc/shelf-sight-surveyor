@@ -102,10 +102,23 @@ export const handleSignIn = async (
  */
 export const handleSignUp = async (
   email: string, 
-  password: string
+  password: string,
+  userMetadata?: { firstName?: string; lastName?: string }
 ): Promise<{ success: boolean; user?: User }> => {
   try {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // Prepare user metadata if provided
+    const metadata = userMetadata ? {
+      first_name: userMetadata.firstName,
+      last_name: userMetadata.lastName
+    } : undefined;
+    
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: metadata
+      }
+    });
     
     if (error) {
       throw error;

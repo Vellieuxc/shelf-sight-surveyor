@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from "react-hook-form";
 import { StoreFormValues, storeTypes } from "./types";
+import CountrySelect from "@/components/Common/CountrySelect";
 
 interface FormFieldsProps {
   form: UseFormReturn<StoreFormValues>;
@@ -73,13 +74,7 @@ const FormFields: React.FC<FormFieldsProps> = ({ form }) => {
         control={form.control}
         name="country"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Country</FormLabel>
-            <FormControl>
-              <Input placeholder="Enter country" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
+          <CountrySelect name="country" label="Country" />
         )}
       />
 

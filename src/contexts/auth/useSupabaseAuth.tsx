@@ -33,9 +33,13 @@ export const useSupabaseAuth = () => {
   };
 
   // Handle user sign up
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (
+    email: string, 
+    password: string, 
+    userMetadata?: { firstName?: string; lastName?: string }
+  ) => {
     try {
-      const { success, user: signedUpUser } = await authSignUp(email, password);
+      const { success, user: signedUpUser } = await authSignUp(email, password, userMetadata);
       
       // For development, we can auto-sign in
       if (success && signedUpUser && navigate) {

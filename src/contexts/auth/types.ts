@@ -19,6 +19,10 @@ export interface AuthContextType {
   profile: UserProfile | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string, 
+    password: string, 
+    userMetadata?: { firstName?: string; lastName?: string }
+  ) => Promise<void>;
   signOut: () => Promise<void>;
 }
