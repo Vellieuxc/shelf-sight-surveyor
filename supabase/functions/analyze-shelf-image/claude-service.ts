@@ -1,88 +1,152 @@
-import { ExternalServiceError } from "./error-handler.ts";
 
-// Maximum retries for external API calls
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1000;
+import { corsHeaders } from "./cors.ts";
 
-/**
- * Fetches an image from a URL and converts it to base64
- * Optimized to avoid stack overflow with large images
- */
-async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string): Promise<string> {
-  console.log(`Fetching image from URL: ${imageUrl.substring(0, 50)}... [${requestId}]`);
+// Edge function to analyze a shelf image using Claude
+export async function analyzeImageWithClaude(imageUrl: string, requestId: string): Promise<any> {
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   
-  // Iterative implementation for retries
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      // Perform the fetch operation
-      const response = await fetch(imageUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-      }
-      
-      // Process the image data with a chunked approach to avoid stack overflow
-      const imageBlob = await response.blob();
-      const buffer = await imageBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(buffer);
-      
-      // Process large arrays in chunks to avoid call stack limits
-      let binary = '';
-      const chunkSize = 1024; // Process 1KB chunks
-      
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.slice(i, i + chunkSize);
-        for (let j = 0; j < chunk.length; j++) {
-          binary += String.fromCharCode(chunk[j]);
-        }
-      }
-      
-      // Now convert the binary string to base64
-      const base64 = btoa(binary);
-      
-      return base64;
-    } catch (error) {
-      console.error(`Error fetching image (attempt ${attempt}/${MAX_RETRIES}): ${error.message}`);
-      
-      // If this is the last attempt, throw the error
-      if (attempt === MAX_RETRIES) {
-        throw error;
-      }
-      
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt));
-    }
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error("Missing ANTHROPIC_API_KEY environment variable");
   }
   
-  // This line should never be reached due to the throw in the loop,
-  // but it's here to satisfy TypeScript's control flow analysis
-  throw new Error('Failed to fetch image after maximum retries');
-}
-
-/**
- * Analyzes an image using Claude API
- */
-export async function analyzeImageWithClaude(imageUrl: string, requestId: string): Promise<any[]> {
+  console.log(`Starting image analysis with Claude [${requestId}]`);
+  console.log(`Fetching image from URL: ${imageUrl} [${requestId}]`);
+  
   try {
-    console.log(`🤖 Starting Claude analysis for image [${requestId}]`);
-    
-    // Convert image to base64
-    console.log(`Converting image to base64 [${requestId}]`);
+    // Fetch and convert image to base64
     const base64Image = await fetchAndConvertImageToBase64(imageUrl, requestId);
+    console.log(`Successfully converted image to base64 [${requestId}]`);
     
-    // API key from environment
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) {
-      throw new Error("Missing ANTHROPIC_API_KEY environment variable");
+    // Load the TaxonomyIndustries.json file
+    const taxonomyIndustries = await loadTaxonomyIndustries(requestId);
+    
+    // Prepare the Claude API request with the updated prompt
+    const prompt = generateAnalysisPrompt(taxonomyIndustries, requestId);
+    
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-opus-20240229",
+        max_tokens: 4096,
+        temperature: 0,
+        system: prompt,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: "image/jpeg",
+                  data: base64Image
+                }
+              },
+              {
+                type: "text",
+                text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified. Include the correct ProductCategory values from the taxonomy provided."
+              }
+            ]
+          }
+        ]
+      })
+    });
+    
+    if (!response.ok) {
+      console.error(`Claude API error [${requestId}]: ${response.status} ${response.statusText}`);
+      throw new Error(`Claude API returned error: ${response.status}`);
     }
     
-    // Claude API endpoint
-    const apiUrl = "https://api.anthropic.com/v1/messages";
+    const data = await response.json();
+    console.log(`Received response from Claude API [${requestId}]`);
     
-    // Define the system prompt for retail shelf analysis
-    const systemPrompt = `🧠 Claude Prompt — Shelf Image Analysis with Integrated Metadata and Confidence Scoring
+    // Extract JSON from Claude's response
+    const content = data.content[0].text;
+    const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        const parsedJson = JSON.parse(jsonMatch[1].trim());
+        console.log(`Successfully parsed JSON response [${requestId}]`);
+        return parsedJson;
+      } catch (parseError) {
+        console.error(`Error parsing JSON response [${requestId}]:`, parseError);
+        throw new Error(`Failed to parse Claude response: ${parseError.message}`);
+      }
+    } else {
+      console.error(`No JSON found in Claude response [${requestId}]`);
+      throw new Error("No JSON found in Claude response");
+    }
+    
+  } catch (error) {
+    console.error(`Error analyzing image with Claude [${requestId}]:`, error);
+    throw error;
+  }
+}
 
-You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
+// Helper function to fetch an image and convert it to base64
+async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string): Promise<string> {
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    const buffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    
+    // Convert to base64 using chunks to avoid call stack size exceeded
+    let binary = '';
+    const chunkSize = 1024;
+    for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+      const chunk = bytes.slice(i, Math.min(i + chunkSize, bytes.byteLength));
+      binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+    }
+    
+    return btoa(binary);
+  } catch (error) {
+    console.error(`Error converting image to base64 [${requestId}]:`, error);
+    throw new Error(`Failed to fetch image: ${error.message}`);
+  }
+}
+
+// Load the taxonomy industries JSON file
+async function loadTaxonomyIndustries(requestId: string): Promise<any[]> {
+  try {
+    // Path is relative to the edge function's working directory
+    const taxonomyData = await Deno.readTextFile("./TaxonomyIndustries.json");
+    return JSON.parse(taxonomyData);
+  } catch (error) {
+    console.error(`Error loading TaxonomyIndustries.json [${requestId}]:`, error);
+    // Return a minimal taxonomy to avoid failing completely
+    return [
+      {
+        "ProductCategory1": "Soft Drinks",
+        "ProductCategory2": "Carbonates",
+        "ProductCategory3": "Cola"
+      },
+      {
+        "ProductCategory1": "Soft Drinks",
+        "ProductCategory2": "Carbonates",
+        "ProductCategory3": "Lemon-Lime"
+      }
+    ];
+  }
+}
+
+// Generate analysis prompt with the taxonomy data
+function generateAnalysisPrompt(taxonomyIndustries: any[], requestId: string): string {
+  console.log(`Generating analysis prompt with taxonomy data [${requestId}]`);
+  
+  const taxonomyJson = JSON.stringify(taxonomyIndustries, null, 2);
+  
+  return `You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
 Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. Return the result in a JSON format. Each SKU must also include an \`ImageID\` field referencing the image filename or identifier it came from, for traceability.
 
@@ -98,7 +162,7 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
 * **PackSize**: The size or volume of the product, including both number and unit (e.g., "500ml", "200g"). Use \`null\` if not available
 * **Flavor**: The flavor or variant if mentioned (e.g., "Lemon", "Vanilla"). Use \`null\` if not available
 * **NumberFacings**: How many visible facings of this product are on the shelf (front-facing only)
-* **PriceSKU**: Price of this SKU from the visible tag (e.g., "$1.29"). Use \`null\` if not visible
+* **PriceSKU**: Price of this SKU from the visible tag (e.g., "\$1.29"). Use \`null\` if not visible
 * **ShelfSection**: Location within the shelf area (e.g., "Top Left", "Middle Right", etc.)
 * **OutofStock**: \`true\` if a shelf tag for this SKU is present but no product is in that spot; otherwise \`false\`
 * **Misplaced**: \`true\` if the visible product is **not behind its correct price/tag** (e.g., a different product is in its place)
@@ -132,8 +196,8 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
     {
       "SKUFullName": "Coca-Cola 500ml Bottle",
       "SKUBrand": "Coca-Cola",
-      "ProductCategory1": "Drinks",
-      "ProductCategory2": "Soft Drinks",
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Carbonates",
       "ProductCategory3": null,
       "PackSize": "500ml",
       "Flavor": null,
@@ -149,8 +213,8 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
     {
       "SKUFullName": "Pepsi 500ml Bottle",
       "SKUBrand": "Pepsi",
-      "ProductCategory1": "Drinks",
-      "ProductCategory2": "Soft Drinks",
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Carbonates",
       "ProductCategory3": null,
       "PackSize": "500ml",
       "Flavor": null,
@@ -166,8 +230,8 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
     {
       "SKUFullName": "Sprite 500ml Bottle",
       "SKUBrand": "Sprite",
-      "ProductCategory1": "Drinks",
-      "ProductCategory2": "Soft Drinks",
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Carbonates",
       "ProductCategory3": null,
       "PackSize": "500ml",
       "Flavor": null,
@@ -196,93 +260,13 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
 
 ### 🧾 Field Standardization:
 
-* **PriceSKU**: Always use format "$X.XX" or "€X.XX" with two decimal places.
+* **PriceSKU**: Always use format "\$X.XX" or "€X.XX" with two decimal places.
 * **PackSize**: Use standardized units (ml, g, kg, oz) with no space between number and unit.
 * **ShelfSection**: Use strictly "Top/Middle/Bottom" + "Left/Center/Right" combinations (e.g., "Top Left", "Middle Center").
 * **PackSize and Flavor**: Extract these using text parsing and OCR from SKUFullName or visible labels. Do not infer beyond visible text.
-* **Category Fields**: The fields \`ProductCategory1\`, \`ProductCategory2\`, and \`ProductCategory3\` must match the industry taxonomy categories. If no match exists, set them to \`null\` and tag the SKU as \`Unmatched SKU\`.`;
-    
-    // Build the message content with image
-    const messages = [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64", 
-              media_type: "image/jpeg",
-              data: base64Image
-            }
-          },
-          {
-            type: "text",
-            text: "Analyze this retail shelf image and identify all products. Return ONLY valid JSON array."
-          }
-        ]
-      }
-    ];
-    
-    // Make the API request
-    console.log(`Sending request to Claude API [${requestId}]`);
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: messages
-      })
-    });
-    
-    // Handle API response
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`Claude API error [${requestId}]: ${response.status} - ${errorBody}`);
-      throw new ExternalServiceError(`Claude API returned error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // Extract and parse the JSON response
-    // The content should be a JSON array as requested in our prompt
-    let productsArray: any[] = [];
-    
-    try {
-      const textContent = data.content[0].text;
-      
-      // Extract JSON array from the response (it might be surrounded by markdown code blocks)
-      const jsonMatch = textContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       textContent.match(/```\s*([\s\S]*?)\s*```/) ||
-                       [null, textContent];
-                       
-      const jsonContent = jsonMatch[1] || textContent;
-      const parsedResponse = JSON.parse(jsonContent);
-      
-      // Handle the SKUs wrapper format from the new prompt
-      if (parsedResponse && parsedResponse.SKUs && Array.isArray(parsedResponse.SKUs)) {
-        productsArray = parsedResponse; // Return the whole structure with SKUs property
-      } else if (Array.isArray(parsedResponse)) {
-        productsArray = parsedResponse;
-      } else {
-        throw new Error("Claude did not return a valid response format");
-      }
-      
-      console.log(`Parsed ${Array.isArray(parsedResponse.SKUs) ? parsedResponse.SKUs.length : 'unknown'} products from Claude response [${requestId}]`);
-    } catch (error) {
-      console.error(`Error parsing Claude response [${requestId}]:`, error);
-      throw new Error(`Failed to parse Claude response: ${error.message}`);
-    }
-    
-    return productsArray;
-    
-  } catch (error) {
-    console.error(`Error in analyzeImageWithClaude [${requestId}]:`, error);
-    throw error;
-  }
+* **Category Fields**: The fields \`ProductCategory1\`, \`ProductCategory2\`, and \`ProductCategory3\` must match an entry in the taxonomy data provided below. If no match exists, set them to \`null\` and tag the SKU as \`Unmatched SKU\`.
+
+### Taxonomy Data:
+${taxonomyJson}
+`;
 }
