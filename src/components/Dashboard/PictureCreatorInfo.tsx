@@ -7,12 +7,13 @@ interface PictureCreatorInfoProps {
 }
 
 const PictureCreatorInfo: React.FC<PictureCreatorInfoProps> = ({ creator }) => {
-  if (!creator) return null;
+  // Ensure creator is a string and not undefined/null
+  const displayName = creator ? creator : "Unknown";
   
   return (
     <div className="flex items-center gap-1 mt-1">
       <User size={12} />
-      <span>By: {creator}</span>
+      <span className="text-xs">By: {displayName}</span>
     </div>
   );
 };
