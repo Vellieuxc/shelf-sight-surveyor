@@ -5,5 +5,8 @@ export default AnalysisResultsContainer;
 
 // Also export the sub-components for direct access if needed
 export { AnalysisResultsTable } from "./AnalysisResultsTable";
+export { ProductRow } from "./components/ProductRow";
+export { SummarySection } from "./components/SummarySection";
+export { TableHeader } from "./components/TableHeader";
 export { AnalysisLoadingState } from "./AnalysisLoadingState";
 export { AnalysisEmptyState } from "./AnalysisEmptyState";
