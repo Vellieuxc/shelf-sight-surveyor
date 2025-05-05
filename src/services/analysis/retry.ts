@@ -20,12 +20,18 @@ export async function executeWithRetry(
 ): Promise<AnalysisResponse> {
   const { 
     retryCount = 3, 
-    timeout = 120000 // 2 minutes default timeout
+    timeout = 120000, // 2 minutes default timeout
+    maxImageSize = 5 * 1024 * 1024 // 5MB default max size
   } = options;
   
   // Additional diagnostics for troubleshooting
   console.log(`Starting direct analysis for image ${imageId} with ${retryCount} retry attempts`);
   console.log(`Image URL: ${imageUrl}`);
+  
+  // Validate image URL before proceeding
+  if (!imageUrl || !imageUrl.startsWith('http')) {
+    throw new Error(`Invalid image URL format: ${imageUrl}`);
+  }
   
   for (let attempt = 0; attempt < retryCount; attempt++) {
     try {
@@ -41,14 +47,17 @@ export async function executeWithRetry(
       // Add abort listener
       controller.signal.addEventListener('abort', () => {
         isAborted = true;
-        console.log('Analysis request aborted due to timeout');
+        console.log(`Analysis request aborted due to timeout (${timeout}ms)`);
       });
       
-      // Invoke the analysis function directly
+      // Invoke the analysis function directly with enhanced logging
+      const startTime = performance.now();
       const response = await invokeAnalysisFunction(imageUrl, imageId, {
         ...options,
-        timeout
+        timeout,
+        maxImageSize
       });
+      const endTime = performance.now();
       
       // Clear the timeout if we complete successfully
       clearTimeout(timeoutId);
@@ -58,12 +67,16 @@ export async function executeWithRetry(
         throw new Error(`Analysis timed out after ${timeout}ms`);
       }
       
+      console.log(`Analysis completed in ${Math.round(endTime - startTime)}ms`);
+      
       // Check for errors in the response
       if (response.success === false) {
         throw new Error(response.error || "Analysis function returned an error");
       }
       
-      console.log(`Image analysis successful on attempt ${attempt + 1}, found ${response.data?.length || 0} items`);
+      console.log(`Image analysis successful on attempt ${attempt + 1}, received data: `, 
+        typeof response.data === 'object' ? 'object data' : typeof response.data);
+      
       return response;
       
     } catch (error: any) {

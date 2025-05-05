@@ -17,11 +17,45 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     const base64Image = await fetchAndConvertImageToBase64(imageUrl, requestId);
     console.log(`Successfully converted image to base64 [${requestId}]`);
     
-    // Load the TaxonomyIndustries.json file
-    const taxonomyIndustries = await loadTaxonomyIndustries(requestId);
+    // Instead of loading from file, we'll use the embedded taxonomy
+    // This eliminates the file path dependency
+    const taxonomyIndustries = getEmbeddedTaxonomy(requestId);
     
     // Prepare the Claude API request with the updated prompt
     const prompt = generateAnalysisPrompt(taxonomyIndustries, requestId);
+    
+    // Log the payload size for debugging
+    const payloadSize = JSON.stringify({
+      model: "claude-3-opus-20240229",
+      max_tokens: 4096,
+      temperature: 0,
+      system: prompt,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: "image/jpeg",
+                data: "IMAGE_DATA" // Placeholder to estimate size
+              }
+            },
+            {
+              type: "text",
+              text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified. Include the correct ProductCategory values from the taxonomy provided."
+            }
+          ]
+        }
+      ]
+    }).length;
+    
+    console.log(`Estimated payload size (excluding base64 image): ${payloadSize} bytes [${requestId}]`);
+    console.log(`Base64 image size: ${base64Image.length} characters [${requestId}]`);
+    
+    // Additional logging for diagnosis
+    console.log(`Calling Claude API with model: claude-3-opus-20240229 [${requestId}]`);
     
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -59,6 +93,11 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     
     if (!response.ok) {
       console.error(`Claude API error [${requestId}]: ${response.status} ${response.statusText}`);
+      
+      // Enhanced error reporting 
+      const errorBody = await response.text();
+      console.error(`Claude API error details [${requestId}]:`, errorBody);
+      
       throw new Error(`Claude API returned error: ${response.status}`);
     }
     
@@ -118,12 +157,21 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
 // Helper function to fetch an image and convert it to base64
 async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string): Promise<string> {
   try {
+    console.log(`Fetching image with URL: ${imageUrl} [${requestId}]`);
+    
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
     }
     
     const blob = await response.blob();
+    console.log(`Image fetched successfully, size: ${blob.size} bytes [${requestId}]`);
+    
+    // Check if the image size is too large
+    if (blob.size > 10 * 1024 * 1024) { // 10MB limit
+      throw new Error(`Image too large: ${(blob.size / (1024 * 1024)).toFixed(2)}MB (max 10MB)`);
+    }
+    
     const buffer = await blob.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     
@@ -135,6 +183,8 @@ async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string)
       binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
     }
     
+    console.log(`Converted image to base64 [${requestId}]`);
+    
     return btoa(binary);
   } catch (error) {
     console.error(`Error converting image to base64 [${requestId}]:`, error);
@@ -142,40 +192,133 @@ async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string)
   }
 }
 
-// Load the taxonomy industries JSON file
-async function loadTaxonomyIndustries(requestId: string): Promise<any[]> {
-  try {
-    // Use the correct path with the data subfolder
-    const taxonomyData = await Deno.readTextFile("./data/TaxonomyIndustries.json");
-    console.log(`Successfully loaded TaxonomyIndustries.json [${requestId}]`);
-    return JSON.parse(taxonomyData);
-  } catch (error) {
-    console.error(`Error loading TaxonomyIndustries.json [${requestId}]:`, error);
-    console.log(`Falling back to minimal taxonomy [${requestId}]`);
-    // Return a minimal taxonomy to avoid failing completely
-    return [
-      {
-        "ProductCategory1": "Soft Drinks",
-        "ProductCategory2": "Carbonates",
-        "ProductCategory3": "Cola"
-      },
-      {
-        "ProductCategory1": "Soft Drinks",
-        "ProductCategory2": "Carbonates",
-        "ProductCategory3": "Lemon-Lime"
-      },
-      {
-        "ProductCategory1": "Health & Wellness",
-        "ProductCategory2": "Cough, Cold & Flu",
-        "ProductCategory3": "Cough Liquids"
-      },
-      {
-        "ProductCategory1": "Health & Wellness", 
-        "ProductCategory2": "Cough, Cold & Flu",
-        "ProductCategory3": "Cold & Flu Liquids"
-      }
-    ];
-  }
+// Embed the taxonomy directly rather than loading from a file
+function getEmbeddedTaxonomy(requestId: string): any[] {
+  console.log(`Using embedded taxonomy data [${requestId}]`);
+  
+  // This is the same data as in TaxonomyIndustries.json
+  return [
+    {
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Carbonates",
+      "ProductCategory3": "Cola"
+    },
+    {
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Carbonates",
+      "ProductCategory3": "Lemon-Lime"
+    },
+    {
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Carbonates",
+      "ProductCategory3": "Orange"
+    },
+    {
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Energy Drinks",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Soft Drinks",
+      "ProductCategory2": "Sports Drinks",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Water",
+      "ProductCategory2": "Still",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Water",
+      "ProductCategory2": "Sparkling",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Water",
+      "ProductCategory2": "Flavored",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Dairy",
+      "ProductCategory2": "Milk",
+      "ProductCategory3": "Regular"
+    },
+    {
+      "ProductCategory1": "Dairy",
+      "ProductCategory2": "Milk",
+      "ProductCategory3": "Low Fat"
+    },
+    {
+      "ProductCategory1": "Dairy",
+      "ProductCategory2": "Yogurt",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Snacks",
+      "ProductCategory2": "Chips",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Snacks",
+      "ProductCategory2": "Nuts",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Snacks",
+      "ProductCategory2": "Chocolate",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Snacks",
+      "ProductCategory2": "Cookies",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Healthcare",
+      "ProductCategory2": "Cold & Flu",
+      "ProductCategory3": "Cough Medicine"
+    },
+    {
+      "ProductCategory1": "Healthcare",
+      "ProductCategory2": "Cold & Flu",
+      "ProductCategory3": "Nasal Spray"
+    },
+    {
+      "ProductCategory1": "Healthcare",
+      "ProductCategory2": "Pain Relief",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Healthcare",
+      "ProductCategory2": "Digestive",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Personal Care",
+      "ProductCategory2": "Soap",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Personal Care",
+      "ProductCategory2": "Shampoo",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Personal Care",
+      "ProductCategory2": "Deodorant",
+      "ProductCategory3": null
+    },
+    {
+      "ProductCategory1": "Health & Wellness",
+      "ProductCategory2": "Cough, Cold & Flu",
+      "ProductCategory3": "Cough Liquids"
+    },
+    {
+      "ProductCategory1": "Health & Wellness",
+      "ProductCategory2": "Cough, Cold & Flu",
+      "ProductCategory3": "Cold & Flu Liquids"
+    }
+  ];
 }
 
 // Generate analysis prompt with the taxonomy data
