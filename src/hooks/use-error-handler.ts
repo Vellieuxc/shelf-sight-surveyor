@@ -21,8 +21,8 @@ interface UseErrorHandlingConfig {
 export const useErrorHandling = (config: UseErrorHandlingConfig = { source: 'unknown' }) => {
   const baseContext: ErrorContext = {
     source: config.source,
+    operation: config.operation || 'unknown operation',
     componentName: config.componentName,
-    operation: config.operation,
     additionalData: config.additionalData
   };
 
@@ -34,6 +34,7 @@ export const useErrorHandling = (config: UseErrorHandlingConfig = { source: 'unk
       silent: config.silent,
       showToast: config.showToast,
       logToService: config.logToService,
+      toastVariant: options.variant || options.toastVariant,
       ...options,
       context: {
         ...baseContext,

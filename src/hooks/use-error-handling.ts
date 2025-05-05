@@ -2,7 +2,9 @@
 import { useCallback } from "react";
 import { ErrorContext, ErrorOptions, handleError } from "@/utils/errors";
 
-interface UseErrorHandlingProps extends Partial<ErrorContext> {}
+interface UseErrorHandlingProps extends Partial<ErrorContext> {
+  componentName?: string;
+}
 
 /**
  * Hook to provide context-aware error handling
@@ -19,9 +21,9 @@ export function useErrorHandling(props: UseErrorHandlingProps = {}) {
       context: {
         source,
         operation: options.operation || operation || (componentName ? `${componentName}` : 'unknown operation'),
+        componentName,
         additionalData: {
           ...options.additionalData,
-          componentName
         }
       }
     });

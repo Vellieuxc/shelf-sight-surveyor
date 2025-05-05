@@ -18,6 +18,8 @@ export interface ErrorContext {
   source: ErrorSource;
   /** Operation that was being performed */
   operation: string;
+  /** Component name where the error occurred */
+  componentName?: string;
   /** Any additional data relevant to the error */
   additionalData?: Record<string, any>;
 }
@@ -55,6 +57,8 @@ export interface ErrorOptions {
   operation?: string;
   /** Additional data (deprecated, use context) */
   additionalData?: Record<string, any>;
+  /** Toast variant (deprecated, use toastVariant) */
+  variant?: ToastVariant;
 }
 
 /**

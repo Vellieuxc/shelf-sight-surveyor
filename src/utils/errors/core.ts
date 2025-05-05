@@ -24,7 +24,8 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     description,
     // Handle direct properties for backward compatibility
     operation,
-    additionalData
+    additionalData,
+    variant
   } = options;
   
   // Merge direct properties into context for backward compatibility
@@ -68,7 +69,7 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     showErrorToast({
       title: toastTitle,
       message: toastDescription,
-      variant: toastVariant,
+      variant: variant || toastVariant,
       useShadcnToast,
       retry
     });
