@@ -1,40 +1,87 @@
 
 import { AnalysisData } from "@/types";
-import { AnalysisResponse } from "./types";
+import { Json } from "@/integrations/supabase/types";
 
 /**
- * Transform raw analysis response into application data format
+ * Ensures that analysis data is correctly typed and formatted
+ * for frontend display
  */
-export function transformAnalysisResult(response: AnalysisResponse): AnalysisData[] {
-  // Check if the response is valid
-  if (!response || !response.data) {
-    console.error("Invalid analysis response:", response);
+export function ensureAnalysisDataType(data: Json[] | null): AnalysisData[] {
+  if (!data || !Array.isArray(data)) {
+    console.warn("Invalid analysis data format", data);
     return [];
   }
   
-  console.log(`Transforming analysis result with ${response.data.length} items`);
-  
-  // Convert to proper AnalysisData format
-  return ensureAnalysisDataType(response.data);
+  return data.map(item => {
+    if (typeof item !== 'object' || item === null) {
+      console.warn("Invalid analysis item", item);
+      return createEmptyAnalysisItem();
+    }
+    
+    const typedItem = item as Record<string, any>;
+    
+    // Return properly formatted analysis data
+    return {
+      brand: typedItem.brand || typedItem.SKUBrand || "",
+      sku_name: typedItem.sku_name || typedItem.SKUFullName || "",
+      sku_count: typeof typedItem.sku_count === 'number' 
+        ? typedItem.sku_count 
+        : (typeof typedItem.NumberFacings === 'number' ? typedItem.NumberFacings : 1),
+      sku_price: typeof typedItem.sku_price === 'number' 
+        ? typedItem.sku_price 
+        : parseFloatPrice(typedItem.PriceSKU || "0"),
+      sku_position: typedItem.sku_position || typedItem.ShelfSection || "middle",
+      sku_confidence: typedItem.sku_confidence || "medium",
+      empty_space_estimate: typedItem.empty_space_estimate || 0,
+      color: typedItem.color || "",
+      package_size: typedItem.package_size || ""
+    };
+  });
 }
 
 /**
- * Ensure analysis data is properly typed as AnalysisData[]
+ * Creates an empty analysis item with default values
  */
-export function ensureAnalysisDataType(data: any[]): AnalysisData[] {
-  if (!Array.isArray(data)) {
-    console.error("Analysis data is not an array");
+function createEmptyAnalysisItem(): AnalysisData {
+  return {
+    brand: "",
+    sku_name: "",
+    sku_count: 1,
+    sku_price: 0,
+    sku_position: "middle",
+    sku_confidence: "medium",
+    empty_space_estimate: 0,
+    color: "",
+    package_size: ""
+  };
+}
+
+/**
+ * Parse price from string, handling currency symbols
+ */
+function parseFloatPrice(priceStr: string): number {
+  if (typeof priceStr !== 'string') return 0;
+  
+  const normalized = priceStr
+    .replace(/[$€£¥]/g, '')
+    .replace(/,/g, '.')
+    .replace(/[^0-9.]/g, '')
+    .trim();
+    
+  const price = parseFloat(normalized);
+  return isNaN(price) ? 0 : price;
+}
+
+/**
+ * Transform the analysis result from the edge function to the format
+ * expected by the frontend
+ */
+export function transformAnalysisResult(response: any): AnalysisData[] {
+  // Handle empty or invalid responses
+  if (!response || !response.data || !Array.isArray(response.data.data)) {
+    console.warn("Invalid analysis response format", response);
     return [];
   }
   
-  return data.map(item => ({
-    brand: item.brand || "",
-    sku_name: item.sku_name || item.product || "",
-    sku_count: parseInt(String(item.sku_count)) || parseInt(String(item.visibility)) || 1,
-    sku_price: parseFloat(String(item.sku_price)) || 0,
-    sku_position: item.sku_position || item.position || "",
-    sku_confidence: item.sku_confidence || "high",
-    color: item.color || "",
-    package_size: item.package_size || ""
-  }));
+  return ensureAnalysisDataType(response.data.data);
 }

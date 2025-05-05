@@ -11,8 +11,8 @@ export function transformAnalysisData(analysisData: any[]): any[] {
     .filter(item => item && typeof item === 'object')
     .map(item => {
       // Normalize field names from Claude's output
-      const result: any = {
-        // Product identification
+      return {
+        // Product identification - standardize the field names
         brand: item.SKUBrand || item.brand || item.Brand || "",
         sku_name: item.SKUFullName || item.product || item.Product || item.ProductName || "",
         sku_count: parseNumberFacing(item),
@@ -27,8 +27,6 @@ export function transformAnalysisData(analysisData: any[]): any[] {
         color: item.color || item.packagingColor || "",
         package_size: item.package_size || item.PackageSize || ""
       };
-      
-      return result;
     });
 }
 

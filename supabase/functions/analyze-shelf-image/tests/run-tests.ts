@@ -5,7 +5,8 @@ console.log("Running Claude service tests...");
 
 // Run all tests and exit with appropriate code
 runTests({
-  only: /claude-service/,
+  // Include both claude-service tests and unit tests for transformers
+  include: /claude-service|transformers/,
   failFast: true,
 }).then(({ completed, filtered, ignored, measured, passed, failed }) => {
   console.log(`
