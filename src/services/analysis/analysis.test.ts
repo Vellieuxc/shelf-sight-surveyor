@@ -24,6 +24,8 @@ describe('Image Analysis Service', () => {
   const mockImageId = 'test-image-id-123';
   const mockResponse = {
     success: true,
+    jobId: 'test-job-id', // Added required property
+    status: 'completed',
     data: [
       { brand: 'Test Brand', sku_name: 'Test Product', sku_count: 3 }
     ]
