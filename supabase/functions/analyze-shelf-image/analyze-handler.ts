@@ -1,6 +1,7 @@
 
 import { corsHeaders } from "./cors.ts";
-import { validateRequest, addToAnalysisQueue } from "./utils.ts";
+import { validateRequest } from "./validator.ts";
+import { addToAnalysisQueue } from "./queue.ts";
 
 // Security headers combined with CORS
 const securityHeaders = {

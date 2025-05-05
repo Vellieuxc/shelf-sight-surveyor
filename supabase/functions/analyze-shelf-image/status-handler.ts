@@ -1,5 +1,6 @@
+
 import { corsHeaders } from "./cors.ts";
-import { getJobByImageId } from "./utils.ts";
+import { getJobByImageId } from "./queue.ts";
 import { ValidationError } from "./error-handler.ts";
 
 // Security headers combined with CORS

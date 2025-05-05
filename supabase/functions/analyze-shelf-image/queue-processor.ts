@@ -1,5 +1,7 @@
 
-import { transformAnalysisData, generateRequestId, getNextAnalysisJob, updateJobStatus } from "./utils.ts";
+import { transformAnalysisData } from "./transformers.ts";
+import { generateRequestId } from "./utils.ts";
+import { getNextAnalysisJob, updateJobStatus } from "./queue.ts";
 import { analyzeImageWithClaude } from "./claude-service.ts";
 import { monitorClaudeCall } from "./monitoring.ts";
 import { corsHeaders } from "./cors.ts";
