@@ -14,6 +14,7 @@ import PictureAnalysisBadge from "./PictureAnalysisBadge";
 import PictureComment from "./PictureComment";
 import { useResponsive } from "@/hooks/use-mobile";
 import DeletePictureDialog from "./DeletePictureDialog";
+import { useErrorHandling } from "@/hooks/use-error-handling";
 
 interface PictureCardProps {
   picture: Picture;
@@ -35,6 +36,11 @@ const PictureCard: React.FC<PictureCardProps> = ({
   const exactDate = format(uploadDate, "PPP");
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
   const { isMobile, isTablet } = useResponsive();
+  const { handleError } = useErrorHandling({
+    source: 'database',
+    componentName: 'PictureCard',
+    operation: 'fetchCreator'
+  });
   
   // Responsive button size based on screen size
   const buttonSize = isMobile ? "sm" : "default";
@@ -43,7 +49,7 @@ const PictureCard: React.FC<PictureCardProps> = ({
 
   useEffect(() => {
     // Only fetch the creator if it wasn't provided as prop
-    if (!createdByName) {
+    if (!createdByName && picture.uploaded_by) {
       const fetchCreator = async () => {
         try {
           const { data, error } = await supabase
@@ -61,19 +67,24 @@ const PictureCard: React.FC<PictureCardProps> = ({
               setCreator(data.email);
             }
           } else {
-            // Display uploader ID as email-like format when profile not found
-            setCreator(`${picture.uploaded_by}@user.id`);
+            // Display uploader ID as shortened format when profile not found
+            setCreator(`${picture.uploaded_by.slice(0, 6)}...`);
           }
         } catch (error) {
-          console.error("Error fetching picture creator:", error);
-          // Display uploader ID as email-like format on error
-          setCreator(`${picture.uploaded_by}@user.id`);
+          handleError(error, {
+            fallbackMessage: "Failed to fetch picture creator",
+            silent: true, // Don't show toast for this non-critical error
+            additionalData: { uploadedBy: picture.uploaded_by }
+          });
+          
+          // Provide a fallback display name on error
+          setCreator(`User ${picture.uploaded_by.slice(0, 6)}...`);
         }
       };
       
       fetchCreator();
     }
-  }, [picture.uploaded_by, createdByName]);
+  }, [picture.uploaded_by, createdByName, handleError]);
 
   const handleDownload = () => {
     try {

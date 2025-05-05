@@ -1,6 +1,7 @@
 
 import React from "react";
 import { User } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PictureCreatorInfoProps {
   creator: string;
@@ -11,8 +12,18 @@ const PictureCreatorInfo: React.FC<PictureCreatorInfoProps> = ({ creator }) => {
   const displayName = creator ? creator : "Unknown";
   
   return (
-    <div className="truncate">
-      <span className="font-medium">By:</span> {displayName}
+    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger className="flex items-center">
+            <User size={12} className="mr-1" />
+            <span className="truncate max-w-[120px]">{displayName}</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Created by: {displayName}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };

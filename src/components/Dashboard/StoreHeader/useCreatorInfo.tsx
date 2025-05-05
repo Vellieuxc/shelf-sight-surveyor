@@ -12,6 +12,7 @@ interface CreatorProfile {
 export const useCreatorInfo = (creatorId: string) => {
   const [creatorName, setCreatorName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
   const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'useCreatorInfo',
@@ -19,16 +20,22 @@ export const useCreatorInfo = (creatorId: string) => {
   });
   
   useEffect(() => {
+    if (!creatorId) {
+      setCreatorName("Unknown");
+      setIsLoading(false);
+      return;
+    }
+    
     const fetchCreator = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from("profiles")
           .select("first_name, last_name, email")
           .eq("id", creatorId)
           .maybeSingle();
         
-        if (error) throw error;
+        if (fetchError) throw fetchError;
         
         if (data) {
           const profile = data as CreatorProfile;
@@ -39,7 +46,7 @@ export const useCreatorInfo = (creatorId: string) => {
           }
         } else {
           // Display creator ID as email-like format when profile not found
-          setCreatorName(`${creatorId}@user.id`);
+          setCreatorName(`${creatorId.slice(0, 6)}...`);
         }
       } catch (error) {
         handleError(error, {
@@ -47,8 +54,10 @@ export const useCreatorInfo = (creatorId: string) => {
           silent: true, // Don't show toast for this non-critical error
           additionalData: { creatorId }
         });
-        // Display creator ID as email-like format on error
-        setCreatorName(`${creatorId}@user.id`);
+        
+        setError(error as Error);
+        // Provide a fallback display value
+        setCreatorName(`User ${creatorId.slice(0, 6)}...`);
       } finally {
         setIsLoading(false);
       }
@@ -57,5 +66,5 @@ export const useCreatorInfo = (creatorId: string) => {
     fetchCreator();
   }, [creatorId, handleError]);
   
-  return { creatorName, isLoading };
+  return { creatorName, isLoading, error };
 };
