@@ -65,8 +65,11 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     const data = await response.json();
     console.log(`Received response from Claude API [${requestId}]`);
     
-    // Extract JSON from Claude's response
+    // Debug: Log the raw content from Claude to see what format we're getting
     const content = data.content[0].text;
+    console.log(`Raw Claude response [${requestId}]:`, content);
+    
+    // Try to extract JSON from Claude's response
     const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
     
     if (jsonMatch && jsonMatch[1]) {
@@ -80,7 +83,30 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
       }
     } else {
       console.error(`No JSON found in Claude response [${requestId}]`);
-      throw new Error("No JSON found in Claude response");
+      
+      // Try alternative parsing approach - look for any JSON-like structure
+      try {
+        // Look for any text that looks like JSON object/array
+        const jsonObjectMatch = content.match(/(\{[\s\S]*\})/);
+        if (jsonObjectMatch && jsonObjectMatch[1]) {
+          const parsedJson = JSON.parse(jsonObjectMatch[1].trim());
+          console.log(`Successfully parsed JSON using alternative method [${requestId}]`);
+          return parsedJson;
+        }
+        
+        // Last resort: attempt to parse the entire response as JSON
+        try {
+          const parsedJson = JSON.parse(content.trim());
+          console.log(`Successfully parsed entire response as JSON [${requestId}]`);
+          return parsedJson;
+        } catch (e) {
+          // If this fails too, throw the original error
+          throw new Error("No JSON found in Claude response");
+        }
+      } catch (e) {
+        console.error(`Alternative parsing also failed [${requestId}]:`, e);
+        throw new Error("No JSON found in Claude response");
+      }
     }
     
   } catch (error) {
@@ -119,11 +145,13 @@ async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string)
 // Load the taxonomy industries JSON file
 async function loadTaxonomyIndustries(requestId: string): Promise<any[]> {
   try {
-    // Path is relative to the edge function's working directory
-    const taxonomyData = await Deno.readTextFile("./TaxonomyIndustries.json");
+    // Update the path to use the data subfolder
+    const taxonomyData = await Deno.readTextFile("./data/TaxonomyIndustries.json");
+    console.log(`Successfully loaded TaxonomyIndustries.json [${requestId}]`);
     return JSON.parse(taxonomyData);
   } catch (error) {
     console.error(`Error loading TaxonomyIndustries.json [${requestId}]:`, error);
+    console.log(`Falling back to minimal taxonomy [${requestId}]`);
     // Return a minimal taxonomy to avoid failing completely
     return [
       {
@@ -148,7 +176,9 @@ function generateAnalysisPrompt(taxonomyIndustries: any[], requestId: string): s
   
   return `You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
-Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. Return the result in a JSON format. Each SKU must also include an \`ImageID\` field referencing the image filename or identifier it came from, for traceability.
+Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. You MUST return the result in a JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
+
+Each SKU must also include an \`ImageID\` field referencing the image filename or identifier it came from, for traceability.
 
 ---
 
@@ -268,5 +298,8 @@ Given an image of a shelf, extract structured merchandising data for each SKU, a
 
 ### Taxonomy Data:
 ${taxonomyJson}
+
+IMPORTANT: Your response MUST be in valid JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
 `;
 }
+
