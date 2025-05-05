@@ -103,7 +103,8 @@ const AddStoreDialog: React.FC<AddStoreDialogProps> = ({ open, onOpenChange, onS
       // If we get back the new store data, navigate to it
       if (data && data.length > 0) {
         const newStore = data[0] as Store;
-        navigate(`/dashboard/stores/${newStore.id}/analyze`);
+        // Navigate to the store view page instead of the analyze page
+        navigate(`/dashboard/stores/${newStore.id}`);
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to create store. Please try again.");
