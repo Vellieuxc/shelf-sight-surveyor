@@ -7,7 +7,7 @@ import { Json } from "@/integrations/supabase/types";
  * @param data Raw JSON data from database
  * @returns The original data without transformation
  */
-export function transformAnalysisData(data: Json[]): any {
+export function transformAnalysisData(data: Json): any {
   // Return the raw data without transformation
   return data;
 }

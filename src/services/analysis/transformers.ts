@@ -1,3 +1,4 @@
+
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
@@ -25,7 +26,7 @@ export function transformAnalysisResult(response: any): any {
  * Ensures that analysis data is preserved in its original format
  * without any transformation
  */
-export function ensureAnalysisDataType(data: Json[] | null): any {
+export function ensureAnalysisDataType(data: Json | null): any {
   if (!data) {
     console.warn("Invalid or empty analysis data format", data);
     return null;

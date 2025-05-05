@@ -2,70 +2,74 @@
 import { useState, useEffect } from "react";
 import { AnalysisData } from "@/types";
 
-export const useAnalysisEditor = (
-  analysisData: AnalysisData[] | null,
+/**
+ * Hook for handling edit mode and data editing in the analysis results
+ */
+export function useAnalysisEditor(
+  analysisData: any | null,
   onUpdateAnalysisData?: (updatedData: AnalysisData[]) => void
-) => {
+) {
+  // State for edit mode
   const [editMode, setEditMode] = useState(false);
+  const [showRawJson, setShowRawJson] = useState(true);
+  
+  // Create a copy of analysis data for editing
   const [editableData, setEditableData] = useState<AnalysisData[] | null>(null);
-  const [showRawJson, setShowRawJson] = useState(false);
-
+  
+  // Initialize editable data whenever analysis data changes
   useEffect(() => {
-    // When analysis data changes, update the editable copy
-    if (analysisData) {
+    if (analysisData && Array.isArray(analysisData)) {
       setEditableData([...analysisData]);
     } else {
+      // Handle the case when analysisData is not an array
       setEditableData(null);
     }
   }, [analysisData]);
-
+  
+  // Toggle between JSON view and table view
+  const toggleViewMode = () => {
+    setShowRawJson(!showRawJson);
+  };
+  
+  // Handle input change in the table
   const handleInputChange = (index: number, field: keyof AnalysisData, value: any) => {
     if (!editableData) return;
     
     const updatedData = [...editableData];
-    
-    // Handle numeric fields
-    if (field === 'sku_count' || field === 'sku_price' || field === 'sku_price_pre_promotion' || 
-        field === 'empty_space_estimate') {
-      const numValue = value === '' ? undefined : Number(value);
-      updatedData[index] = { ...updatedData[index], [field]: numValue };
-    } else {
-      // Handle string fields
-      updatedData[index] = { ...updatedData[index], [field]: value };
-    }
+    updatedData[index] = {
+      ...updatedData[index],
+      [field]: value
+    };
     
     setEditableData(updatedData);
   };
-
+  
+  // Save changes to analysis data
   const saveChanges = () => {
     if (editableData && onUpdateAnalysisData) {
       onUpdateAnalysisData(editableData);
     }
     setEditMode(false);
   };
-
+  
+  // Cancel changes and revert to original data
   const cancelChanges = () => {
-    // Reset to original data
-    if (analysisData) {
+    if (analysisData && Array.isArray(analysisData)) {
       setEditableData([...analysisData]);
+    } else {
+      setEditableData(null);
     }
     setEditMode(false);
   };
-
-  const toggleViewMode = () => {
-    setShowRawJson(!showRawJson);
-  };
-
+  
   return {
     editMode,
-    editableData,
     showRawJson,
-    setEditMode,
-    setEditableData,
-    setShowRawJson,
+    editableData,
+    toggleViewMode,
     handleInputChange,
     saveChanges,
     cancelChanges,
-    toggleViewMode
+    setEditMode
   };
-};
+}
