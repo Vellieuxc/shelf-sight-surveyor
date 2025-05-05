@@ -45,7 +45,8 @@ describe('Image Analysis Service', () => {
     vi.mocked(retry.executeWithRetry).mockResolvedValue({
       success: true,
       jobId: mockJobId,
-      status: 'queued'
+      status: 'queued',
+      data: []
     });
     
     vi.mocked(core.waitForAnalysisCompletion).mockResolvedValue(mockResponse);
@@ -93,7 +94,8 @@ describe('Image Analysis Service', () => {
     vi.mocked(retry.executeWithRetry).mockResolvedValue({
       success: true,
       jobId: mockJobId,
-      status: 'queued'
+      status: 'queued',
+      data: []
     });
     
     vi.mocked(core.waitForAnalysisCompletion).mockResolvedValue(mockResponse);
