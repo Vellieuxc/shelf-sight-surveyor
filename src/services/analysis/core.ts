@@ -18,7 +18,7 @@ export async function invokeAnalysisFunction(
 ): Promise<AnalysisResponse> {
   const { includeConfidence = true } = options;
   
-  console.log(`Invoking analyze-shelf-image edge function for image ${imageId}`);
+  console.log(`Invoking analyze-shelf-image edge function directly for image ${imageId}`);
   console.log(`Using image URL: ${imageUrl}`);
   
   // Input validation before sending to edge function
@@ -41,12 +41,13 @@ export async function invokeAnalysisFunction(
   }
   
   try {
-    // Invoke the edge function with validated inputs
+    // Invoke the edge function with direct analysis (no queuing)
     const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image', {
       body: {
         imageUrl: imageUrl.trim(),
         imageId: imageId.trim(),
-        includeConfidence
+        includeConfidence,
+        directAnalysis: true // Signal to edge function to analyze directly
       }
     });
     
@@ -56,20 +57,11 @@ export async function invokeAnalysisFunction(
       throw error;
     }
     
-    console.log("Response from edge function:", response);
+    console.log("Direct response from analysis function:", response);
     
     // Validate response
     if (!response) {
       throw new Error("No response received from analysis function");
-    }
-    
-    // Check if the analysis was queued (new queue system)
-    if (response.status === "queued" && response.jobId) {
-      console.log(`Analysis job queued with job ID ${response.jobId}`);
-      // Immediately trigger processing of the job
-      await processNextQueuedAnalysis();
-      
-      return await waitForAnalysisCompletion(imageId, response.jobId);
     }
     
     return response as AnalysisResponse;
@@ -81,107 +73,9 @@ export async function invokeAnalysisFunction(
 }
 
 /**
- * Poll for analysis completion with enhanced security
- * 
- * @param imageId The image ID being analyzed
- * @param jobId The job ID from the queue
- * @returns Promise resolving to analysis response when complete
+ * REMOVED: waitForAnalysisCompletion - no longer needed as we're not queuing
  */
-export async function waitForAnalysisCompletion(
-  imageId: string,
-  jobId: string
-): Promise<AnalysisResponse> {
-  const maxAttempts = 30; // Maximum 30 attempts
-  const delayMs = 2000; // 2 seconds between polls
-  
-  console.log(`Waiting for analysis to complete for image ${imageId} (job ${jobId})`);
-  
-  // Function to delay execution
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  
-  // Input validation for security
-  if (!imageId || typeof imageId !== 'string') {
-    throw new Error("Valid image ID is required for status check");
-  }
-  
-  // Poll for job completion
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    // Wait before checking
-    await delay(delayMs);
-    
-    try {
-      // Check job status - Using proper parameter structure for invoke
-      console.log(`Checking job status (attempt ${attempt})...`);
-      const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image/status', {
-        body: { imageId }
-      });
-      
-      if (error) {
-        console.error(`Error checking job status (attempt ${attempt}):`, error);
-        continue;
-      }
-      
-      console.log(`Job status check (attempt ${attempt}):`, response);
-      
-      // Validate response before using it
-      if (!response || typeof response !== 'object') {
-        console.error(`Invalid response format on attempt ${attempt}`);
-        continue;
-      }
-      
-      // If job completed, validate and return results
-      if (response.status === "completed" && response.data) {
-        console.log(`Analysis completed for image ${imageId}`);
-        
-        // Validate the analysis result format
-        if (!Array.isArray(response.data)) {
-          throw new Error("Invalid analysis result format");
-        }
-        
-        return response as AnalysisResponse;
-      }
-      
-      // If job failed, throw error
-      if (response.status === "failed") {
-        throw new Error(`Analysis failed: ${response.message || 'Unknown error'}`);
-      }
-      
-      console.log(`Job still processing (status: ${response.status}), waiting...`);
-      
-      // On every 3rd attempt, try to trigger job processing again
-      if (attempt % 3 === 0) {
-        console.log("Triggering job processing again");
-        await processNextQueuedAnalysis();
-      }
-    } catch (err) {
-      console.error(`Error during status check (attempt ${attempt}):`, err);
-    }
-  }
-  
-  // If we've hit max attempts
-  throw new Error(`Analysis timed out after ${maxAttempts} attempts`);
-}
 
 /**
- * Manually trigger processing of the next job in the queue
- * Used for development and testing
+ * REMOVED: processNextQueuedAnalysis - no longer needed as we're not queuing
  */
-export async function processNextQueuedAnalysis(): Promise<void> {
-  try {
-    console.log("Manually triggering queue processing");
-    const { data, error } = await supabase.functions.invoke('analyze-shelf-image/process-next', {
-      body: {}
-    });
-    
-    if (error) {
-      console.error("Error triggering queue processing:", error);
-      throw error;
-    }
-    
-    console.log("Queue processing response:", data);
-    return;
-  } catch (error) {
-    console.error("Failed to trigger queue processing:", error);
-    throw error;
-  }
-}

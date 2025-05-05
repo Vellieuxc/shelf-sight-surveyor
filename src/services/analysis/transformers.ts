@@ -8,7 +8,7 @@ import { Json } from "@/integrations/supabase/types";
  */
 export function ensureAnalysisDataType(data: Json[] | null): AnalysisData[] {
   if (!data || !Array.isArray(data)) {
-    console.warn("Invalid analysis data format", data);
+    console.warn("Invalid or empty analysis data format", data);
     return [];
   }
   
@@ -95,9 +95,24 @@ function parseFloatPrice(priceStr: string): number {
  * expected by the frontend
  */
 export function transformAnalysisResult(response: any): AnalysisData[] {
-  // Handle empty or invalid responses
-  if (!response || !response.data || !Array.isArray(response.data)) {
-    console.warn("Invalid analysis response format", response);
+  // Handle empty, null or invalid responses with a clear error message
+  if (!response) {
+    console.warn("Empty analysis response received");
+    return [];
+  }
+  
+  if (!response.data) {
+    console.warn("No data property in analysis response", response);
+    return [];
+  }
+  
+  if (!Array.isArray(response.data)) {
+    console.warn("Analysis data is not an array", response.data);
+    return [];
+  }
+  
+  if (response.data.length === 0) {
+    console.warn("Analysis data array is empty", response);
     return [];
   }
   

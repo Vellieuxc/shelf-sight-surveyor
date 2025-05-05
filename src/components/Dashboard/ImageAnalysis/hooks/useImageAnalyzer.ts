@@ -2,7 +2,6 @@
 import { useToast } from "@/hooks/use-toast";
 import { AnalysisData } from "@/types";
 import { useAnalysisProcess, useAnalysisState } from "./analysis";
-import { processNextQueuedAnalysis } from "@/services/analysis/core";
 
 interface UseImageAnalyzerOptions {
   selectedImage: string | null;
@@ -53,33 +52,30 @@ export const useImageAnalyzer = ({
     startAnalysis();
     
     try {
-      // Show queuing toast
+      // Show analysis toast
       toast({
         title: "Analysis Started",
-        description: "Your image is being queued for analysis...",
+        description: "Your image is being analyzed...",
       });
       
-      // Queue the analysis
+      // Analyze the image directly
       const results = await processAnalysis(selectedImage, currentPictureId);
-      
-      // Explicitly trigger queue processing
-      try {
-        await processNextQueuedAnalysis();
-        console.log("Queue processing triggered successfully");
-      } catch (error) {
-        console.error("Error processing queue:", error);
-        // Don't fail the whole operation if queue processing fails
-        // The job is already queued and will be processed by scheduled tasks
-        toast({
-          title: "Queue Processing",
-          description: "Analysis job is queued and will be processed shortly.",
-        });
-      }
       
       if (results) {
         setAnalysisData(results);
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Analyzed ${results.length} items in image`,
+        });
       } else {
         console.log("No results returned from processAnalysis");
+        
+        toast({
+          title: "Analysis Issue",
+          description: "No items were detected in the image",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Analysis error:", error);

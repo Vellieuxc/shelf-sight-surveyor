@@ -24,7 +24,7 @@ export async function executeWithRetry(
   } = options;
   
   // Additional diagnostics for troubleshooting
-  console.log(`Starting analysis for image ${imageId} with ${retryCount} retry attempts`);
+  console.log(`Starting direct analysis for image ${imageId} with ${retryCount} retry attempts`);
   console.log(`Image URL: ${imageUrl}`);
   
   for (let attempt = 0; attempt < retryCount; attempt++) {
@@ -44,8 +44,11 @@ export async function executeWithRetry(
         console.log('Analysis request aborted due to timeout');
       });
       
-      // Invoke the analysis function
-      const response = await invokeAnalysisFunction(imageUrl, imageId, options);
+      // Invoke the analysis function directly
+      const response = await invokeAnalysisFunction(imageUrl, imageId, {
+        ...options,
+        timeout
+      });
       
       // Clear the timeout if we complete successfully
       clearTimeout(timeoutId);

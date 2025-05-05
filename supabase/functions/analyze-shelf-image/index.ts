@@ -1,13 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { handleCorsOptions, corsHeaders } from "./cors.ts";
-import { handleError } from "./error-handler.ts";
 import { generateRequestId } from "./utils.ts";
-import { authenticateRequest } from "./auth.ts";
 import { handleAnalyzeRequest } from "./analyze-handler.ts";
 import { handleStatusCheck } from "./status-handler.ts";
 import { handleProcessNext } from "./queue-processor.ts";
+import { corsHeaders } from "./cors.ts";
 
 // Security headers combined with CORS
 const securityHeaders = {
@@ -17,48 +14,64 @@ const securityHeaders = {
   'X-Frame-Options': 'DENY',
 };
 
-// Main handler that orchestrates the analysis process
+console.log(`Shelf Image Analysis Function initialized`);
+
 serve(async (req) => {
-  // Generate a unique request ID for this request
-  const requestId = generateRequestId();
-  console.log(`Edge Function received request [${requestId}]:`, req.method);
-  console.log(`Request headers [${requestId}]:`, Object.fromEntries(req.headers.entries()));
-  
-  // Add request rate limiting (basic implementation)
-  const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
-  
-  // Handle CORS preflight requests properly
+  // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
-    return handleCorsOptions();
+    return new Response(null, {
+      status: 204,
+      headers: securityHeaders,
+    });
   }
 
+  // Generate a unique request ID for tracking
+  const requestId = generateRequestId();
+  console.log(`Request received [${requestId}]: ${req.url}`);
+  
   try {
-    // Parse URL to determine which operation to perform
     const url = new URL(req.url);
-    const path = url.pathname;
-    console.log(`Path: ${path} [${requestId}]`);
+    const path = url.pathname.split('/').pop();
     
-    // Validate request size to prevent abuse (10MB max)
-    const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
-    if (contentLength > 10 * 1024 * 1024) {
-      throw new Error("Request payload too large");
+    console.log(`Path: ${url.pathname} [${requestId}]`);
+    
+    // Main analyze endpoint
+    if (path === 'analyze-shelf-image' || !path) {
+      return handleAnalyzeRequest(req, requestId);
     }
     
-    // Authenticate the request (except for status endpoint which has different auth)
-    if (!path.includes('/status')) {
-      await authenticateRequest(req, requestId);
+    // Status check endpoint
+    if (path === 'status') {
+      return handleStatusCheck(req, requestId);
     }
     
-    // Route to appropriate handler based on the path
-    if (path.includes('/status')) {
-      return await handleStatusCheck(req, requestId);
-    } else if (path.includes('/process-next')) {
-      console.log(`Routing to process-next handler [${requestId}]`);
-      return await handleProcessNext(req, requestId);
-    } else {
-      return await handleAnalyzeRequest(req, requestId);
+    // Process next endpoint
+    if (path === 'process-next') {
+      return handleProcessNext(req, requestId);
     }
+    
+    // Unknown endpoint
+    console.error(`Unknown endpoint requested [${requestId}]: ${path}`);
+    
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: "Endpoint not found",
+      requestId
+    }), {
+      status: 404,
+      headers: securityHeaders,
+    });
+    
   } catch (error) {
-    return handleError(error, requestId);
+    console.error(`Unhandled error in edge function [${requestId}]:`, error);
+    
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message || "Unknown error occurred",
+      requestId
+    }), {
+      status: 500,
+      headers: securityHeaders,
+    });
   }
 });

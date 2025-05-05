@@ -2,7 +2,7 @@
 /**
  * Analysis Service
  * 
- * Centralized module for handling shelf image analysis with proper retry logic,
+ * Centralized module for handling shelf image analysis with direct function calls,
  * error handling, and data transformation.
  */
 
