@@ -2,6 +2,7 @@
 import React from "react";
 import { Store, Picture } from "@/types";
 import StorePicturesSection from "../../Pictures/StorePicturesSection";
+import { useResponsive } from "@/hooks/use-mobile";
 
 interface StoreContentProps {
   store: Store;
@@ -28,11 +29,13 @@ const StoreContent: React.FC<StoreContentProps> = ({
   onCaptureClick,
   refetchPictures
 }) => {
+  const { isMobile } = useResponsive();
+  
   // Determine if the user can add photos based on project status and role
   const canAddPhotos = !isProjectClosed || isConsultant || isBoss;
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Pictures Section */}
       <StorePicturesSection
         pictures={pictures}

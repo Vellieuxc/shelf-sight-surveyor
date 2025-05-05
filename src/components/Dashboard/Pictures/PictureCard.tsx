@@ -12,7 +12,7 @@ import PictureMetadata from "./PictureMetadata";
 import PictureCreatorInfo from "./PictureCreatorInfo";
 import PictureAnalysisBadge from "./PictureAnalysisBadge";
 import PictureComment from "./PictureComment";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useResponsive } from "@/hooks/use-mobile";
 import DeletePictureDialog from "./DeletePictureDialog";
 
 interface PictureCardProps {
@@ -34,7 +34,12 @@ const PictureCard: React.FC<PictureCardProps> = ({
   const uploadDate = new Date(picture.created_at);
   const exactDate = format(uploadDate, "PPP");
   const hasAnalysis = picture.analysis_data && picture.analysis_data.length > 0;
-  const isMobile = useIsMobile();
+  const { isMobile, isTablet } = useResponsive();
+  
+  // Responsive button size based on screen size
+  const buttonSize = isMobile ? "sm" : "default";
+  // Responsive icon size
+  const iconSize = isMobile ? 16 : 18;
 
   useEffect(() => {
     // Only fetch the creator if it wasn't provided as prop
@@ -105,20 +110,22 @@ const PictureCard: React.FC<PictureCardProps> = ({
         <PictureMetadata createdAt={picture.created_at} exactDate={exactDate} />
         <PictureCreatorInfo creator={creator} />
       </div>
-      <CardFooter className="flex flex-wrap gap-2 p-2 pt-0">
+      
+      {/* Desktop layout: Show all buttons in a row */}
+      <CardFooter className="hidden sm:flex flex-wrap gap-2 p-2 pt-0">
         <Button 
           variant="ghost" 
-          size={isMobile ? "sm" : "default"}
-          className="w-full sm:flex-1"
+          size={buttonSize}
+          className="flex-1"
           onClick={handleDownload}
         >
-          <Download className="mr-1 h-4 w-4" />
+          <Download className="mr-1" size={iconSize} />
           <span>Download</span>
         </Button>
         
-        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="w-full sm:flex-1">
-          <Button variant="ghost" size={isMobile ? "sm" : "default"} className="w-full">
-            <Microscope className="mr-1 h-4 w-4" />
+        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="flex-1">
+          <Button variant="ghost" size={buttonSize} className="w-full">
+            <Microscope className="mr-1" size={iconSize} />
             <span>Analyze</span>
           </Button>
         </Link>
@@ -132,13 +139,49 @@ const PictureCard: React.FC<PictureCardProps> = ({
         
         <Button
           variant="outline"
-          size={isMobile ? "sm" : "default"}
+          size={buttonSize}
           className="w-full"
           onClick={() => setShowComments(!showComments)}
         >
           {showComments ? "Hide Comments" : "Show Comments"}
         </Button>
       </CardFooter>
+      
+      {/* Mobile layout: Show buttons in a grid */}
+      <div className="grid grid-cols-2 gap-2 p-2 pt-0 sm:hidden">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={handleDownload}
+          className="touch-target"
+        >
+          <Download className="mr-1" size={16} />
+          <span className="text-xs">Download</span>
+        </Button>
+        
+        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="flex-1">
+          <Button variant="ghost" size="sm" className="w-full touch-target">
+            <Microscope className="mr-1" size={16} />
+            <span className="text-xs">Analyze</span>
+          </Button>
+        </Link>
+        
+        {allowDelete && (
+          <DeletePictureDialog
+            pictureId={picture.id}
+            onDeleted={onDelete || (() => {})}
+          />
+        )}
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowComments(!showComments)}
+          className="touch-target"
+        >
+          <span className="text-xs">{showComments ? "Hide Comments" : "Comments"}</span>
+        </Button>
+      </div>
       
       {showComments && (
         <div className="p-3 pt-0 border-t">

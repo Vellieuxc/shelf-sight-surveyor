@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import StoreDataFetcher from "./StoreDataFetcher";
 import { useToast } from "@/hooks/use-toast";
 import StoreView from "./index";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useResponsive } from "@/hooks/use-mobile";
 
 interface StoreViewContainerProps {
   storeId: string;
@@ -16,7 +16,7 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const { isMobile, isTablet } = useResponsive();
   
   // Redirect if not authenticated
   if (!user) {
@@ -24,8 +24,15 @@ const StoreViewContainer: React.FC<StoreViewContainerProps> = ({ storeId }) => {
     return null;
   }
 
+  // Calculate padding based on device size
+  const containerPadding = isMobile 
+    ? "px-2" 
+    : isTablet 
+      ? "px-3" 
+      : "px-4";
+
   return (
-    <div className={isMobile ? "px-2" : "px-4"}>
+    <div className={containerPadding}>
       <StoreDataFetcher
         storeId={storeId}
         onError={(message) => {

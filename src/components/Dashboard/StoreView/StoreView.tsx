@@ -10,6 +10,7 @@ import { transformAnalysisData } from "@/utils/dataTransformers";
 import { useErrorHandling } from "@/hooks";
 import { StoreContent, StoreHeader, DialogsContainer, useImageHandlers } from "./components";
 import StoreLoading from "./StoreLoading";
+import { useResponsive } from "@/hooks/use-mobile";
 
 interface StoreViewProps {
   storeId: string;
@@ -25,6 +26,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
     source: 'ui',
     componentName: 'StoreView'
   });
+  const { isMobile } = useResponsive();
 
   // Check user permissions
   const isConsultant = profile?.role === "consultant";
@@ -124,14 +126,14 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
       operation: "fetchStore",
       additionalData: { storeId }
     });
-    return <div className="p-6 text-center text-destructive">
+    return <div className="p-4 sm:p-6 text-center text-destructive">
       <h2 className="text-xl font-semibold">Error loading store</h2>
       <p className="text-muted-foreground">Please try refreshing the page.</p>
     </div>;
   }
 
   if (!store) {
-    return <div className="p-6 text-center">
+    return <div className="p-4 sm:p-6 text-center">
       <h2 className="text-xl font-semibold">Store not found</h2>
       <p className="text-muted-foreground">The requested store could not be found.</p>
     </div>;
@@ -141,7 +143,7 @@ const StoreView: React.FC<StoreViewProps> = ({ storeId }) => {
   const isProjectClosed = store.projects?.is_closed ?? false;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <StoreHeader 
         store={store} 
         onSynthesizeStore={handleSynthesizeStore}
