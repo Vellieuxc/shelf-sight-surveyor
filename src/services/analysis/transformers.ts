@@ -31,12 +31,30 @@ export function ensureAnalysisDataType(data: Json[] | null): AnalysisData[] {
         ? typedItem.sku_price 
         : parseFloatPrice(typedItem.PriceSKU || "0"),
       sku_position: typedItem.sku_position || typedItem.ShelfSection || "middle",
-      sku_confidence: typedItem.sku_confidence || "medium",
+      sku_confidence: typedItem.sku_confidence || determineSKUConfidence(typedItem),
       empty_space_estimate: typedItem.empty_space_estimate || 0,
       color: typedItem.color || "",
       package_size: typedItem.package_size || ""
     };
   });
+}
+
+/**
+ * Determine SKU confidence based on BoundingBox confidence or other factors
+ */
+function determineSKUConfidence(item: Record<string, any>): string {
+  if (item.sku_confidence) {
+    return item.sku_confidence;
+  }
+  
+  if (item.BoundingBox && typeof item.BoundingBox.confidence === 'number') {
+    const confidence = item.BoundingBox.confidence;
+    if (confidence > 0.9) return "high";
+    if (confidence > 0.7) return "medium";
+    return "low";
+  }
+  
+  return "medium"; // Default
 }
 
 /**
