@@ -3,7 +3,6 @@ import { transformAnalysisData } from "./transformers.ts";
 import { generateRequestId } from "./utils.ts";
 import { getNextAnalysisJob, updateJobStatus } from "./queue.ts";
 import { analyzeImageWithClaude } from "./claude-service.ts";
-import { monitorClaudeCall } from "./monitoring.ts";
 import { corsHeaders } from "./cors.ts";
 
 // Security headers combined with CORS
@@ -12,8 +11,6 @@ const securityHeaders = {
   'Content-Type': 'application/json',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-  'Content-Security-Policy': "default-src 'self'; img-src *; connect-src *;"
 };
 
 // Process the next job in the queue (worker endpoint)
@@ -37,9 +34,9 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
   console.log(`Processing job ${job.jobId} for image ${job.imageId} (attempt ${job.attempts})`);
   
   try {
-    // Process the image analysis
+    // Process the image analysis with Claude
     const startTime = performance.now();
-    const analysisData = await monitorClaudeCall(() => analyzeImageWithClaude(job.imageUrl, requestId));
+    const analysisData = await analyzeImageWithClaude(job.imageUrl, requestId);
     const endTime = performance.now();
     const processingTimeMs = Math.round(endTime - startTime);
     
@@ -60,7 +57,8 @@ export async function handleProcessNext(req: Request, requestId: string): Promis
       requestId,
       jobId: job.jobId,
       imageId: job.imageId,
-      processingTimeMs
+      processingTimeMs,
+      data: transformedData
     }), {
       headers: securityHeaders,
     });

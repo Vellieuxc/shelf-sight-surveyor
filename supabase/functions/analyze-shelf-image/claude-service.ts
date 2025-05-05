@@ -1,42 +1,6 @@
 
 import { corsHeaders } from "./cors.ts";
-
-// Anthropic Claude API types
-interface ClaudeRequest {
-  model: string;
-  messages: Message[];
-  max_tokens: number;
-  system?: string;
-}
-
-interface Message {
-  role: "user" | "assistant";
-  content: MessageContent[];
-}
-
-interface MessageContent {
-  type: "text" | "image";
-  source?: {
-    type: "base64";
-    media_type: string;
-    data: string;
-  };
-  text?: string;
-}
-
-interface ClaudeResponse {
-  id: string;
-  type: string;
-  role: string;
-  content: any[];
-  model: string;
-  stop_reason: string;
-  stop_sequence: string | null;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-}
+import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.12.0";
 
 // Get Claude's interpretation of a shelf image
 export async function analyzeImageWithClaude(imageUrl: string, requestId: string): Promise<any[]> {
@@ -48,6 +12,11 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     if (!anthropicApiKey) {
       throw new Error("Missing ANTHROPIC_API_KEY environment variable");
     }
+    
+    // Initialize the Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: anthropicApiKey,
+    });
     
     // Fetch the image
     console.log(`Fetching image from URL: ${imageUrl} [${requestId}]`);
@@ -67,9 +36,10 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
       String.fromCharCode(...new Uint8Array(imageBuffer))
     );
     const mimeType = imageResponse.headers.get("content-type") || "image/jpeg";
-    
-    // Construct the Claude API payload
-    const payload: ClaudeRequest = {
+
+    // Call the Anthropic API using the SDK
+    console.log(`Sending request to Claude API [${requestId}]`);
+    const message = await anthropic.messages.create({
       model: "claude-3-opus-20240229",
       max_tokens: 4000,
       messages: [
@@ -115,32 +85,10 @@ Example format:
         },
       ],
       system: "You are a retail shelf analysis expert that identifies products on store shelves. Only respond with valid JSON."
-    };
-
-    // Call the Anthropic Claude API
-    console.log(`Sending request to Claude API [${requestId}]`);
-    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify(payload),
     });
 
-    if (!claudeResponse.ok) {
-      const errorBody = await claudeResponse.text();
-      console.error(`Claude API error [${requestId}]:`, errorBody);
-      throw new Error(`Claude API returned ${claudeResponse.status}: ${errorBody}`);
-    }
-
-    // Parse the response
-    const data: ClaudeResponse = await claudeResponse.json();
-    console.log(`Claude API response received [${requestId}]`);
-
     // Extract the content from Claude's response
-    const responseText = data.content[0]?.text || "";
+    const responseText = message.content[0]?.text || "";
     console.log(`Claude raw response [${requestId}]:`, responseText);
 
     // Extract JSON from response (Claude sometimes wraps it in markdown code blocks)
