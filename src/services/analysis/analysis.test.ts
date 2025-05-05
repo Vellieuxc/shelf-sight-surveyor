@@ -11,7 +11,7 @@ vi.mock('./retry', () => ({
 }));
 
 vi.mock('./transformers', () => ({
-  transformAnalysisResult: vi.fn(data => data.data?.data || []),
+  transformAnalysisResult: vi.fn(data => data.data || []),
   ensureAnalysisDataType: vi.fn(data => data)
 }));
 
@@ -27,11 +27,9 @@ describe('Image Analysis Service', () => {
   const mockResponse = {
     success: true,
     jobId: mockJobId,
-    data: {
-      data: [
-        { brand: 'Test Brand', sku_name: 'Test Product', sku_count: 3 }
-      ]
-    }
+    data: [
+      { brand: 'Test Brand', sku_name: 'Test Product', sku_count: 3 }
+    ]
   };
   
   beforeEach(() => {
@@ -74,7 +72,7 @@ describe('Image Analysis Service', () => {
     expect(transformers.transformAnalysisResult).toHaveBeenCalledWith(mockResponse);
     
     // Verify the final result contains the expected data
-    expect(result).toEqual(mockResponse.data.data);
+    expect(result).toEqual(mockResponse.data);
   });
   
   it('should handle errors from executeWithRetry', async () => {

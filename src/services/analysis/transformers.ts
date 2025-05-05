@@ -78,10 +78,10 @@ function parseFloatPrice(priceStr: string): number {
  */
 export function transformAnalysisResult(response: any): AnalysisData[] {
   // Handle empty or invalid responses
-  if (!response || !response.data || !Array.isArray(response.data.data)) {
+  if (!response || !response.data || !Array.isArray(response.data)) {
     console.warn("Invalid analysis response format", response);
     return [];
   }
   
-  return ensureAnalysisDataType(response.data.data);
+  return ensureAnalysisDataType(response.data);
 }

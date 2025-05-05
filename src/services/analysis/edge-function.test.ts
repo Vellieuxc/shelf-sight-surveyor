@@ -15,26 +15,24 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 describe('Edge Function Integration', () => {
   const mockClaudeFormatResponse = {
-    data: {
-      data: [
-        { 
-          SKUBrand: "Test Brand", 
-          SKUFullName: "Test Product", 
-          NumberFacings: 3,
-          PriceSKU: "$5.99",
-          ShelfSection: "top",
-          BoundingBox: { confidence: 0.95 }
-        },
-        {
-          SKUBrand: "Another Brand",
-          SKUFullName: "Another Product",
-          NumberFacings: 2,
-          PriceSKU: "$3.99",
-          ShelfSection: "middle",
-          BoundingBox: { confidence: 0.82 }
-        }
-      ]
-    }
+    data: [
+      { 
+        SKUBrand: "Test Brand", 
+        SKUFullName: "Test Product", 
+        NumberFacings: 3,
+        PriceSKU: "$5.99",
+        ShelfSection: "top",
+        BoundingBox: { confidence: 0.95 }
+      },
+      {
+        SKUBrand: "Another Brand",
+        SKUFullName: "Another Product",
+        NumberFacings: 2,
+        PriceSKU: "$3.99",
+        ShelfSection: "middle",
+        BoundingBox: { confidence: 0.82 }
+      }
+    ]
   };
   
   beforeEach(() => {
@@ -65,7 +63,7 @@ describe('Edge Function Integration', () => {
           status: 'completed',
           jobId: 'test-job-id',
           imageId: 'test-image-id',
-          data: mockClaudeFormatResponse
+          data: mockClaudeFormatResponse.data
         },
         error: null
       });
@@ -141,7 +139,7 @@ describe('Edge Function Integration', () => {
     expect(transformAnalysisResult({ invalidKey: "value" })).toEqual([]);
     
     // Test with empty data array
-    expect(transformAnalysisResult({ data: { data: [] } })).toEqual([]);
+    expect(transformAnalysisResult({ data: [] })).toEqual([]);
   });
 
   it('correctly transforms data from Claude format to frontend format', () => {
