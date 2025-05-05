@@ -12,5 +12,5 @@ export { AnalysisLoadingState } from "./AnalysisLoadingState";
 export { AnalysisEmptyState } from "./AnalysisEmptyState";
 export { JsonView } from "./components/JsonView";
 export { ActionButtons } from "./components/ActionButtons";
+export { ResultsHeader } from "./components/ResultsHeader";
 export { useAnalysisEditor } from "./hooks/useAnalysisEditor";
-
