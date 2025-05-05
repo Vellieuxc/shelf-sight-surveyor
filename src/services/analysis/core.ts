@@ -43,10 +43,92 @@ export async function invokeAnalysisFunction(
       throw new Error("No response received from analysis function");
     }
     
+    // Check if the analysis was queued (new queue system)
+    if (response.status === "queued" && response.jobId) {
+      return await waitForAnalysisCompletion(imageId, response.jobId);
+    }
+    
     return response as AnalysisResponse;
     
   } catch (error) {
     console.error("Error invoking analysis function:", error);
+    throw error;
+  }
+}
+
+/**
+ * Poll for analysis completion
+ * 
+ * @param imageId The image ID being analyzed
+ * @param jobId The job ID from the queue
+ * @returns Promise resolving to analysis response when complete
+ */
+async function waitForAnalysisCompletion(
+  imageId: string,
+  jobId: string
+): Promise<AnalysisResponse> {
+  const maxAttempts = 30; // Maximum 30 attempts
+  const delayMs = 2000; // 2 seconds between polls
+  
+  console.log(`Waiting for analysis to complete for image ${imageId} (job ${jobId})`);
+  
+  // Function to delay execution
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  
+  // Poll for job completion
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Wait before checking
+    await delay(delayMs);
+    
+    // Check job status
+    const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image/status', {
+      body: {},
+      query: { imageId }
+    });
+    
+    if (error) {
+      console.error(`Error checking job status (attempt ${attempt}):`, error);
+      continue;
+    }
+    
+    console.log(`Job status check (attempt ${attempt}):`, response);
+    
+    // If job completed, return results
+    if (response.status === "completed" && response.data) {
+      console.log(`Analysis completed for image ${imageId}`);
+      return response as AnalysisResponse;
+    }
+    
+    // If job failed, throw error
+    if (response.status === "failed") {
+      throw new Error(`Analysis failed: ${response.message}`);
+    }
+    
+    console.log(`Job still processing (status: ${response.status}), waiting...`);
+  }
+  
+  // If we've hit max attempts
+  throw new Error(`Analysis timed out after ${maxAttempts} attempts`);
+}
+
+/**
+ * Manually trigger processing of the next job in the queue
+ * Used for development and testing
+ */
+export async function processNextQueuedAnalysis(): Promise<void> {
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-shelf-image/process-next', {
+      body: {}
+    });
+    
+    if (error) {
+      console.error("Error triggering queue processing:", error);
+      throw error;
+    }
+    
+    console.log("Queue processing response:", data);
+  } catch (error) {
+    console.error("Failed to trigger queue processing:", error);
     throw error;
   }
 }
