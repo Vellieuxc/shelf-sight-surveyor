@@ -1,92 +1,104 @@
+
 /**
- * Transform raw analysis data into standardized format
+ * Transform the analysis data from Claude into our standard format
  */
 export function transformAnalysisData(analysisData: any[]): any[] {
-  if (!Array.isArray(analysisData)) {
-    console.error("Invalid analysis data format:", analysisData);
+  if (!analysisData || !Array.isArray(analysisData)) {
+    console.warn("Invalid analysis data format:", analysisData);
     return [];
   }
-  
-  return analysisData
-    .filter(item => item && typeof item === 'object')
-    .map(item => {
-      // Normalize field names from Claude's output
-      return {
-        // Product identification - standardize the field names
-        brand: item.SKUBrand || item.brand || item.Brand || "",
-        sku_name: item.SKUFullName || item.product || item.Product || item.ProductName || "",
-        sku_count: parseNumberFacing(item),
-        sku_price: extractPrice(item),
-        
-        // Position and visibility
-        sku_position: item.ShelfSection || item.position || item.Position || "middle",
-        sku_confidence: calculateConfidence(item),
-        
-        // Additional data if available
-        empty_space_estimate: item.OutofStock ? 100 : 0,
-        color: item.color || item.packagingColor || "",
-        package_size: item.package_size || item.PackageSize || ""
-      };
-    });
-}
 
-// Helper to parse number of facings
-function parseNumberFacing(item: any): number {
-  // Try different possible field names
-  const count = item.NumberFacings || item.facings || item.visibility || item.Visibility;
-  
-  // If the value is a string, try to parse it as a number
-  if (typeof count === 'string') {
-    const parsed = parseInt(count.replace(/\D/g, ''), 10);
-    return isNaN(parsed) ? 1 : parsed;
-  }
-  
-  return typeof count === 'number' ? count : 1;
-}
+  return analysisData.map(item => {
+    if (typeof item !== 'object' || item === null) {
+      console.warn("Invalid analysis item:", item);
+      return createEmptyAnalysisItem();
+    }
 
-// Helper to extract price
-function extractPrice(item: any): number {
-  // Try different possible field names
-  const price = item.PriceSKU || item.price || item.Price;
-  
-  if (!price) return 0;
-  
-  // If the price is already a number, return it
-  if (typeof price === 'number') return price;
-  
-  // Otherwise, try to parse from string
-  if (typeof price === 'string') {
-    // Remove currency symbols and normalize format
-    const normalized = price
-      .replace(/[$€£¥]/g, '')  // Remove currency symbols
-      .replace(/,/g, '.')      // Replace comma with dot for decimal
-      .replace(/[^0-9.]/g, '') // Keep only numbers and decimal points
-      .trim();
+    // Handle both formats - old direct array format and new SKUs wrapper format
+    const dataItem = item;
     
-    const parsed = parseFloat(normalized);
-    return isNaN(parsed) ? 0 : parsed;
-  }
-  
-  return 0;
+    // Return standardized format with new fields from the enhanced prompt
+    return {
+      brand: dataItem.SKUBrand || "",
+      sku_name: dataItem.SKUFullName || "",
+      sku_count: typeof dataItem.NumberFacings === 'number' ? dataItem.NumberFacings : 1,
+      sku_price: typeof dataItem.PriceSKU === 'string' ? parseFloatPrice(dataItem.PriceSKU) : 0,
+      sku_position: dataItem.ShelfSection || "middle",
+      sku_confidence: determineSKUConfidence(dataItem),
+      empty_space_estimate: dataItem.empty_space_estimate || 0,
+      category1: dataItem.ProductCategory1 || null,
+      category2: dataItem.ProductCategory2 || null,
+      category3: dataItem.ProductCategory3 || null,
+      pack_size: dataItem.PackSize || null,
+      flavor: dataItem.Flavor || null,
+      out_of_stock: dataItem.OutofStock === true,
+      misplaced: dataItem.Misplaced === true,
+      bounding_box: dataItem.BoundingBox || null,
+      tags: Array.isArray(dataItem.Tags) ? dataItem.Tags : [],
+      image_id: dataItem.ImageID || null,
+      color: dataItem.color || "",
+      package_size: dataItem.package_size || ""
+    };
+  });
 }
 
-// Helper to calculate confidence level
-function calculateConfidence(item: any): string {
-  // Get confidence value if available
-  let confidence: number | undefined;
+/**
+ * Determine SKU confidence level based on BoundingBox confidence or available data
+ */
+function determineSKUConfidence(item: Record<string, any>): string {
+  if (item.sku_confidence) {
+    return item.sku_confidence;
+  }
   
   if (item.BoundingBox && typeof item.BoundingBox.confidence === 'number') {
-    confidence = item.BoundingBox.confidence;
-  } else if (typeof item.confidence === 'number') {
-    confidence = item.confidence;
-  } else if (typeof item.Confidence === 'number') {
-    confidence = item.Confidence;
+    const confidence = item.BoundingBox.confidence;
+    if (confidence > 0.9) return "high";
+    if (confidence > 0.7) return "medium";
+    return "low";
   }
   
-  // Return confidence level based on value
-  if (confidence === undefined) return "medium";
+  return "medium"; // Default confidence
+}
+
+/**
+ * Creates an empty analysis item with default values
+ */
+function createEmptyAnalysisItem(): any {
+  return {
+    brand: "",
+    sku_name: "",
+    sku_count: 1,
+    sku_price: 0,
+    sku_position: "middle",
+    sku_confidence: "medium",
+    empty_space_estimate: 0,
+    category1: null,
+    category2: null,
+    category3: null,
+    pack_size: null,
+    flavor: null,
+    out_of_stock: false,
+    misplaced: false,
+    bounding_box: null,
+    tags: ["Unrecognized SKU"],
+    image_id: null,
+    color: "",
+    package_size: ""
+  };
+}
+
+/**
+ * Parse price from string, handling currency symbols
+ */
+function parseFloatPrice(priceStr: string): number {
+  if (typeof priceStr !== 'string') return 0;
   
-  if (confidence >= 0.9) return "high";
-  if (confidence >= 0.7) return "medium";
-  return "low";
+  const normalized = priceStr
+    .replace(/[$€£¥]/g, '')
+    .replace(/,/g, '.')
+    .replace(/[^0-9.]/g, '')
+    .trim();
+    
+  const price = parseFloat(normalized);
+  return isNaN(price) ? 0 : price;
 }

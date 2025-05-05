@@ -81,23 +81,127 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     const apiUrl = "https://api.anthropic.com/v1/messages";
     
     // Define the system prompt for retail shelf analysis
-    const systemPrompt = `You are a retail shelf analysis expert. Analyze the provided image of store shelves and identify SKUs with the following information:
-    1. Brand name
-    2. Full product name
-    3. Number of facings visible
-    4. Price if visible
-    5. Position on shelf (top, middle, bottom)
-    6. Confidence level in identification
-    
-    Return the data as a JSON array of objects, one for each product, with these properties:
-    - SKUBrand: string with brand name
-    - SKUFullName: string with full product name
-    - NumberFacings: number of facings
-    - PriceSKU: string with price
-    - ShelfSection: "top", "middle", or "bottom"
-    - BoundingBox: object with confidence value
+    const systemPrompt = `🧠 Claude Prompt — Shelf Image Analysis with Integrated Metadata and Confidence Scoring
 
-    Only identify distinct products. The output must be valid JSON with no other text.`;
+You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
+
+Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. Return the result in a JSON format. Each SKU must also include an \`ImageID\` field referencing the image filename or identifier it came from, for traceability.
+
+---
+
+### 📑 Field Definitions (Section C: Extracted Attributes):
+
+* **SKUFullName**: Full product name as written on the label (e.g., "Coca-Cola 500ml Bottle")
+* **SKUBrand**: Brand only (e.g., "Coca-Cola")
+* **ProductCategory1**: Main product category, chosen based on the predefined list below
+* **ProductCategory2**: Subcategory, also chosen based on the predefined list
+* **ProductCategory3**: Subcategory, also chosen based on the predefined list
+* **PackSize**: The size or volume of the product, including both number and unit (e.g., "500ml", "200g"). Use \`null\` if not available
+* **Flavor**: The flavor or variant if mentioned (e.g., "Lemon", "Vanilla"). Use \`null\` if not available
+* **NumberFacings**: How many visible facings of this product are on the shelf (front-facing only)
+* **PriceSKU**: Price of this SKU from the visible tag (e.g., "$1.29"). Use \`null\` if not visible
+* **ShelfSection**: Location within the shelf area (e.g., "Top Left", "Middle Right", etc.)
+* **OutofStock**: \`true\` if a shelf tag for this SKU is present but no product is in that spot; otherwise \`false\`
+* **Misplaced**: \`true\` if the visible product is **not behind its correct price/tag** (e.g., a different product is in its place)
+* **BoundingBox**: The coordinates of one representative facing, in the form: \`{ "x": INT, "y": INT, "width": INT, "height": INT, "confidence": FLOAT }\`, where \`confidence\` ranges from 0 (no confidence) to 1 (full confidence) and reflects the reliability of the recognition. Use \`null\` if the SKU is only tagged, not visible.
+* **Tags**: Any visible labels, signs, or indicators (e.g., "Discount", "Out of Stock", "2 for 1")
+
+---
+
+### 📤 **Output JSON Format (Section B: Example Output):**
+
+\`\`\`json
+{
+  "SKUs": [
+    {
+      "SKUFullName": null,
+      "SKUBrand": null,
+      "ProductCategory1": null,
+      "ProductCategory2": null,
+      "ProductCategory3": null,
+      "PackSize": null,
+      "Flavor": null,
+      "NumberFacings": null,
+      "PriceSKU": null,
+      "ShelfSection": null,
+      "OutofStock": null,
+      "Misplaced": null,
+      "BoundingBox": null,
+      "Tags": ["Unrecognized SKU"],
+      "ImageID": "image_unrecognized.jpg"
+    },
+    {
+      "SKUFullName": "Coca-Cola 500ml Bottle",
+      "SKUBrand": "Coca-Cola",
+      "ProductCategory1": "Drinks",
+      "ProductCategory2": "Soft Drinks",
+      "ProductCategory3": null,
+      "PackSize": "500ml",
+      "Flavor": null,
+      "NumberFacings": 4,
+      "PriceSKU": "$1.29",
+      "ShelfSection": "Middle Left",
+      "OutofStock": false,
+      "Misplaced": false,
+      "BoundingBox": { "x": 120, "y": 340, "width": 80, "height": 200, "confidence": 0.95 },
+      "Tags": ["Discount"],
+      "ImageID": "image_001.jpg"
+    },
+    {
+      "SKUFullName": "Pepsi 500ml Bottle",
+      "SKUBrand": "Pepsi",
+      "ProductCategory1": "Drinks",
+      "ProductCategory2": "Soft Drinks",
+      "ProductCategory3": null,
+      "PackSize": "500ml",
+      "Flavor": null,
+      "NumberFacings": 0,
+      "PriceSKU": "$1.25",
+      "ShelfSection": "Bottom Right",
+      "OutofStock": true,
+      "Misplaced": false,
+      "BoundingBox": null,
+      "Tags": ["Price Label Visible"],
+      "ImageID": "image_002.jpg"
+    },
+    {
+      "SKUFullName": "Sprite 500ml Bottle",
+      "SKUBrand": "Sprite",
+      "ProductCategory1": "Drinks",
+      "ProductCategory2": "Soft Drinks",
+      "ProductCategory3": null,
+      "PackSize": "500ml",
+      "Flavor": null,
+      "NumberFacings": 2,
+      "PriceSKU": "$1.20",
+      "ShelfSection": "Middle Center",
+      "OutofStock": false,
+      "Misplaced": true,
+      "BoundingBox": { "x": 310, "y": 370, "width": 85, "height": 190, "confidence": 0.88 },
+      "Tags": [],
+      "ImageID": "image_003.jpg"
+    }
+  ]
+}
+\`\`\`
+
+---
+
+### 🖼️ **Image Processing Guidelines:**
+
+* When products are stacked or overlapping, count as separate facings only if more than 50% of the front is visible.
+* In crowded shelves, prioritize clear and unobstructed facings over partially visible ones.
+* If products are arranged in multiple rows (depth), only count front-row items that are directly visible.
+
+### 📌 **Important Guidelines (Section A: Output Rules):**
+
+### 🧾 Field Standardization:
+
+* **PriceSKU**: Always use format "$X.XX" or "€X.XX" with two decimal places.
+* **PackSize**: Use standardized units (ml, g, kg, oz) with no space between number and unit.
+* **ShelfSection**: Use strictly "Top/Middle/Bottom" + "Left/Center/Right" combinations (e.g., "Top Left", "Middle Center").
+* **PackSize and Flavor**: Extract these using text parsing and OCR from SKUFullName or visible labels. Do not infer beyond visible text.
+* **Category Fields**: The fields \`ProductCategory1\`, \`ProductCategory2\`, and \`ProductCategory3\` must match the industry taxonomy categories. If no match exists, set them to \`null\` and tag the SKU as \`Unmatched SKU\`.`;
     
     // Build the message content with image
     const messages = [
@@ -161,7 +265,10 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
       const jsonContent = jsonMatch[1] || textContent;
       productsArray = JSON.parse(jsonContent);
       
-      if (!Array.isArray(productsArray)) {
+      if (!Array.isArray(productsArray) && productsArray.SKUs && Array.isArray(productsArray.SKUs)) {
+        // If we get the {SKUs: []} format from the new prompt
+        productsArray = productsArray.SKUs;
+      } else if (!Array.isArray(productsArray)) {
         throw new Error("Claude did not return an array of products");
       }
       
