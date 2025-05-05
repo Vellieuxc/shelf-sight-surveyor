@@ -1,8 +1,8 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 import { waitForAnalysisCompletion } from './core';
-import { transformAnalysisResult } from './transformers';
+import { transformAnalysisResult, ensureAnalysisDataType } from './transformers';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -14,8 +14,35 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 describe('Edge Function Integration', () => {
+  const mockClaudeFormatResponse = {
+    data: {
+      data: [
+        { 
+          SKUBrand: "Test Brand", 
+          SKUFullName: "Test Product", 
+          NumberFacings: 3,
+          PriceSKU: "$5.99",
+          ShelfSection: "top",
+          BoundingBox: { confidence: 0.95 }
+        },
+        {
+          SKUBrand: "Another Brand",
+          SKUFullName: "Another Product",
+          NumberFacings: 2,
+          PriceSKU: "$3.99",
+          ShelfSection: "middle",
+          BoundingBox: { confidence: 0.82 }
+        }
+      ]
+    }
+  };
+  
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+  
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
   
   it('polls status until completion and correctly transforms data', async () => {
@@ -38,17 +65,7 @@ describe('Edge Function Integration', () => {
           status: 'completed',
           jobId: 'test-job-id',
           imageId: 'test-image-id',
-          data: {
-            data: [
-              { 
-                SKUBrand: "Test Brand", 
-                SKUFullName: "Test Product", 
-                NumberFacings: 3,
-                PriceSKU: "$5.99",
-                ShelfSection: "top"
-              }
-            ]
-          }
+          data: mockClaudeFormatResponse
         },
         error: null
       });
@@ -65,7 +82,7 @@ describe('Edge Function Integration', () => {
     // Verify the calls to the Supabase functions
     expect(supabase.functions.invoke).toHaveBeenCalledTimes(2);
     expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image/status', {
-      body: { imageId: 'test-image-id' }
+      body: { imageId: 'test-image-id', jobId: 'test-job-id' }
     });
     
     // Verify the result
@@ -76,12 +93,17 @@ describe('Edge Function Integration', () => {
     const transformedResult = transformAnalysisResult(result);
     
     // Check the transformed data
-    expect(transformedResult).toHaveLength(1);
+    expect(transformedResult).toHaveLength(2);
     expect(transformedResult[0].brand).toBe('Test Brand');
     expect(transformedResult[0].sku_name).toBe('Test Product');
     expect(transformedResult[0].sku_count).toBe(3);
     expect(transformedResult[0].sku_price).toBe(5.99);
     expect(transformedResult[0].sku_position).toBe('top');
+    expect(transformedResult[0].sku_confidence).toBe('high');
+    
+    // Check second item
+    expect(transformedResult[1].brand).toBe('Another Brand');
+    expect(transformedResult[1].sku_count).toBe(2);
   });
   
   it('handles edge function errors correctly', async () => {
@@ -91,7 +113,7 @@ describe('Edge Function Integration', () => {
         data: {
           success: false,
           status: 'failed',
-          message: 'Analysis failed: Test error',
+          error: 'Analysis failed: Test error',
           jobId: 'test-job-id',
           imageId: 'test-image-id'
         },
@@ -120,5 +142,42 @@ describe('Edge Function Integration', () => {
     
     // Test with empty data array
     expect(transformAnalysisResult({ data: { data: [] } })).toEqual([]);
+  });
+
+  it('correctly transforms data from Claude format to frontend format', () => {
+    const sampleInput = [
+      {
+        SKUBrand: "Test Brand",
+        SKUFullName: "Test Product",
+        NumberFacings: 3,
+        PriceSKU: "$5.99",
+        ShelfSection: "middle",
+        BoundingBox: { confidence: 0.95 }
+      },
+      {
+        brand: "Direct Brand",
+        sku_name: "Direct Product",
+        sku_count: 4,
+        sku_price: 7.99,
+        sku_position: "bottom",
+        sku_confidence: "medium"
+      }
+    ];
+
+    const result = ensureAnalysisDataType(sampleInput);
+    
+    expect(result).toHaveLength(2);
+    // First item: Claude format transformed
+    expect(result[0].brand).toBe("Test Brand");
+    expect(result[0].sku_name).toBe("Test Product");
+    expect(result[0].sku_count).toBe(3);
+    expect(result[0].sku_price).toBe(5.99);
+    expect(result[0].sku_position).toBe("middle");
+    expect(result[0].sku_confidence).toBe("high");
+    
+    // Second item: Already in our format
+    expect(result[1].brand).toBe("Direct Brand");
+    expect(result[1].sku_count).toBe(4);
+    expect(result[1].sku_price).toBe(7.99);
   });
 });
