@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { processNextQueuedAnalysis, invokeAnalysisFunction, waitForAnalysisCompletion } from './core';
+import { invokeAnalysisFunction } from './core';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock Supabase client
@@ -17,33 +17,6 @@ describe('Analysis Core Service', () => {
     vi.resetAllMocks();
   });
   
-  describe('processNextQueuedAnalysis', () => {
-    it('should invoke the process-next edge function', async () => {
-      // Set up the mock to return a successful response
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: { success: true, message: 'Job processed successfully' },
-        error: null
-      });
-      
-      await processNextQueuedAnalysis();
-      
-      // Verify the edge function was called with the correct parameters
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image/process-next', {
-        body: {}
-      });
-    });
-    
-    it('should throw an error when the edge function fails', async () => {
-      // Set up the mock to return an error
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: null,
-        error: new Error('Failed to process next job')
-      });
-      
-      await expect(processNextQueuedAnalysis()).rejects.toThrow();
-    });
-  });
-  
   describe('invokeAnalysisFunction', () => {
     it('should throw an error if image URL is missing', async () => {
       await expect(invokeAnalysisFunction('', 'test-id')).rejects.toThrow('Image URL is required');
@@ -57,24 +30,7 @@ describe('Analysis Core Service', () => {
       await expect(invokeAnalysisFunction('not-a-url', 'test-id')).rejects.toThrow('Invalid image URL format');
     });
     
-    it('should successfully queue an analysis job', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: { 
-          success: true, 
-          status: 'queued', 
-          jobId: 'test-job-id',
-          imageId: 'test-image-id'
-        },
-        error: null
-      });
-      
-      // Mock process-next call
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: null,
-        error: null
-      });
-      
-      // Mock the status check to immediately return completed status
+    it('should successfully analyze an image', async () => {
       vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
         data: { 
           success: true, 
@@ -104,78 +60,10 @@ describe('Analysis Core Service', () => {
         body: {
           imageUrl: 'https://example.com/image.jpg',
           imageId: 'test-image-id',
-          includeConfidence: true
+          includeConfidence: true,
+          directAnalysis: true
         }
       });
-      
-      // Verify that processNextQueuedAnalysis was called
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image/process-next', {
-        body: {}
-      });
-    });
-  });
-
-  describe('waitForAnalysisCompletion', () => {
-    it('should poll for status and return completed job', async () => {
-      // Override setTimeout to make tests run faster
-      vi.useFakeTimers();
-      
-      // Mock the status check to return completed after first call
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: { 
-          success: true, 
-          status: 'completed',
-          jobId: 'test-job-id',
-          data: [{ brand: 'Test', sku_name: 'Product' }]
-        },
-        error: null
-      });
-      
-      const resultPromise = waitForAnalysisCompletion('test-image-id', 'test-job-id');
-      
-      // Fast-forward time to trigger the first status check
-      vi.advanceTimersByTime(2000);
-      
-      const result = await resultPromise;
-      
-      expect(result).toEqual({ 
-        success: true, 
-        status: 'completed',
-        jobId: 'test-job-id',
-        data: [{ brand: 'Test', sku_name: 'Product' }]
-      });
-      
-      // Verify the status check was called with correct parameters
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image/status', {
-        body: { imageId: 'test-image-id' }
-      });
-      
-      vi.useRealTimers();
-    });
-    
-    it('should throw error if analysis fails', async () => {
-      // Override setTimeout to make tests run faster
-      vi.useFakeTimers();
-      
-      // Mock the status check to return failed status
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: { 
-          success: true, 
-          status: 'failed',
-          message: 'Analysis failed',
-          jobId: 'test-job-id'
-        },
-        error: null
-      });
-      
-      const resultPromise = waitForAnalysisCompletion('test-image-id', 'test-job-id');
-      
-      // Fast-forward time to trigger the first status check
-      vi.advanceTimersByTime(2000);
-      
-      await expect(resultPromise).rejects.toThrow('Analysis failed');
-      
-      vi.useRealTimers();
     });
   });
 });

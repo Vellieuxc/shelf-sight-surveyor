@@ -16,17 +16,14 @@ vi.mock('./transformers', () => ({
 }));
 
 vi.mock('./core', () => ({
-  waitForAnalysisCompletion: vi.fn(),
-  processNextQueuedAnalysis: vi.fn()
+  invokeAnalysisFunction: vi.fn()
 }));
 
 describe('Image Analysis Service', () => {
   const mockImageUrl = 'https://example.com/test-image.jpg';
   const mockImageId = 'test-image-id-123';
-  const mockJobId = 'test-job-id-456';
   const mockResponse = {
     success: true,
-    jobId: mockJobId,
     data: [
       { brand: 'Test Brand', sku_name: 'Test Product', sku_count: 3 }
     ]
@@ -40,36 +37,21 @@ describe('Image Analysis Service', () => {
     vi.resetAllMocks();
   });
   
-  it('should analyze an image successfully through the full flow', async () => {
-    // Setup mocks for the full flow
-    vi.mocked(retry.executeWithRetry).mockResolvedValue({
-      success: true,
-      jobId: mockJobId,
-      status: 'queued',
-      data: []
-    });
-    
-    vi.mocked(core.waitForAnalysisCompletion).mockResolvedValue(mockResponse);
+  it('should analyze an image successfully through direct analysis', async () => {
+    // Setup mocks for direct analysis flow
+    vi.mocked(retry.executeWithRetry).mockResolvedValue(mockResponse);
     
     // Execute the function
     const result = await analyzeShelfImage(mockImageUrl, mockImageId);
     
-    // Verify the flow
-    // 1. First executeWithRetry should be called to queue the job
+    // Verify executeWithRetry is called with correct parameters
     expect(retry.executeWithRetry).toHaveBeenCalledWith(
       mockImageUrl, 
       mockImageId,
       expect.any(Object)
     );
     
-    // 2. Then waitForAnalysisCompletion should poll until completion
-    expect(core.waitForAnalysisCompletion).toHaveBeenCalledWith(
-      mockImageId,
-      mockJobId,
-      expect.any(Object)
-    );
-    
-    // 3. Finally transformAnalysisResult should format the data
+    // Verify transformAnalysisResult formats the data
     expect(transformers.transformAnalysisResult).toHaveBeenCalledWith(mockResponse);
     
     // Verify the final result contains the expected data
@@ -84,37 +66,21 @@ describe('Image Analysis Service', () => {
     // Execute and expect rejection
     await expect(analyzeShelfImage(mockImageUrl, mockImageId))
       .rejects.toThrow('Test error');
-      
-    // Verify waitForAnalysisCompletion was not called due to the error
-    expect(core.waitForAnalysisCompletion).not.toHaveBeenCalled();
   });
   
-  it('should pass options to executeWithRetry and waitForAnalysisCompletion', async () => {
-    // Setup mocks
-    vi.mocked(retry.executeWithRetry).mockResolvedValue({
-      success: true,
-      jobId: mockJobId,
-      status: 'queued',
-      data: []
-    });
-    
-    vi.mocked(core.waitForAnalysisCompletion).mockResolvedValue(mockResponse);
+  it('should pass options to executeWithRetry', async () => {
+    // Setup mocks for a successful response
+    vi.mocked(retry.executeWithRetry).mockResolvedValue(mockResponse);
     
     const options = { retryCount: 5, timeout: 30000 };
     
     // Execute the function with options
     await analyzeShelfImage(mockImageUrl, mockImageId, options);
     
-    // Verify options were passed to both functions
+    // Verify options were passed to executeWithRetry
     expect(retry.executeWithRetry).toHaveBeenCalledWith(
       mockImageUrl,
       mockImageId,
-      options
-    );
-    
-    expect(core.waitForAnalysisCompletion).toHaveBeenCalledWith(
-      mockImageId,
-      mockJobId,
       options
     );
   });

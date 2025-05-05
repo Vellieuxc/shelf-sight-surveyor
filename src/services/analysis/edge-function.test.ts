@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
-import { waitForAnalysisCompletion } from './core';
+import { invokeAnalysisFunction } from './core';
 import { transformAnalysisResult, ensureAnalysisDataType } from './transformers';
 
 // Mock Supabase client
@@ -43,20 +43,9 @@ describe('Edge Function Integration', () => {
     vi.restoreAllMocks();
   });
   
-  it('polls status until completion and correctly transforms data', async () => {
+  it('correctly calls the edge function and transforms the response', async () => {
     // Setup the mock response with Claude's format
     vi.mocked(supabase.functions.invoke)
-      // First call returns "processing" status
-      .mockResolvedValueOnce({
-        data: {
-          success: true,
-          status: 'processing',
-          jobId: 'test-job-id',
-          imageId: 'test-image-id'
-        },
-        error: null
-      })
-      // Second call returns "completed" status with results in Claude format
       .mockResolvedValueOnce({
         data: {
           success: true,
@@ -68,19 +57,18 @@ describe('Edge Function Integration', () => {
         error: null
       });
     
-    // Mock the delay function to speed up tests
-    vi.spyOn(global, 'setTimeout').mockImplementation((fn) => {
-      setTimeout(fn, 10); // Use a much shorter timeout for tests
-      return 1 as any;
-    });
-    
     // Call the function being tested
-    const result = await waitForAnalysisCompletion('test-image-id', 'test-job-id');
+    const result = await invokeAnalysisFunction('https://example.com/image.jpg', 'test-image-id');
     
     // Verify the calls to the Supabase functions
-    expect(supabase.functions.invoke).toHaveBeenCalledTimes(2);
-    expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image/status', {
-      body: { imageId: 'test-image-id', jobId: 'test-job-id' }
+    expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('analyze-shelf-image', {
+      body: { 
+        imageUrl: 'https://example.com/image.jpg', 
+        imageId: 'test-image-id',
+        includeConfidence: true,
+        directAnalysis: true
+      }
     });
     
     // Verify the result
@@ -108,25 +96,13 @@ describe('Edge Function Integration', () => {
     // Mock a failed response
     vi.mocked(supabase.functions.invoke)
       .mockResolvedValueOnce({
-        data: {
-          success: false,
-          status: 'failed',
-          error: 'Analysis failed: Test error',
-          jobId: 'test-job-id',
-          imageId: 'test-image-id'
-        },
-        error: null
+        data: null,
+        error: new Error('Analysis failed: Test error')
       });
     
-    // Mock delay as before
-    vi.spyOn(global, 'setTimeout').mockImplementation((fn) => {
-      setTimeout(fn, 10);
-      return 1 as any;
-    });
-    
     // Call the function and expect it to reject
-    await expect(waitForAnalysisCompletion('test-image-id', 'test-job-id'))
-      .rejects.toThrow('Analysis failed: Test error');
+    await expect(invokeAnalysisFunction('https://example.com/image.jpg', 'test-image-id'))
+      .rejects.toThrow();
     
     expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
   });
