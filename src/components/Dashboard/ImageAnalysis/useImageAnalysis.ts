@@ -1,10 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
 import { AnalysisData } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { useErrorHandling } from "@/hooks";
+import { useImageState } from "./hooks/useImageState";
+import { useAnalysisDataPersistence } from "./hooks/useAnalysisDataPersistence";
+import { useAutoAnalysis } from "./hooks/useAutoAnalysis";
+import { useOfflineSync } from "./hooks/useOfflineSync";
 
 /**
  * Main hook for image analysis functionality
@@ -14,12 +19,12 @@ export const useImageAnalysis = (storeId?: string) => {
   const [searchParams] = useSearchParams();
   const pictureId = searchParams.get("pictureId");
   const { toast } = useToast();
-  const analysisComplete = useRef(false);
   const { handleError } = useErrorHandling({
     source: 'ui',
     componentName: 'ImageAnalysis',
     operation: 'saveAnalysisData'
   });
+  const { pendingUploads, isOnline, syncOfflineImages } = useOfflineMode();
   
   // Load picture data if pictureId is provided
   const { 
@@ -41,24 +46,21 @@ export const useImageAnalysis = (storeId?: string) => {
     handleImageUpload,
     handleResetImage
   } = useImageUpload();
-  
-  // Use either the picture data or uploaded image data
-  const selectedImage = pictureImage || uploadedImage;
-  const currentPictureId = picturePictureId || uploadedPictureId;
 
-  // Debug logs
-  useEffect(() => {
-    console.log("Current image analysis state:", {
-      pictureId,
-      selectedImage,
-      currentPictureId,
-      pictureImage,
-      uploadedImage,
-      picturePictureId,
-      uploadedPictureId,
-      analysisData: pictureAnalysisData || "none"
-    });
-  }, [pictureId, selectedImage, currentPictureId, pictureImage, uploadedImage, picturePictureId, uploadedPictureId, pictureAnalysisData]);
+  // Combine image sources using the extracted hook
+  const { selectedImage, currentPictureId } = useImageState(
+    pictureImage,
+    uploadedImage,
+    picturePictureId,
+    uploadedPictureId,
+    pictureAnalysisData
+  );
+
+  // Data persistence hook
+  const { saveAnalysisData, updateAnalysisData } = useAnalysisDataPersistence({
+    pictureId,
+    setPictureAnalysisData
+  });
   
   // Image analysis functionality
   const {
@@ -73,49 +75,27 @@ export const useImageAnalysis = (storeId?: string) => {
       saveAnalysisData(data);
     }
   });
-  
-  // Function to save analysis data to database
-  const saveAnalysisData = async (data: AnalysisData[]) => {
-    // If we're working with an existing picture, update its analysis data
-    if (picturePictureId && pictureId) {
-      console.log("Analysis complete for existing picture. Updating state and saving to DB.");
-      setPictureAnalysisData(data);
-      
-      // Set that we've completed analysis
-      analysisComplete.current = true;
-      
-      // Save the analysis data to the database
-      try {
-        console.log("Saving analysis data to database for picture:", pictureId);
-        const { error } = await supabase
-          .from('pictures')
-          .update({ analysis_data: data })
-          .eq('id', pictureId);
-          
-        if (error) {
-          throw error;
-        }
-        
-        console.log("Analysis data saved successfully");
-        toast({
-          title: "Analysis Saved",
-          description: "Analysis data has been saved to the database."
-        });
-      } catch (err) {
-        handleError(err, {
-          title: "Save Error",
-          description: "Failed to save analysis data to database."
-        });
-      }
-    } else {
-      console.log("Analysis complete for uploaded image");
-      // Set that we've completed analysis
-      analysisComplete.current = true;
-    }
-  };
+
+  // Auto analysis for existing images
+  const { analysisComplete } = useAutoAnalysis({
+    pictureId,
+    pictureImage,
+    isPictureLoading,
+    pictureAnalysisData,
+    isAnalyzing,
+    handleAnalyzeImage
+  });
   
   // Use either the picture analysis data or analysis result
   const analysisData = pictureAnalysisData || analysisResult;
+  
+  // Handle offline sync
+  useOfflineSync({
+    isOnline,
+    pendingUploads,
+    syncOfflineImages,
+    refetchPictures: () => {} // This is intentionally empty as refetchPictures is not used in the original code
+  });
   
   // Data export functionality
   const { handleExportToExcel } = useDataExport();
@@ -141,29 +121,7 @@ export const useImageAnalysis = (storeId?: string) => {
     // Update local state
     if (picturePictureId) {
       setPictureAnalysisData(updatedData);
-      
-      // Update in database
-      if (pictureId) {
-        try {
-          const { error } = await supabase
-            .from('pictures')
-            .update({ analysis_data: updatedData })
-            .eq('id', pictureId);
-            
-          if (error) throw error;
-            
-          toast({
-            title: "Data Updated",
-            description: "Analysis data has been updated and saved successfully."
-          });
-        } catch (err) {
-          handleError(err, {
-            title: "Update Failed",
-            description: "Failed to save analysis data to database.",
-            variant: "destructive"
-          });
-        }
-      }
+      updateAnalysisData(updatedData);
     } else {
       setAnalysisData(updatedData);
       toast({
@@ -172,22 +130,6 @@ export const useImageAnalysis = (storeId?: string) => {
       });
     }
   };
-  
-  // Re-enable auto-analysis for existing images
-  useEffect(() => {
-    const shouldAutoAnalyze = 
-      pictureId && 
-      pictureImage && 
-      !isPictureLoading && 
-      !pictureAnalysisData && 
-      !isAnalyzing && 
-      !analysisComplete.current;
-      
-    if (shouldAutoAnalyze) {
-      console.log("Auto-analyzing existing image...");
-      handleAnalyzeImage();
-    }
-  }, [pictureId, pictureImage, isPictureLoading, pictureAnalysisData, isAnalyzing, handleAnalyzeImage]);
   
   return {
     selectedImage,
