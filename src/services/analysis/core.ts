@@ -87,7 +87,7 @@ export async function invokeAnalysisFunction(
  * @param jobId The job ID from the queue
  * @returns Promise resolving to analysis response when complete
  */
-async function waitForAnalysisCompletion(
+export async function waitForAnalysisCompletion(
   imageId: string,
   jobId: string
 ): Promise<AnalysisResponse> {
