@@ -2,7 +2,6 @@
 import { generateRequestId } from "./utils.ts";
 import { corsHeaders } from "./cors.ts";
 import { analyzeImageWithClaude } from "./claude-service.ts";
-import { transformAnalysisData } from "./transformers.ts";
 
 // Security headers combined with CORS
 const securityHeaders = {
@@ -46,8 +45,7 @@ export async function handleAnalyzeRequest(req: Request, requestId: string): Pro
       
       console.log(`Analysis completed in ${processingTimeMs}ms [${requestId}]`);
       
-      // We now return the raw data from Claude without transformation
-      // to preserve the original JSON structure with SKUs
+      // Return the raw data from Claude without any transformation
       
       return new Response(JSON.stringify({ 
         success: true,

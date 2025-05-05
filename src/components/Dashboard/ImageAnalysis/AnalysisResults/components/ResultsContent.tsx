@@ -9,7 +9,7 @@ import { JsonView } from "./JsonView";
 interface ResultsContentProps {
   isLoading: boolean;
   isAnalyzing: boolean;
-  analysisData: AnalysisData[] | null;
+  analysisData: any | null;
   editableData: AnalysisData[] | null;
   editMode: boolean;
   showRawJson: boolean;
@@ -33,17 +33,10 @@ export const ResultsContent: React.FC<ResultsContentProps> = ({
     return <AnalysisLoadingState message="Analyzing shelf contents with AI..." />;
   }
   
-  if (!editableData) {
+  if (!analysisData) {
     return <AnalysisEmptyState />;
   }
   
-  return showRawJson ? (
-    <JsonView data={analysisData} />
-  ) : (
-    <AnalysisResultsTable 
-      data={editableData} 
-      editMode={editMode} 
-      onInputChange={onInputChange}
-    />
-  );
+  // Always show raw JSON from the analysis
+  return <JsonView data={analysisData} />;
 };

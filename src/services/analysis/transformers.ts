@@ -1,44 +1,42 @@
-
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
 /**
- * Ensures that analysis data is correctly typed and formatted
- * for frontend display
+ * Transform the analysis result from the edge function to the format
+ * expected by the frontend, preserving the raw structure from Claude
  */
-export function ensureAnalysisDataType(data: Json[] | null): AnalysisData[] {
-  if (!data || !Array.isArray(data)) {
-    console.warn("Invalid or empty analysis data format", data);
-    return [];
+export function transformAnalysisResult(response: any): any {
+  // Handle empty or invalid responses
+  if (!response) {
+    console.warn("Empty analysis response received");
+    return null;
   }
   
-  // Preserve the raw structure from Claude and adapt it to our frontend format
-  return data.map(item => {
-    if (typeof item !== 'object' || item === null) {
-      console.warn("Invalid analysis item", item);
-      return createEmptyAnalysisItem();
-    }
-    
-    const typedItem = item as Record<string, any>;
-    
-    // Map the original fields to our frontend structure
-    return {
-      brand: typedItem.SKUBrand || "",
-      sku_name: typedItem.SKUFullName || "",
-      sku_count: typeof typedItem.NumberFacings === 'number' ? typedItem.NumberFacings : 1,
-      sku_price: typeof typedItem.PriceSKU === 'string' ? parseFloatPrice(typedItem.PriceSKU) : 0,
-      sku_position: typedItem.ShelfSection || "middle",
-      sku_confidence: determineSKUConfidence(typedItem),
-      empty_space_estimate: typedItem.empty_space_estimate || 0,
-      color: typedItem.color || "",
-      package_size: typedItem.PackSize || ""
-    };
-  });
+  if (!response.data) {
+    console.warn("No data property in analysis response", response);
+    return null;
+  }
+  
+  // Return the raw data without any transformation
+  return response.data;
 }
 
 /**
- * Determine SKU confidence based on BoundingBox confidence or other factors
+ * Ensures that analysis data is preserved in its original format
+ * without any transformation
  */
+export function ensureAnalysisDataType(data: Json[] | null): any {
+  if (!data) {
+    console.warn("Invalid or empty analysis data format", data);
+    return null;
+  }
+  
+  // Return the raw data as is, without any transformation
+  return data;
+}
+
+// Keep the utility functions for compatibility with existing code,
+// but they will not be used for transformation
 function determineSKUConfidence(item: Record<string, any>): string {
   if (item.sku_confidence) {
     return item.sku_confidence;
@@ -54,9 +52,6 @@ function determineSKUConfidence(item: Record<string, any>): string {
   return "medium"; // Default
 }
 
-/**
- * Creates an empty analysis item with default values
- */
 function createEmptyAnalysisItem(): AnalysisData {
   return {
     brand: "",
@@ -71,9 +66,6 @@ function createEmptyAnalysisItem(): AnalysisData {
   };
 }
 
-/**
- * Parse price from string, handling currency symbols
- */
 function parseFloatPrice(priceStr: string): number {
   if (typeof priceStr !== 'string') return 0;
   
@@ -85,37 +77,4 @@ function parseFloatPrice(priceStr: string): number {
     
   const price = parseFloat(normalized);
   return isNaN(price) ? 0 : price;
-}
-
-/**
- * Transform the analysis result from the edge function to the format
- * expected by the frontend
- */
-export function transformAnalysisResult(response: any): AnalysisData[] {
-  // Handle empty, null or invalid responses with a clear error message
-  if (!response) {
-    console.warn("Empty analysis response received");
-    return [];
-  }
-  
-  if (!response.data) {
-    console.warn("No data property in analysis response", response);
-    return [];
-  }
-  
-  // The data might be already in the expected format or needs processing
-  const responseData = response.data;
-  
-  // Handle SKUs wrapper format
-  if (responseData.SKUs && Array.isArray(responseData.SKUs)) {
-    return ensureAnalysisDataType(responseData.SKUs);
-  }
-  
-  // Handle direct array format
-  if (Array.isArray(responseData)) {
-    return ensureAnalysisDataType(responseData);
-  }
-  
-  console.warn("Analysis data is not in expected format", responseData);
-  return [];
 }

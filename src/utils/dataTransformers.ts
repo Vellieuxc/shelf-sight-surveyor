@@ -1,13 +1,13 @@
 
-import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
-import { ensureAnalysisDataType } from "@/services/analysis/transformers";
 
 /**
  * Transform raw JSON data to properly typed analysis data
+ * preserving the original format without any transformation
  * @param data Raw JSON data from database
- * @returns Properly typed analysis data
+ * @returns The original data without transformation
  */
-export function transformAnalysisData(data: Json[]): AnalysisData[] {
-  return ensureAnalysisDataType(data as any[]);
+export function transformAnalysisData(data: Json[]): any {
+  // Return the raw data without transformation
+  return data;
 }

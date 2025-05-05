@@ -1,24 +1,21 @@
 
 /**
  * Transform the analysis data from Claude into our standard format
+ * Return the raw data without transformation
  */
-export function transformAnalysisData(analysisData: any[]): any[] {
-  if (!analysisData || !Array.isArray(analysisData)) {
+export function transformAnalysisData(analysisData: any[]): any {
+  if (!analysisData) {
     console.warn("Invalid analysis data format:", analysisData);
-    return [];
+    return null;
   }
 
-  // Handle the case where we might receive the SKUs wrapper object format
-  if (!Array.isArray(analysisData) && analysisData.SKUs && Array.isArray(analysisData.SKUs)) {
-    return analysisData.SKUs;
-  }
-
-  // If it's already an array, just return it as is (preserving the raw structure)
+  // Return the raw data without transformation
   return analysisData;
 }
 
 /**
  * Determine SKU confidence level based on BoundingBox confidence or available data
+ * Kept for compatibility
  */
 function determineSKUConfidence(item: Record<string, any>): string {
   if (item.sku_confidence) {
@@ -37,6 +34,7 @@ function determineSKUConfidence(item: Record<string, any>): string {
 
 /**
  * Creates an empty analysis item with default values
+ * Kept for compatibility
  */
 function createEmptyAnalysisItem(): any {
   return {
@@ -60,6 +58,7 @@ function createEmptyAnalysisItem(): any {
 
 /**
  * Parse price from string, handling currency symbols
+ * Kept for compatibility
  */
 function parseFloatPrice(priceStr: string): number {
   if (typeof priceStr !== 'string') return 0;

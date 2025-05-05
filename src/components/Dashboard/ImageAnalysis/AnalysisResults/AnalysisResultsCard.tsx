@@ -9,7 +9,7 @@ import { useAnalysisEditor } from "./hooks/useAnalysisEditor";
 interface AnalysisResultsCardProps {
   isLoading: boolean;
   isAnalyzing: boolean;
-  analysisData: AnalysisData[] | null;
+  analysisData: any | null;
   onExportToExcel: () => void;
   onUpdateAnalysisData?: (updatedData: AnalysisData[]) => void;
 }
@@ -39,12 +39,12 @@ const AnalysisResultsCard: React.FC<AnalysisResultsCardProps> = ({
           analysisData={analysisData}
           isLoading={isLoading}
           isAnalyzing={isAnalyzing}
-          showRawJson={showRawJson}
-          editMode={editMode}
-          toggleViewMode={toggleViewMode}
-          setEditMode={setEditMode}
-          saveChanges={saveChanges}
-          cancelChanges={cancelChanges}
+          showRawJson={true} // Always show JSON view
+          editMode={false} // Disable edit mode
+          toggleViewMode={() => {}} // No-op since we're always in JSON view
+          setEditMode={() => {}} // No-op since editing is disabled
+          saveChanges={() => {}} // No-op since editing is disabled
+          cancelChanges={() => {}} // No-op since editing is disabled
           onExportToExcel={onExportToExcel}
         />
       </CardHeader>
@@ -54,8 +54,8 @@ const AnalysisResultsCard: React.FC<AnalysisResultsCardProps> = ({
           isAnalyzing={isAnalyzing}
           analysisData={analysisData}
           editableData={editableData}
-          editMode={editMode}
-          showRawJson={showRawJson}
+          editMode={false} // Disable edit mode
+          showRawJson={true} // Always show JSON view
           onInputChange={handleInputChange}
         />
       </CardContent>
