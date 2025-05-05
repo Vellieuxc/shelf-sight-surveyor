@@ -15,7 +15,10 @@ export interface AnalysisOptions {
  * Response format from the analyze-shelf-image edge function
  */
 export interface AnalysisResponse {
+  /** Indicates if the analysis was successful */
   success: boolean;
+  /** The analysis results data */
   data?: any[];
+  /** Error message if success is false */
   error?: string;
 }

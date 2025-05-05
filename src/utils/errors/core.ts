@@ -3,11 +3,12 @@ import { extractErrorMessage } from './extractors';
 import { showErrorToast } from './toasts';
 import { ErrorOptions, FormattedError, ErrorContext } from './types';
 
-// Re-export types for convenience
-export type { ErrorSource, ErrorContext, ErrorOptions, FormattedError } from './types';
-
 /**
  * Handle errors consistently throughout the application
+ * 
+ * @param error The error object to handle
+ * @param options Configuration options for error handling
+ * @returns A formatted error object with context
  */
 export function handleError(error: unknown, options: ErrorOptions = {}): FormattedError {
   const {
@@ -19,6 +20,8 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     useShadcnToast = false, 
     context = { source: 'unknown', operation: 'unknown operation' },
     retry,
+    title,
+    description,
     // Handle direct properties for backward compatibility
     operation,
     additionalData
@@ -33,6 +36,10 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
   
   // Extract error message
   const errorMessage = extractErrorMessage(error, fallbackMessage);
+  
+  // Use provided title/description or generate from context
+  const toastTitle = title ?? `Error: ${finalContext.operation}`;
+  const toastDescription = description ?? errorMessage;
   
   // Format error context for logging
   const errorWithContext = {
@@ -59,8 +66,8 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
   // Show toast notification
   if (showToast) {
     showErrorToast({
-      title: `Error: ${finalContext.operation}`,
-      message: errorMessage,
+      title: toastTitle,
+      message: toastDescription,
       variant: toastVariant,
       useShadcnToast,
       retry
@@ -72,6 +79,10 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
 
 /**
  * Create a wrapped async function with built-in error handling
+ * 
+ * @param fn The async function to wrap
+ * @param options Error handling options
+ * @returns A wrapped function with error handling
  */
 export function withErrorHandling<T>(
   fn: (...args: any[]) => Promise<T>,
@@ -85,4 +96,23 @@ export function withErrorHandling<T>(
       return undefined;
     }
   };
+}
+
+/**
+ * Function to safely run an async function with appropriate error handling
+ * 
+ * @param asyncFn The async function to execute
+ * @param errorOptions Error handling options
+ * @returns Promise resolving to the function result or undefined on error
+ */
+export async function safeAsync<T>(
+  asyncFn: () => Promise<T>, 
+  errorOptions: ErrorOptions
+): Promise<T | undefined> {
+  try {
+    return await asyncFn();
+  } catch (error) {
+    handleError(error, errorOptions);
+    return undefined;
+  }
 }

@@ -1,59 +1,70 @@
 
-// Error types specific to your application
-export type ErrorSource = 'auth' | 'database' | 'storage' | 'api' | 'ui' | 'unknown';
+/**
+ * Source of an error
+ */
+export type ErrorSource = 
+  | 'ui' 
+  | 'api' 
+  | 'database' 
+  | 'storage' 
+  | 'auth' 
+  | 'unknown';
 
+/**
+ * Context information for an error
+ */
 export interface ErrorContext {
+  /** Source system where the error occurred */
   source: ErrorSource;
+  /** Operation that was being performed */
   operation: string;
-  componentName?: string;
-  additionalData?: Record<string, unknown>;
+  /** Any additional data relevant to the error */
+  additionalData?: Record<string, any>;
 }
 
+/**
+ * Toast variant type
+ */
+export type ToastVariant = 'default' | 'destructive' | 'success' | 'warning';
+
+/**
+ * Options for error handling
+ */
 export interface ErrorOptions {
+  /** Whether to suppress console errors */
   silent?: boolean;
+  /** Fallback message if error doesn't have one */
   fallbackMessage?: string;
+  /** Custom title for error toast */
+  title?: string;
+  /** Custom description for error toast */
+  description?: string;
+  /** Whether to show a toast notification */
   showToast?: boolean;
+  /** Whether to log to error monitoring service */
   logToService?: boolean;
-  toastVariant?: "default" | "destructive";
-  useShadcnToast?: boolean; // Whether to use shadcn/ui toast or sonner
+  /** Toast variant style */
+  toastVariant?: ToastVariant;
+  /** Whether to use shadcn toast instead of sonner */
+  useShadcnToast?: boolean;
+  /** Error context information */
   context?: ErrorContext;
-  retry?: () => Promise<void>; // Optional retry function
-  // Adding operation directly to ErrorOptions for backward compatibility
+  /** Function to retry the failed operation */
+  retry?: () => void;
+  /** Operation name (deprecated, use context) */
   operation?: string;
-  // Adding additionalData directly to ErrorOptions for backward compatibility
-  additionalData?: Record<string, unknown>;
+  /** Additional data (deprecated, use context) */
+  additionalData?: Record<string, any>;
 }
 
+/**
+ * Formatted error with context
+ */
 export interface FormattedError {
+  /** Error message */
   message: string;
+  /** Original error object */
   originalError: unknown;
-  context?: ErrorContext;
+  /** Error context */
+  context: ErrorContext;
 }
-
-// Specific database error types
-export interface DatabaseError {
-  code: string;
-  details?: string;
-  hint?: string;
-  message: string;
-}
-
-// Specific storage error types
-export interface StorageError {
-  name: string;
-  message: string;
-  status?: number;
-  statusText?: string;
-}
-
-// Specific auth error types
-export interface AuthError {
-  message: string;
-  status?: number;
-}
-
-// Typed version of runSafely return
-export type SafeResponse<T> = {
-  data: T | null;
-  error: Error | null;
-};

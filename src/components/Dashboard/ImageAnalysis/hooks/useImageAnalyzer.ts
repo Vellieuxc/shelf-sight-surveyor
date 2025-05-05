@@ -11,6 +11,9 @@ interface UseImageAnalyzerOptions {
   onAnalysisComplete?: (data: AnalysisData[]) => void;
 }
 
+/**
+ * Hook for handling image analysis functionality
+ */
 export const useImageAnalyzer = ({
   selectedImage,
   currentPictureId,
@@ -34,9 +37,8 @@ export const useImageAnalyzer = ({
     
     try {
       console.log("Analyzing image ID:", currentPictureId);
-      console.log("With image URL:", selectedImage);
       
-      // Call the actual analysis function now
+      // Use the refactored analysis service
       const analysisResults = await analyzeShelfImage(selectedImage, currentPictureId);
       
       console.log("Analysis results:", analysisResults);

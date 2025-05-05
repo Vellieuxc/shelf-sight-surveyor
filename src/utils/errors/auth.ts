@@ -1,34 +1,51 @@
 
-import { handleError, ErrorOptions, FormattedError } from './core';
+import { handleError } from "./core";
+import { ErrorOptions } from "./types";
 
 /**
- * Specific handler for authentication errors
+ * Specialized handler for authentication errors
+ * 
+ * @param error The error object
+ * @param operation The operation that failed
+ * @param options Additional options for error handling
  */
 export function handleAuthError(
   error: unknown, 
   operation: string, 
-  options: Omit<ErrorOptions, "context"> = {}
-): FormattedError {
-  // Special handling for common auth errors to make them more user-friendly
-  let friendlyMessage = '';
+  options: Omit<ErrorOptions, 'context'> = {}
+) {
+  let errorMessage = "Authentication failed";
+  let errorTitle = "Authentication Error";
   
-  if (error instanceof Error) {
-    if (error.message.includes('User already registered')) {
-      friendlyMessage = 'An account with this email already exists.';
-    } else if (error.message.includes('Invalid login credentials')) {
-      friendlyMessage = 'Invalid email or password. Please try again.';
+  // Extract specific auth error types
+  if (error && typeof error === 'object') {
+    const authError = error as any;
+    
+    // Handle common Supabase auth errors
+    if (authError.code === 'auth/invalid-email') {
+      errorMessage = "Please enter a valid email address";
+    } else if (authError.code === 'auth/invalid-password') {
+      errorMessage = "Password must be at least 6 characters";
+    } else if (authError.code === 'auth/email-already-in-use') {
+      errorMessage = "This email is already registered";
+      errorTitle = "Account Exists";
+    } else if (authError.code === 'auth/user-not-found') {
+      errorMessage = "No account found with this email";
+    } else if (authError.code === 'auth/wrong-password') {
+      errorMessage = "Incorrect password";
+    } else if (authError.message) {
+      errorMessage = authError.message;
     }
   }
   
   return handleError(error, {
     ...options,
-    fallbackMessage: `Authentication failed: ${operation}`,
-    // Use the friendly message if available, otherwise use default extraction
-    ...(friendlyMessage && { fallbackMessage: friendlyMessage }),
+    fallbackMessage: errorMessage,
+    title: options.title || errorTitle,
     context: {
       source: 'auth',
       operation,
       additionalData: options.additionalData
-    }
+    },
   });
 }

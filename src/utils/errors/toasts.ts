@@ -1,42 +1,80 @@
 
+import { useToast as useShadcnToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
-import { toast as shadowToast } from "@/hooks/use-toast";
+import { ToastVariant } from "./types";
 
-interface ToastOptions {
-  title?: string;
+interface ErrorToastOptions {
+  title: string;
   message: string;
-  variant?: "default" | "destructive";
+  variant?: ToastVariant;
   useShadcnToast?: boolean;
-  retry?: () => Promise<void>;
+  retry?: () => void;
 }
 
 /**
- * Display an error toast using either sonner or shadcn/ui toast
+ * Show an error toast notification using either Sonner or Shadcn UI toast
  */
 export function showErrorToast({
   title,
   message,
-  variant = "destructive",
+  variant = 'destructive',
   useShadcnToast = false,
   retry
-}: ToastOptions): void {
+}: ErrorToastOptions) {
   if (useShadcnToast) {
-    shadowToast({
-      title: title || "Error",
+    // Use shadcn toast - we can't directly use the hook here
+    // so we set a global variable that components can use
+    (window as any).__errorToastMessage = {
+      title,
       description: message,
-      variant
-    });
+      variant,
+      retry
+    };
+    
+    // Dispatch a custom event that toast-capable components can listen for
+    window.dispatchEvent(new CustomEvent('showErrorToast'));
   } else {
-    // For retry functionality with sonner
-    if (retry) {
-      sonnerToast.error(message, {
-        action: {
-          label: 'Retry',
-          onClick: () => retry(),
-        },
-      });
-    } else {
-      sonnerToast.error(message);
-    }
+    // Use sonner toast
+    sonnerToast[variant === 'destructive' ? 'error' : variant === 'success' ? 'success' : 'info'](
+      title,
+      {
+        description: message,
+        action: retry ? {
+          label: 'Try Again',
+          onClick: retry
+        } : undefined
+      }
+    );
   }
+}
+
+/**
+ * Hook to listen for global error toasts in components
+ */
+export function useErrorToasts() {
+  const { toast } = useShadcnToast();
+  
+  React.useEffect(() => {
+    const handleErrorToast = () => {
+      const toastMessage = (window as any).__errorToastMessage;
+      if (toastMessage) {
+        toast({
+          title: toastMessage.title,
+          description: toastMessage.description,
+          variant: toastMessage.variant,
+          action: toastMessage.retry ? (
+            <button onClick={toastMessage.retry}>Try Again</button>
+          ) : undefined
+        });
+        
+        // Clear the message
+        (window as any).__errorToastMessage = null;
+      }
+    };
+    
+    window.addEventListener('showErrorToast', handleErrorToast);
+    return () => {
+      window.removeEventListener('showErrorToast', handleErrorToast);
+    };
+  }, [toast]);
 }

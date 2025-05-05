@@ -1,8 +1,7 @@
 
 import { handleError } from "@/utils/errors";
 import { invokeAnalysisFunction } from "./core";
-import { AnalysisOptions } from "./types";
-import { AnalysisData } from "@/types";
+import { AnalysisOptions, AnalysisResponse } from "./types";
 
 /**
  * Handles retry logic for image analysis with exponential backoff
@@ -10,14 +9,14 @@ import { AnalysisData } from "@/types";
  * @param imageUrl URL of the image to analyze
  * @param imageId Identifier for the image
  * @param options Configuration options including retry settings
- * @returns Analysis data array if successful
+ * @returns Analysis response if successful
  * @throws Error if all retry attempts fail
  */
 export async function executeWithRetry(
   imageUrl: string,
   imageId: string,
   options: AnalysisOptions = {}
-): Promise<AnalysisData[]> {
+): Promise<AnalysisResponse> {
   const { 
     retryCount = 3, 
     timeout = 120000 // 2 minutes default timeout
@@ -56,13 +55,8 @@ export async function executeWithRetry(
         throw new Error(response.error || "Analysis function returned an error");
       }
       
-      if (!response.data || !Array.isArray(response.data)) {
-        console.error("Invalid response format from analysis function:", response);
-        throw new Error("Invalid response format from analysis function");
-      }
-      
-      console.log(`Image analysis successful on attempt ${attempt + 1}, found ${response.data.length} items`);
-      return response.data as AnalysisData[];
+      console.log(`Image analysis successful on attempt ${attempt + 1}, found ${response.data?.length || 0} items`);
+      return response;
       
     } catch (error: any) {
       // Format error message with attempt information

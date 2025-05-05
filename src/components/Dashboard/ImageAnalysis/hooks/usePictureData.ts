@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { Json } from "@/integrations/supabase/types";
-import { transformAnalysisData } from "@/utils/dataTransformers";
+import { ensureAnalysisDataType } from "@/services/analysis/transformers";
 
 interface PictureData {
   id: string;
@@ -30,6 +30,9 @@ interface UsePictureDataReturn {
   setAnalysisData: React.Dispatch<React.SetStateAction<AnalysisData[] | null>>;
 }
 
+/**
+ * Hook to fetch and manage picture data from Supabase
+ */
 export const usePictureData = (pictureId: string | null): UsePictureDataReturn => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -84,11 +87,6 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
       try {
         console.log(`Fetching data for picture ID: ${pictureId}`);
         
-        // Verify that the Supabase client is properly initialized
-        if (!supabase) {
-          throw new Error("Supabase client is not initialized");
-        }
-        
         // Execute the fetch with improved error handling
         const { data, error } = await supabase
           .from("pictures")
@@ -97,7 +95,6 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
           .maybeSingle();
           
         if (error) {
-          console.error("Error fetching picture data:", error);
           throw error;
         }
         
@@ -114,7 +111,7 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
         const pictureData: PictureData = {
           ...data,
           analysis_data: data.analysis_data 
-            ? transformAnalysisData(data.analysis_data as Json[]) 
+            ? ensureAnalysisDataType(data.analysis_data as Json[]) 
             : null
         };
         
@@ -127,38 +124,31 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
         
         // If analysis data exists, set it
         if (pictureData.analysis_data && Array.isArray(pictureData.analysis_data) && pictureData.analysis_data.length > 0) {
-          console.log("Setting analysis data:", pictureData.analysis_data);
           setAnalysisData(pictureData.analysis_data);
         } else {
-          console.log("No analysis data found for this picture");
           setAnalysisData(null);
         }
-      } catch (err: any) {
+        
+        setIsLoading(false);
+      } catch (error) {
         // Don't update state if component has unmounted
         if (!isMounted.current) return;
         
+        const errorMsg = error instanceof Error ? error.message : "An unknown error occurred";
+        console.error("Error fetching picture data:", error);
+        
         setIsError(true);
+        setErrorMessage(errorMsg);
+        setIsLoading(false);
         
-        const errorMessage = err?.message || "Failed to load picture data";
-        setErrorMessage(errorMessage);
-        
-        // Use the error handling utility for proper error logging and display
-        handleError(err, {
+        handleError(error, {
           fallbackMessage: "Failed to load picture data",
+          operation: "fetchPictureData",
           additionalData: { pictureId }
         });
-        
-        // Make sure to clear any partial data
-        setSelectedImage(null);
-        setAnalysisData(null);
-      } finally {
-        // Don't update state if component has unmounted
-        if (isMounted.current) {
-          setIsLoading(false);
-        }
       }
     };
-
+    
     fetchPictureData();
   }, [pictureId, handleError]);
 
