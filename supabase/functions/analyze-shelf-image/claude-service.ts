@@ -1,4 +1,5 @@
 
+
 import { corsHeaders } from "./cors.ts";
 
 // Edge function to analyze a shelf image using Claude
@@ -18,7 +19,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     console.log(`Successfully converted image to base64 [${requestId}]`);
     
     // Prepare the Claude API request with the updated prompt
-    const prompt = generateSimplifiedPrompt(requestId);
+    const prompt = generateComprehensivePrompt(requestId);
     
     // Log the payload size for debugging
     const payloadSize = JSON.stringify({
@@ -40,7 +41,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
             },
             {
               type: "text",
-              text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified."
+              text: "Analyze this shelf image and provide detailed information about ALL visible products according to the format specified. Be comprehensive and do not omit any visible products."
             }
           ]
         }
@@ -79,7 +80,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
               },
               {
                 type: "text",
-                text: "Analyze this shelf image and provide detailed information about all visible products according to the format specified."
+                text: "Analyze this shelf image and provide detailed information about ALL visible products according to the format specified. Be comprehensive and do not omit any visible products."
               }
             ]
           }
@@ -188,13 +189,13 @@ async function fetchAndConvertImageToBase64(imageUrl: string, requestId: string)
   }
 }
 
-// Generate simplified prompt without taxonomy data
-function generateSimplifiedPrompt(requestId: string): string {
-  console.log(`Generating simplified prompt without taxonomy [${requestId}]`);
+// Generate comprehensive prompt emphasizing the need to identify ALL products
+function generateComprehensivePrompt(requestId: string): string {
+  console.log(`Generating comprehensive prompt for complete shelf analysis [${requestId}]`);
   
   return `You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
-Given an image of a shelf, extract structured merchandising data for each SKU, along with related metadata. You MUST return the result in a JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
+Given an image of a shelf, extract structured merchandising data for EVERY SINGLE SKU that is visible, along with related metadata. You MUST be comprehensive and identify ALL products visible in the image, no matter how partially visible or obscured they may be. Do not skip any items. You MUST return the result in a JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
 
 Each SKU must also include an \`ImageID\` field referencing the image filename or identifier it came from, for traceability.
 
@@ -283,8 +284,10 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
 
 ### 🖼️ **Image Processing Guidelines:**
 
+* You MUST identify and analyze EVERY SINGLE product visible in the image.
+* For partially visible products, attempt to identify them if enough of the packaging is visible.
 * When products are stacked or overlapping, count as separate facings only if more than 50% of the front is visible.
-* In crowded shelves, prioritize clear and unobstructed facings over partially visible ones.
+* In crowded shelves, prioritize clear and unobstructed facings over partially visible ones, but still include all identifiable products.
 * If products are arranged in multiple rows (depth), only count front-row items that are directly visible.
 
 ### 📌 **Important Guidelines (Section A: Output Rules):**
@@ -297,5 +300,7 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
 * **PackSize and Flavor**: Extract these using text parsing and OCR from SKUFullName or visible labels. Do not infer beyond visible text.
 
 IMPORTANT: Your response MUST be in valid JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
+IMPORTANT: You MUST identify and include ALL products visible in the image, no matter how small or partially visible.
 `;
 }
+
