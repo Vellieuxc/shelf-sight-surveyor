@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useErrorHandling } from "@/hooks/use-error-handling";
-import { handleDatabaseError } from "@/utils/errors";
+import { useErrorHandling } from "@/hooks";
 
 interface StoreAccessControlProps {
   storeId: string;
@@ -23,7 +22,8 @@ const StoreAccessControl: React.FC<StoreAccessControlProps> = ({
   const { toast } = useToast();
   const { handleError } = useErrorHandling({ 
     source: 'database',
-    componentName: 'StoreAccessControl' 
+    componentName: 'StoreAccessControl',
+    operation: 'deleteStore'
   });
   
   const handleDeleteStore = async () => {
@@ -46,7 +46,7 @@ const StoreAccessControl: React.FC<StoreAccessControlProps> = ({
 
       navigate("/dashboard");
     } catch (error) {
-      handleDatabaseError(error, 'deleteStore', {
+      handleError(error, {
         fallbackMessage: "Failed to delete store",
         useShadcnToast: true,
         additionalData: { storeId }

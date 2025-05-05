@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useImageUpload, useImageAnalyzer, useDataExport, usePictureData } from "./hooks";
 import { AnalysisData } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { handleError } from "@/utils/errors";
+import { useErrorHandling } from "@/hooks";
 
 /**
  * Main hook for image analysis functionality
@@ -16,6 +15,11 @@ export const useImageAnalysis = (storeId?: string) => {
   const pictureId = searchParams.get("pictureId");
   const { toast } = useToast();
   const analysisComplete = useRef(false);
+  const { handleError } = useErrorHandling({
+    source: 'ui',
+    componentName: 'ImageAnalysis',
+    operation: 'saveAnalysisData'
+  });
   
   // Load picture data if pictureId is provided
   const { 
@@ -100,8 +104,7 @@ export const useImageAnalysis = (storeId?: string) => {
       } catch (err) {
         handleError(err, {
           title: "Save Error",
-          description: "Failed to save analysis data to database.",
-          variant: "destructive"
+          description: "Failed to save analysis data to database."
         });
       }
     } else {

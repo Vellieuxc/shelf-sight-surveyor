@@ -42,6 +42,9 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
   const toastTitle = title ?? `Error: ${finalContext.operation}`;
   const toastDescription = description ?? errorMessage;
   
+  // Determine which variant to use (giving priority to toastVariant)
+  const finalVariant = toastVariant || variant || "destructive";
+  
   // Format error context for logging
   const errorWithContext = {
     message: errorMessage,
@@ -69,7 +72,7 @@ export function handleError(error: unknown, options: ErrorOptions = {}): Formatt
     showErrorToast({
       title: toastTitle,
       message: toastDescription,
-      variant: variant || toastVariant,
+      variant: finalVariant,
       useShadcnToast,
       retry
     });

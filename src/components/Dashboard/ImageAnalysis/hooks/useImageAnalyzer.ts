@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeShelfImage } from "@/services/analysis";
 import { AnalysisData } from "@/types";
-import { handleError } from "@/utils/errors";
+import { useErrorHandling } from "@/hooks";
 
 interface UseImageAnalyzerOptions {
   selectedImage: string | null;
@@ -22,6 +22,11 @@ export const useImageAnalyzer = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData[] | null>(null);
   const { toast } = useToast();
+  const { handleError } = useErrorHandling({
+    source: 'api',
+    componentName: 'ImageAnalyzer',
+    operation: 'analyzeImage'
+  });
 
   const handleAnalyzeImage = async () => {
     if (!selectedImage || !currentPictureId) {
@@ -56,14 +61,9 @@ export const useImageAnalyzer = ({
       });
       
     } catch (error) {
-      console.error("Analysis error:", error);
       handleError(error, {
         fallbackMessage: "Error analyzing image. Please try again.",
-        context: {
-          source: 'api',
-          operation: 'analyzeImage',
-          additionalData: { imageId: currentPictureId }
-        },
+        additionalData: { imageId: currentPictureId },
         useShadcnToast: true,
         retry: handleAnalyzeImage
       });

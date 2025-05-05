@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { useAuth } from "@/contexts/auth";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { Picture } from "@/types";
 import { transformAnalysisData } from "@/utils/dataTransformers";
-import { useErrorHandling } from "@/hooks/use-error-handling";
+import { useErrorHandling } from "@/hooks";
 import { StoreContent, StoreHeader, DialogsContainer, useImageHandlers } from "./components";
 import StoreLoading from "./StoreLoading";
 

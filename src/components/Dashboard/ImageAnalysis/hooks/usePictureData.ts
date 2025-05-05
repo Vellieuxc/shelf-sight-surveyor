@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AnalysisData } from "@/types";
-import { useErrorHandling } from "@/hooks/use-error-handling";
+import { useErrorHandling } from "@/hooks";
 import { Json } from "@/integrations/supabase/types";
 import { ensureAnalysisDataType } from "@/services/analysis/transformers";
 
@@ -46,7 +46,7 @@ export const usePictureData = (pictureId: string | null): UsePictureDataReturn =
   
   const { handleError } = useErrorHandling({
     source: 'database',
-    componentName: 'usePictureData',
+    componentName: 'PictureData',
     operation: 'fetchPictureData'
   });
 
