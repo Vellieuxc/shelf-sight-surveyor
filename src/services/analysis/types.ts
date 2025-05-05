@@ -17,8 +17,14 @@ export interface AnalysisOptions {
 export interface AnalysisResponse {
   /** Indicates if the analysis was successful */
   success: boolean;
+  /** Current status of the analysis (queued, processing, completed, failed) */
+  status?: string;
   /** The analysis results data */
   data?: any[];
   /** Error message if success is false */
   error?: string;
+  /** Job ID for tracking analysis progress */
+  jobId?: string;
+  /** Image ID for the analyzed image */
+  imageId?: string;
 }

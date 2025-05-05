@@ -50,6 +50,8 @@ export type AnalysisData = {
   sku_confidence?: string; // high, mid, or low confidence level
   total_sku_facings?: number; // Summary field
   quality_picture?: string; // Summary field for image quality assessment
+  color?: string; // Product or packaging color
+  package_size?: string; // Size information about the package
 }
 
 export type Picture = {
