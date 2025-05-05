@@ -1,4 +1,8 @@
 
+#!/usr/bin/env deno run --allow-read --allow-env --allow-net
+
+import { runTests } from "https://deno.land/std@0.168.0/testing/mod.ts";
+
 console.log("Starting comprehensive test suite for shelf image analysis...");
 
 // Import all test modules
