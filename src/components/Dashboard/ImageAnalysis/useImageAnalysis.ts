@@ -10,6 +10,7 @@ import { useImageState } from "./hooks/useImageState";
 import { useAnalysisDataPersistence } from "./hooks/useAnalysisDataPersistence";
 import { useAutoAnalysis } from "./hooks/useAutoAnalysis";
 import { useOfflineSync } from "./hooks/useOfflineSync";
+import { processNextQueuedAnalysis } from "@/services/analysis/core";
 
 /**
  * Main hook for image analysis functionality
@@ -66,7 +67,7 @@ export const useImageAnalysis = (storeId?: string) => {
     isAnalyzing,
     analysisData: analysisResult,
     setAnalysisData,
-    handleAnalyzeImage
+    handleAnalyzeImage: originalHandleAnalyzeImage
   } = useImageAnalyzer({ 
     selectedImage, 
     currentPictureId,
@@ -74,6 +75,28 @@ export const useImageAnalysis = (storeId?: string) => {
       saveAnalysisData(data);
     }
   });
+
+  // Enhanced analyze function that also processes the queue
+  const handleAnalyzeImage = async () => {
+    // First, queue the analysis
+    await originalHandleAnalyzeImage();
+    
+    // Then automatically process the queue
+    try {
+      await processNextQueuedAnalysis();
+      toast({
+        title: "Analysis Started",
+        description: "Your image is being analyzed. Results will appear shortly.",
+      });
+    } catch (error) {
+      console.error("Error processing analysis:", error);
+      toast({
+        title: "Analysis Processing Failed",
+        description: "There was a problem processing your image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Auto analysis for existing images
   const { analysisComplete } = useAutoAnalysis({

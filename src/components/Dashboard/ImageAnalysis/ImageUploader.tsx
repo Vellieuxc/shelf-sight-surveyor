@@ -122,7 +122,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             <RefreshCw
               className={`mr-2 h-4 w-4 ${isAnalyzing ? "animate-spin" : ""}`}
             />
-            {analysisData ? "Re-analyze" : "Analyze Image"}
+            {analysisData ? "Analyze Again" : "Analyze Image"}
           </Button>
         </CardFooter>
       )}
