@@ -1,6 +1,6 @@
 
 import { corsHeaders } from "./cors.ts";
-import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.12.0";
+import { Anthropic } from "npm:@anthropic-ai/sdk@0.12.0";
 
 // Get Claude's interpretation of a shelf image
 export async function analyzeImageWithClaude(imageUrl: string, requestId: string): Promise<any[]> {

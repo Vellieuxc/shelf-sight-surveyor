@@ -1,21 +1,15 @@
 
-// CORS configuration for the edge function with enhanced security
-
+// CORS headers for Edge Functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400', // 24 hours
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+// Handle CORS preflight requests
 export function handleCorsOptions() {
-  console.log("Handling OPTIONS request with CORS headers");
-  return new Response(null, { 
-    status: 204, 
-    headers: {
-      ...corsHeaders,
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'no-store'
-    } 
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
   });
 }
