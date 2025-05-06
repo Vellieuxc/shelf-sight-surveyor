@@ -19,7 +19,7 @@ export async function invokeAnalysisFunction(
 ): Promise<AnalysisResponse> {
   const { 
     includeConfidence = true,
-    timeout = 120000,
+    timeout = 180000, // Increased from 120000 to 180000 (3 minutes)
     maxImageSize = 5 * 1024 * 1024
   } = options;
   
@@ -65,7 +65,6 @@ export async function invokeAnalysisFunction(
     }
     
     // Direct API call to analyze-shelf-image edge function
-    // This bypasses the OCR service and calls the edge function directly
     console.log(`Making direct API call to analyze-shelf-image edge function`);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-shelf-image', {
@@ -74,7 +73,8 @@ export async function invokeAnalysisFunction(
           imageId,
           options: {
             includeConfidence,
-            timeout: Math.min(timeout, 25000), // Edge functions have a 30s limit, use 25s max
+            timeout: Math.min(timeout, 150000), // Increased from 25000 to 150000 (2.5 minutes)
+            directAnalysis: true, // Signal that we want direct analysis
           }
         }
       });
