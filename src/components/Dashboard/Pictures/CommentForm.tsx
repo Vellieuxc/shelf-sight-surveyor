@@ -6,10 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { useErrorHandling } from "@/hooks/use-error-handling";
+import { Comment } from "./types";
 
 interface CommentFormProps {
   pictureId: string;
-  onCommentAdded: (newComment: any) => void;
+  onCommentAdded: (newComment: Comment) => void;
 }
 
 const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) => {
@@ -41,9 +42,9 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
       
       if (error) throw error;
       
-      // Create a new comment object to add to the UI immediately
-      const newComment = {
-        id: Math.random().toString(),  // Temporary ID
+      // Create a temporary comment object for UI
+      const newComment: Comment = {
+        id: crypto.randomUUID(), // Temporary ID that will be replaced on refresh
         picture_id: pictureId,
         user_id: user.id,
         content: comment,

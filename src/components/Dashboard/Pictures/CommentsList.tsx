@@ -1,15 +1,7 @@
 
 import React from "react";
 import CommentItem from "./CommentItem";
-
-interface Comment {
-  id: string;
-  picture_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  user_name?: string;
-}
+import { Comment } from "./types";
 
 interface CommentsListProps {
   comments: Comment[];
@@ -17,14 +9,17 @@ interface CommentsListProps {
 }
 
 const CommentsList: React.FC<CommentsListProps> = ({ comments, isLoading }) => {
+  // Show loading state
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading comments...</p>;
   }
   
+  // Show empty state
   if (comments.length === 0) {
     return <p className="text-sm text-muted-foreground">No comments yet</p>;
   }
   
+  // Show comments list
   return (
     <div className="space-y-3">
       {comments.map((comment) => (

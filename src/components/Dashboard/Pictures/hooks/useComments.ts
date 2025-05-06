@@ -17,9 +17,9 @@ export function useComments(pictureId: string) {
     operation: 'fetchComments'
   });
 
-  // Memoize the fetch comments function to avoid recreating it on every render
+  // Fetch comments with user profiles
   const fetchComments = useCallback(async (forceRefresh = false) => {
-    // Only proceed if we have a valid pictureId
+    // Skip if no pictureId
     if (!pictureId) {
       return;
     }
@@ -31,20 +31,15 @@ export function useComments(pictureId: string) {
 
     try {
       setIsLoading(true);
-      console.log("Fetching comments for picture:", pictureId);
       
-      // Fetch comments with a simple query first
+      // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
         .from('picture_comments')
         .select('*')
         .eq('picture_id', pictureId)
         .order('created_at', { ascending: false });
       
-      if (commentsError) {
-        throw commentsError;
-      }
-      
-      console.log("Comments data received:", commentsData);
+      if (commentsError) throw commentsError;
       
       // If component unmounted during the fetch, don't update state
       if (!isMounted.current) return;
@@ -52,7 +47,6 @@ export function useComments(pictureId: string) {
       // If we have no comments, set empty array and return early
       if (!commentsData || commentsData.length === 0) {
         setComments([]);
-        setIsLoading(false);
         hasLoadedInitial.current = true;
         currentPictureId.current = pictureId;
         return;
@@ -61,7 +55,7 @@ export function useComments(pictureId: string) {
       // Create a map of unique user IDs for batch fetching
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
       
-      // Batch fetch user profiles for all comments
+      // Batch fetch user profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, email")
@@ -69,7 +63,6 @@ export function useComments(pictureId: string) {
       
       if (profilesError) {
         console.warn("Error fetching user profiles:", profilesError);
-        // Continue with default user names
       }
       
       // If component unmounted during the fetch, don't update state
@@ -102,12 +95,10 @@ export function useComments(pictureId: string) {
       
       setComments(commentsWithUser);
     } catch (error) {
-      console.error("Error fetching comments:", error);
       if (isMounted.current) {
         handleError(error, {
           operation: 'fetchComments',
           fallbackMessage: "Failed to load comments",
-          additionalData: { pictureId },
           showToast: true
         });
         // Set empty comments array to prevent eternal loading state
@@ -122,7 +113,7 @@ export function useComments(pictureId: string) {
     }
   }, [pictureId, handleError]);
   
-  // Fetch comments once when component mounts or pictureId changes
+  // Fetch comments when pictureId changes
   useEffect(() => {
     // Reset state when pictureId changes
     if (pictureId !== currentPictureId.current) {
@@ -132,7 +123,7 @@ export function useComments(pictureId: string) {
     
     fetchComments(false);
     
-    // Cleanup function to prevent state updates after unmount
+    // Cleanup function
     return () => {
       isMounted.current = false;
     };
@@ -147,10 +138,12 @@ export function useComments(pictureId: string) {
     };
   }, []);
 
+  // Add a comment to the local state
   const addComment = useCallback((newComment: Comment) => {
     setComments(prevComments => [newComment, ...prevComments]);
   }, []);
 
+  // Force refresh the comments
   const refreshComments = useCallback(() => fetchComments(true), [fetchComments]);
 
   return {

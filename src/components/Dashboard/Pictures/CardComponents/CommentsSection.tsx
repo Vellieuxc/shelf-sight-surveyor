@@ -11,6 +11,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   showComments,
   pictureId
 }) => {
+  // Don't render anything if comments are not shown
   if (!showComments) return null;
   
   return (
