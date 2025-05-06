@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeWithRetry } from './retry';
 import * as core from './core';
+import { AnalysisResponse, AnalysisStatus } from './types';
 
 // Mock dependencies
 vi.mock('./core', () => ({
@@ -11,10 +12,10 @@ vi.mock('./core', () => ({
 describe('Analysis Retry Service', () => {
   const mockImageUrl = 'https://example.com/test-image.jpg';
   const mockImageId = 'test-image-id-123';
-  const mockResponse = {
+  const mockResponse: AnalysisResponse = {
     success: true,
     jobId: 'test-job-id',
-    status: 'completed',
+    status: 'completed' as AnalysisStatus,
     data: {
       metadata: {
         total_items: 45,
