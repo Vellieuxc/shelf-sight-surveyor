@@ -32,6 +32,11 @@ const AnalysisResultsCard: React.FC<AnalysisResultsCardProps> = ({
     setEditMode
   } = useAnalysisEditor(analysisData, onUpdateAnalysisData);
 
+  // Determine if we have the structured format
+  const hasStructuredFormat = analysisData && 
+    (analysisData.shelves || 
+    (analysisData.metadata && analysisData.metadata.total_items));
+
   return (
     <Card className="card-shadow h-full">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -39,12 +44,12 @@ const AnalysisResultsCard: React.FC<AnalysisResultsCardProps> = ({
           analysisData={analysisData}
           isLoading={isLoading}
           isAnalyzing={isAnalyzing}
-          showRawJson={true}
-          editMode={false}
-          toggleViewMode={() => {}}
-          setEditMode={() => {}}
-          saveChanges={() => {}}
-          cancelChanges={() => {}}
+          showRawJson={showRawJson}
+          editMode={editMode}
+          toggleViewMode={hasStructuredFormat ? toggleViewMode : undefined}
+          setEditMode={setEditMode}
+          saveChanges={saveChanges}
+          cancelChanges={cancelChanges}
           onExportToExcel={onExportToExcel}
         />
       </CardHeader>
@@ -54,8 +59,8 @@ const AnalysisResultsCard: React.FC<AnalysisResultsCardProps> = ({
           isAnalyzing={isAnalyzing}
           analysisData={analysisData}
           editableData={editableData}
-          editMode={false}
-          showRawJson={true}
+          editMode={editMode}
+          showRawJson={showRawJson}
           onInputChange={handleInputChange}
         />
       </CardContent>

@@ -5,6 +5,7 @@ import { AnalysisResultsTable } from "../AnalysisResultsTable";
 import { AnalysisLoadingState } from "../AnalysisLoadingState";
 import { AnalysisEmptyState } from "../AnalysisEmptyState";
 import { JsonView } from "./JsonView";
+import { ShelfInventoryView } from "./ShelfInventoryView";
 
 interface ResultsContentProps {
   isLoading: boolean;
@@ -37,10 +38,19 @@ export const ResultsContent: React.FC<ResultsContentProps> = ({
     return <AnalysisEmptyState />;
   }
   
-  // Display the full JSON output from the edge function
+  // Check if the data has the new structured shelf inventory format
+  const hasStructuredFormat = analysisData && 
+    (analysisData.shelves || 
+     (analysisData.metadata && analysisData.metadata.total_items));
+
+  // Display the structured view or full JSON output from the edge function
   return (
     <div className="w-full">
-      <JsonView data={analysisData} />
+      {hasStructuredFormat && !showRawJson ? (
+        <ShelfInventoryView data={analysisData} />
+      ) : (
+        <JsonView data={analysisData} />
+      )}
     </div>
   );
 };

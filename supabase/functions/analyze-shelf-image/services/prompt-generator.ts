@@ -10,86 +10,59 @@ export function generateComprehensivePrompt(requestId: string): string {
   
   return `You are a visual retail analysis assistant helping merchandizers assess shelf conditions from store photos.
 
-Given an image of a shelf, extract structured merchandising data for EVERY SINGLE SKU that is visible, along with related metadata. You MUST be comprehensive and identify ALL products visible in the image, no matter how partially visible or obscured they may be. Do not skip any items. You MUST return the result in a JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
+Given an image of a shelf, create a detailed JSON inventory that analyzes each shelf systematically from top to bottom, left to right. You MUST be comprehensive and identify ALL products and empty spaces visible in the image. Do not skip any items. You MUST return the result in a JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
 
-Each SKU must also include an \`ImageID\` field referencing the image filename or identifier it came from, for traceability.
-
----
-
-### 📑 Field Definitions (Section C: Extracted Attributes):
-
-* **SKUFullName**: Full product name as written on the label (e.g., "Coca-Cola 500ml Bottle")
-* **SKUBrand**: Brand only (e.g., "Coca-Cola")
-* **ProductCategory1**: Set to null for now
-* **ProductCategory2**: Set to null for now
-* **ProductCategory3**: Set to null for now
-* **PackSize**: The size or volume of the product, including both number and unit (e.g., "500ml", "200g"). Use \`null\` if not available
-* **Flavor**: The flavor or variant if mentioned (e.g., "Lemon", "Vanilla"). Use \`null\` if not available
-* **NumberFacings**: How many visible facings of this product are on the shelf (front-facing only)
-* **PriceSKU**: Price of this SKU from the visible tag (e.g., "\$1.29"). Use \`null\` if not visible
-* **ShelfSection**: Location within the shelf area (e.g., "Top Left", "Middle Right", etc.)
-* **OutofStock**: \`true\` if a shelf tag for this SKU is present but no product is in that spot; otherwise \`false\`
-* **Misplaced**: \`true\` if the visible product is **not behind its correct price/tag** (e.g., a different product is in its place)
-* **BoundingBox**: The coordinates of one representative facing, in the form: \`{ "x": INT, "y": INT, "width": INT, "height": INT, "confidence": FLOAT }\`, where \`confidence\` ranges from 0 (no confidence) to 1 (full confidence) and reflects the reliability of the recognition. Use \`null\` if the SKU is only tagged, not visible.
-* **Tags**: Any visible labels, signs, or indicators (e.g., "Discount", "Out of Stock", "2 for 1")
+Follow these specific requirements:
+1. Analyze each shelf systematically from top to bottom, left to right
+2. Include all products with their names and prices
+3. Accurately identify and mark all empty spaces as 'out of stock'
+4. Specify precise shelf positions for every item and empty space
+5. Provide stock level estimates for each product
+6. Include metadata with total item count and out-of-stock positions
+7. Use a hierarchical structure organized by shelf position
 
 ---
 
-### 📤 **Output JSON Format (Section B: Example Output):**
+### 📑 Output Structure:
 
+Provide the JSON output with this structure:
 \`\`\`json
 {
-  "SKUs": [
+  "metadata": {
+    "total_items": 45,
+    "out_of_stock_positions": 8,
+    "empty_space_percentage": 15,
+    "analyzed_at": "2023-05-22T15:30:00Z",
+    "image_quality": "good"
+  },
+  "shelves": [
     {
-      "SKUFullName": null,
-      "SKUBrand": null,
-      "ProductCategory1": null,
-      "ProductCategory2": null,
-      "ProductCategory3": null,
-      "PackSize": null,
-      "Flavor": null,
-      "NumberFacings": null,
-      "PriceSKU": null,
-      "ShelfSection": null,
-      "OutofStock": null,
-      "Misplaced": null,
-      "BoundingBox": null,
-      "Tags": ["Unrecognized SKU"],
-      "ImageID": "image_unrecognized.jpg"
+      "position": "top",
+      "items": [
+        {
+          "position": "top-left",
+          "product_name": "Brand X Cereal",
+          "brand": "Brand X",
+          "price": "$4.99",
+          "facings": 3,
+          "stock_level": "medium",
+          "out_of_stock": false
+        },
+        {
+          "position": "top-center",
+          "out_of_stock": true,
+          "missing_product": "Unknown",
+          "empty_space_width": "medium"
+        }
+        // More items...
+      ]
     },
+    // Middle shelf...
     {
-      "SKUFullName": "Coca-Cola 500ml Bottle",
-      "SKUBrand": "Coca-Cola",
-      "ProductCategory1": null,
-      "ProductCategory2": null,
-      "ProductCategory3": null,
-      "PackSize": "500ml",
-      "Flavor": null,
-      "NumberFacings": 4,
-      "PriceSKU": "$1.29",
-      "ShelfSection": "Middle Left",
-      "OutofStock": false,
-      "Misplaced": false,
-      "BoundingBox": { "x": 120, "y": 340, "width": 80, "height": 200, "confidence": 0.95 },
-      "Tags": ["Discount"],
-      "ImageID": "image_001.jpg"
-    },
-    {
-      "SKUFullName": "Pepsi 500ml Bottle",
-      "SKUBrand": "Pepsi",
-      "ProductCategory1": null,
-      "ProductCategory2": null,
-      "ProductCategory3": null,
-      "PackSize": "500ml",
-      "Flavor": null,
-      "NumberFacings": 0,
-      "PriceSKU": "$1.25",
-      "ShelfSection": "Bottom Right",
-      "OutofStock": true,
-      "Misplaced": false,
-      "BoundingBox": null,
-      "Tags": ["Price Label Visible"],
-      "ImageID": "image_002.jpg"
+      "position": "bottom",
+      "items": [
+        // Items on bottom shelf...
+      ]
     }
   ]
 }
@@ -97,24 +70,30 @@ Each SKU must also include an \`ImageID\` field referencing the image filename o
 
 ---
 
-### 🖼️ **Image Processing Guidelines:**
+### 🖼️ Image Processing Guidelines:
 
-* You MUST identify and analyze EVERY SINGLE product visible in the image.
+* You MUST identify and analyze EVERY SINGLE product and empty space visible in the image.
+* Pay special attention to the top shelf which appears to have significant out-of-stock positions.
 * For partially visible products, attempt to identify them if enough of the packaging is visible.
 * When products are stacked or overlapping, count as separate facings only if more than 50% of the front is visible.
 * In crowded shelves, prioritize clear and unobstructed facings over partially visible ones, but still include all identifiable products.
 * If products are arranged in multiple rows (depth), only count front-row items that are directly visible.
 
-### 📌 **Important Guidelines (Section A: Output Rules):**
+### Guidelines for Stock Levels:
 
-### 🧾 Field Standardization:
+* "high": More than 5 facings of the same product visible
+* "medium": 3-5 facings visible
+* "low": 1-2 facings visible
+* "out_of_stock": Empty space where product should be
 
-* **PriceSKU**: Always use format "\$X.XX" or "€X.XX" with two decimal places.
-* **PackSize**: Use standardized units (ml, g, kg, oz) with no space between number and unit.
-* **ShelfSection**: Use strictly "Top/Middle/Bottom" + "Left/Center/Right" combinations (e.g., "Top Left", "Middle Center").
-* **PackSize and Flavor**: Extract these using text parsing and OCR from SKUFullName or visible labels. Do not infer beyond visible text.
+### Guidelines for Positions:
+
+* For shelf position, use: "top", "upper-middle", "middle", "lower-middle", "bottom"
+* For horizontal position, use: "left", "center-left", "center", "center-right", "right"
+* Combine these for precise positions (e.g., "top-left", "middle-center")
 
 IMPORTANT: Your response MUST be in valid JSON format wrapped in triple backtick markdown code blocks like this: \`\`\`json\n{your JSON here}\n\`\`\`.
-IMPORTANT: You MUST identify and include ALL products visible in the image, no matter how small or partially visible.
+IMPORTANT: You MUST identify and include ALL products visible in the image AND clearly mark all empty spaces.
+IMPORTANT: Carefully check for empty spaces on all shelves, particularly the top shelf which appears to have significant out-of-stock positions.
 `;
 }

@@ -1,26 +1,64 @@
 
-import { AnalysisData } from "@/types";
-
+/**
+ * Configuration options for image analysis
+ */
 export interface AnalysisOptions {
-  retryCount?: number;
-  timeout?: number;
+  /**
+   * Include confidence scores in the results
+   * @default true
+   */
   includeConfidence?: boolean;
-  sessionId?: string;
-  maxImageSize?: number;
-  forceReanalysis?: boolean; // Adding the missing property that was causing the error
-}
-
-export interface AnalysisResponse {
-  success: boolean;
-  jobId: string;
-  status?: string;
-  data: AnalysisData[] | any[];
-  error?: string;
-}
-
-export interface RetryOptions {
-  maxRetries?: number;
-  retryDelay?: number;
-  exponentialBackoff?: boolean;
+  
+  /**
+   * Maximum time to wait for analysis (in milliseconds)
+   * @default 120000 (2 minutes)
+   */
   timeout?: number;
+  
+  /**
+   * Maximum image size in bytes
+   * @default 5 * 1024 * 1024 (5MB)
+   */
+  maxImageSize?: number;
+  
+  /**
+   * Force reanalysis of the image even if existing data is available
+   * @default false
+   */
+  forceReanalysis?: boolean;
+}
+
+/**
+ * Status of analysis job
+ */
+export type AnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'error';
+
+/**
+ * Response from analysis function
+ */
+export interface AnalysisResponse {
+  /**
+   * Whether the request was successful
+   */
+  success: boolean;
+  
+  /**
+   * Unique identifier for the analysis job
+   */
+  jobId: string;
+  
+  /**
+   * Status of the analysis job
+   */
+  status: AnalysisStatus;
+  
+  /**
+   * Analysis results (if available)
+   */
+  data?: any;
+  
+  /**
+   * Error message (if any)
+   */
+  error?: string;
 }
