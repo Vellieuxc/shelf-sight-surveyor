@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, RefreshCw, X, AlertTriangle } from "lucide-react";
 import { AnalysisData } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 interface ImageUploaderProps {
   selectedImage: string | null;
@@ -16,6 +17,7 @@ interface ImageUploaderProps {
   onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAnalyze: () => void;
   onResetImage: () => void;
+  storeId?: string;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -28,9 +30,19 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   onImageUpload,
   onAnalyze,
   onResetImage,
+  storeId,
 }) => {
   // Only show skeleton when loading initially, not when analyzing
   const showSkeleton = isLoading && !selectedImage;
+  const navigate = useNavigate();
+
+  const handleCloseImage = () => {
+    if (storeId) {
+      navigate(`/dashboard/stores/${storeId}`);
+    } else {
+      onResetImage();
+    }
+  };
 
   return (
     <Card className="card-shadow">
@@ -87,7 +99,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 variant="outline"
                 size="icon"
                 className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                onClick={onResetImage}
+                onClick={handleCloseImage}
+                title="Return to store page"
               >
                 <X className="h-4 w-4" />
               </Button>

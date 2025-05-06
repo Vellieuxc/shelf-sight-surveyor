@@ -58,6 +58,7 @@ const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({ storeId }) => {
           onImageUpload={handleImageUpload}
           onAnalyze={handleAnalyzeImage}
           onResetImage={handleResetImage}
+          storeId={storeId}
         />
 
         <AnalysisResults
