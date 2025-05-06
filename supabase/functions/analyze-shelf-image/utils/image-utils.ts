@@ -35,11 +35,17 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
     
     // Convert to base64 using a more memory-efficient chunked approach
     let base64 = '';
-    const chunkSize = 32768; // Process in chunks to avoid call stack issues
+    const chunkSize = 16384; // Use smaller chunks to avoid call stack issues (16KB)
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-      base64 += binaryToBase64(chunk);
+      base64 += binaryToBase64Chunk(chunk);
+    }
+    
+    // Check for valid base64 data
+    if (!isValidBase64(base64)) {
+      console.error(`Generated invalid base64 data [${requestId}]`);
+      throw new Error("Generated invalid base64 data");
     }
     
     console.log(`Successfully converted image to base64 [${requestId}]`);
@@ -52,10 +58,39 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
 
 /**
  * Helper function to convert binary data to base64 without stack overflow
+ * Optimized for smaller chunks of data
  */
-function binaryToBase64(bytes: Uint8Array): string {
-  const binString = Array.from(bytes)
-    .map(byte => String.fromCharCode(byte))
-    .join('');
-  return btoa(binString);
+function binaryToBase64Chunk(bytes: Uint8Array): string {
+  // Process in even smaller sub-chunks if needed
+  if (bytes.length > 8192) {
+    let result = '';
+    const subChunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += subChunkSize) {
+      const subChunk = bytes.subarray(i, Math.min(i + subChunkSize, bytes.length));
+      result += binaryToBase64Chunk(subChunk);
+    }
+    return result;
+  }
+  
+  try {
+    const binString = Array.from(bytes)
+      .map(byte => String.fromCharCode(byte))
+      .join('');
+    return btoa(binString);
+  } catch (error) {
+    console.error("Base64 conversion error:", error);
+    throw new Error("Base64 conversion failed");
+  }
+}
+
+/**
+ * Validate that the string is proper base64 data
+ */
+function isValidBase64(str: string): boolean {
+  // Basic validation - check the string isn't empty and has valid characters
+  if (!str || str.length === 0) return false;
+  
+  // Check that the string only contains valid base64 characters
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  return base64Regex.test(str);
 }

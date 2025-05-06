@@ -1,3 +1,4 @@
+
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
@@ -41,7 +42,7 @@ export function transformAnalysisResult(response: any): any {
 
 /**
  * Ensures that analysis data is preserved in its original format
- * Enhanced with better error handling
+ * Enhanced with better error handling and proper TypeScript type checking
  */
 export function ensureAnalysisDataType(data: Json | null): any {
   if (!data) {
@@ -50,9 +51,14 @@ export function ensureAnalysisDataType(data: Json | null): any {
   }
   
   try {
-    // If data is already in the structured format, return it directly
-    if (typeof data === 'object' && 
-        (data.metadata || data.shelves || Array.isArray(data))) {
+    // If data is already in the structured format with metadata and shelves
+    if (typeof data === 'object' && !Array.isArray(data) && 
+        ('metadata' in data || 'shelves' in data)) {
+      return data;
+    }
+    
+    // If it's an array format
+    if (Array.isArray(data)) {
       return data;
     }
     
