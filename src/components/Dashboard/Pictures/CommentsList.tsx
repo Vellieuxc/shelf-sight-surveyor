@@ -1,62 +1,88 @@
 
-import React, { memo } from "react";
+import React from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import CommentItem from "./CommentItem";
-import { Comment } from "./types";
+import { useErrorHandling } from "@/hooks";
 import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CommentsListProps {
-  comments: Comment[];
+  comments: any[] | null;
   isLoading: boolean;
-  error?: Error | null;
+  error: Error | null;
 }
 
-// Use memo to prevent unnecessary re-renders
-const CommentsList: React.FC<CommentsListProps> = memo(({ comments, isLoading, error }) => {
-  // Show error state
-  if (error) {
-    return (
-      <div className="p-2 bg-destructive/10 text-destructive rounded-md flex items-center gap-2 text-sm">
-        <AlertCircle size={16} />
-        <p>Failed to load comments: {error.message || "Unknown error"}</p>
-      </div>
-    );
-  }
+const CommentsList: React.FC<CommentsListProps> = ({ 
+  comments, 
+  isLoading, 
+  error 
+}) => {
+  const { handleError } = useErrorHandling({
+    source: 'database',
+    componentName: 'CommentsList'
+  });
   
-  // Show loading state
+  // Report error to our centralized error handler
+  React.useEffect(() => {
+    if (error) {
+      handleError(error, {
+        fallbackMessage: "Could not load comments",
+        operation: "fetchComments",
+        showToast: true
+      });
+    }
+  }, [error, handleError]);
+  
+  // Show loading skeletons
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[1, 2].map((i) => (
-          <div key={i} className="border rounded-md p-3 bg-muted/40 animate-pulse">
-            <div className="flex justify-between items-start">
-              <div className="h-4 w-24 bg-muted rounded"></div>
-              <div className="h-4 w-20 bg-muted rounded"></div>
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Comments</h3>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-4 w-[100px]" />
             </div>
-            <div className="h-4 w-full bg-muted rounded mt-2"></div>
-            <div className="h-4 w-3/4 bg-muted rounded mt-2"></div>
+            <Skeleton className="h-16 w-full" />
           </div>
         ))}
       </div>
     );
   }
   
-  // Show empty state
-  if (comments.length === 0) {
+  // Show error state with retry option
+  if (error) {
     return (
-      <p className="text-sm text-muted-foreground py-2">No comments yet. Be the first to comment!</p>
+      <Alert variant="destructive" className="mt-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load comments. Please try again later.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  // Show empty state
+  if (!comments || comments.length === 0) {
+    return (
+      <div className="text-muted-foreground text-sm py-4">
+        <h3 className="text-lg font-medium mb-2">Comments</h3>
+        <p>No comments yet. Be the first to comment!</p>
+      </div>
     );
   }
   
   // Show comments list
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Comments ({comments.length})</h3>
       {comments.map((comment) => (
         <CommentItem key={comment.id} comment={comment} />
       ))}
     </div>
   );
-});
-
-CommentsList.displayName = "CommentsList";
+};
 
 export default CommentsList;

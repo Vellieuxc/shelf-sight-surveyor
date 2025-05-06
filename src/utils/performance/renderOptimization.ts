@@ -1,147 +1,64 @@
 
-/**
- * Component rendering performance optimization utilities
- */
-
 import { useEffect, useRef } from 'react';
 import { throttle } from 'lodash';
 
 /**
- * Hook to detect slow renders and log them
- * @param componentName Name of the component to monitor
- * @param threshold Render time threshold in milliseconds
+ * Hook to monitor component render performance in development
+ * @param componentName The name of the component to monitor
  */
-export function useRenderPerformanceMonitor(componentName: string, threshold = 16) {
-  const renderStartTime = useRef(performance.now());
+export const useRenderPerformanceMonitor = (componentName: string): void => {
+  const renderCount = useRef(0);
   
-  // Log slow renders in development only
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      const renderTime = performance.now() - renderStartTime.current;
-      
-      if (renderTime > threshold) {
-        console.warn(
-          `[Performance] Slow render detected in ${componentName}: ${renderTime.toFixed(2)}ms`
-        );
-      }
+    if (process.env.NODE_ENV === 'development') {
+      renderCount.current += 1;
+      console.log(`[Render] ${componentName} rendered ${renderCount.current} times`);
     }
     
-    // Update the reference for the next render
     return () => {
-      renderStartTime.current = performance.now();
+      if (process.env.NODE_ENV === 'development' && renderCount.current === 1) {
+        console.log(`[Unmount] ${componentName} unmounted after ${renderCount.current} render`);
+      }
     };
   });
-}
+};
 
 /**
- * Hook to prevent excessive re-renders
- * @param value The value to check for changes
- * @param onExcessiveRenders Callback when excessive renders are detected
- * @param threshold Number of renders considered excessive in a short period
+ * Creates a throttled event handler to prevent excessive function calls
+ * @param callback The function to throttle
+ * @param wait The throttle delay in ms
  */
-export function useExcessiveRenderDetection(
-  value: any,
-  onExcessiveRenders?: () => void,
-  threshold = 5
-) {
-  const renderCountRef = useRef(0);
-  const previousValueRef = useRef(value);
-  const timeWindowRef = useRef(Date.now());
+export const useThrottledEventHandler = <T extends (...args: any[]) => any>(
+  callback: T,
+  wait: number = 200
+): T => {
+  const throttledFn = useRef<T>();
   
-  // Only run in development
-  if (process.env.NODE_ENV !== 'production') {
-    // Track renders and detect if they're happening too frequently
-    renderCountRef.current += 1;
-    
-    // Check if we're in the same time window (1 second)
-    const now = Date.now();
-    if (now - timeWindowRef.current > 1000) {
-      // Reset the counter if we're in a new time window
-      renderCountRef.current = 1;
-      timeWindowRef.current = now;
-    } else if (renderCountRef.current > threshold) {
-      // Log warning if renders exceed threshold
-      console.warn(
-        `[Performance] Excessive renders detected: ${renderCountRef.current} renders in 1 second`
-      );
-      
-      // Call the callback if provided
-      if (onExcessiveRenders) {
-        onExcessiveRenders();
-      }
-    }
-    
-    // Store the current value for the next render
-    previousValueRef.current = value;
-  }
-}
+  useEffect(() => {
+    throttledFn.current = throttle(callback, wait) as unknown as T;
+  }, [callback, wait]);
+  
+  return ((...args: Parameters<T>): ReturnType<T> => {
+    return throttledFn.current?.(...args) as ReturnType<T>;
+  }) as T;
+};
 
 /**
- * Creates a throttled event handler that won't execute more than once in the given time period
- * @param handler The event handler function
- * @param delay Throttle delay in milliseconds
+ * Hook to optimize event handlers in forms and UI elements
+ * @param handler The event handler to optimize
+ * @param deps Dependencies array for memoization
  */
-export function useThrottledEventHandler<T extends (...args: any[]) => any>(
+export const useOptimizedEventHandler = <T extends (...args: any[]) => any>(
   handler: T,
-  delay = 300
-): T {
-  const throttledHandler = useRef(throttle(handler, delay));
+  deps: React.DependencyList = []
+): T => {
+  const handleRef = useRef(handler);
   
-  // Update the throttled handler when the original handler changes
   useEffect(() => {
-    throttledHandler.current = throttle(handler, delay);
-    
-    // Clean up the throttled function on unmount
-    return () => {
-      throttledHandler.current.cancel();
-    };
-  }, [handler, delay]);
+    handleRef.current = handler;
+  }, [handler, ...deps]);
   
-  return throttledHandler.current as T;
-}
-
-/**
- * Hook to detect and warn about component prop changes that might cause unnecessary renders
- * @param props Component props
- * @param componentName Name of the component
- */
-export function usePropChangeDetector(props: Record<string, any>, componentName: string) {
-  const previousPropsRef = useRef<Record<string, any>>({});
-  
-  // Only run in development
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      const changedProps: string[] = [];
-      
-      // Compare current props with previous props
-      Object.keys(props).forEach(key => {
-        if (props[key] !== previousPropsRef.current[key]) {
-          changedProps.push(key);
-        }
-      });
-      
-      if (changedProps.length > 0) {
-        console.debug(
-          `[Props Changed] ${componentName}: ${changedProps.join(', ')}`
-        );
-      }
-      
-      // Update previous props
-      previousPropsRef.current = { ...props };
-    }
-  });
-}
-
-/**
- * Helper function to log render time with component context
- * @param start Start time from performance.now()
- * @param componentName Name of the component
- * @param operationName Optional name of the operation
- */
-export function logRenderTime(start: number, componentName: string, operationName?: string) {
-  if (process.env.NODE_ENV !== 'production') {
-    const duration = performance.now() - start;
-    const operation = operationName ? ` (${operationName})` : '';
-    console.debug(`[Render Time] ${componentName}${operation}: ${duration.toFixed(2)}ms`);
-  }
-}
+  return ((...args: Parameters<T>): ReturnType<T> => {
+    return handleRef.current(...args);
+  }) as T;
+};

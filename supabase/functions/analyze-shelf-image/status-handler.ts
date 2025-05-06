@@ -1,64 +1,52 @@
 
 import { corsHeaders } from "./cors.ts";
-import { getJobByImageId } from "./queue.ts";
+import { authenticateRequest } from "./auth.ts";
 
 // Security headers combined with CORS
 const securityHeaders = {
   ...corsHeaders,
   'Content-Type': 'application/json',
   'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY'
+  'X-Frame-Options': 'DENY',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
 };
 
-// Handle status check requests
+/**
+ * Status check endpoint with enhanced security
+ * @param req The request object
+ * @param requestId Unique request identifier for tracing
+ */
 export async function handleStatusCheck(req: Request, requestId: string): Promise<Response> {
+  console.log(`Status check request [${requestId}]`);
+  
   try {
-    // Parse the request body
-    const data = await req.json();
-    const { imageId } = data;
-
-    if (!imageId) {
-      throw new Error("Image ID is required");
-    }
-
-    console.log(`Checking status for image [${requestId}]: ${imageId}`);
+    // Verify authentication/request validity 
+    await authenticateRequest(req, requestId);
     
-    // Get job status from the queue
-    const job = await getJobByImageId(imageId);
+    // We could add performance metrics, request counts, etc here
+    const statusData = {
+      status: "operational",
+      version: "1.2.0",
+      requestsProcessed: 0, // This could be replaced with actual metrics
+      uptime: "unknown", // This could be dynamically calculated
+      timestamp: new Date().toISOString(),
+      requestId
+    };
     
-    if (!job) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "No analysis job found for the provided image ID",
-          requestId
-        }),
-        { status: 404, headers: securityHeaders }
-      );
-    }
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        status: job.status,
-        jobId: job.jobId,
-        imageId: job.imageId,
-        createdAt: job.createdAt,
-        data: job.result || null,
-        requestId
-      }),
-      { headers: securityHeaders }
-    );
+    return new Response(JSON.stringify(statusData), {
+      headers: securityHeaders,
+      status: 200
+    });
   } catch (error) {
-    console.error(`Error checking status [${requestId}]:`, error);
+    console.error(`Status check error [${requestId}]:`, error);
     
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: error.message || "Failed to check job status",
-        requestId
-      }),
-      { status: 500, headers: securityHeaders }
-    );
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || "Status check failed",
+      requestId
+    }), {
+      headers: securityHeaders,
+      status: error.status || 500,
+    });
   }
 }
