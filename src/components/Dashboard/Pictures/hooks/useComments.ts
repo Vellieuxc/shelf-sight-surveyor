@@ -9,6 +9,7 @@ export function useComments(pictureId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const isMounted = useRef(true);
   const hasLoadedInitial = useRef(false);
+  const currentPictureId = useRef(pictureId);
   
   const { handleError } = useErrorHandling({
     source: 'database',
@@ -17,9 +18,14 @@ export function useComments(pictureId: string) {
   });
 
   // Memoize the fetch comments function to avoid recreating it on every render
-  const fetchComments = useCallback(async () => {
-    // Only proceed if we have a valid pictureId and haven't already loaded comments
-    if (!pictureId || (!isLoading && hasLoadedInitial.current)) {
+  const fetchComments = useCallback(async (forceRefresh = false) => {
+    // Only proceed if we have a valid pictureId
+    if (!pictureId) {
+      return;
+    }
+    
+    // Skip loading if we've already loaded and this isn't a forced refresh
+    if (!forceRefresh && hasLoadedInitial.current && pictureId === currentPictureId.current) {
       return;
     }
 
@@ -48,6 +54,7 @@ export function useComments(pictureId: string) {
         setComments([]);
         setIsLoading(false);
         hasLoadedInitial.current = true;
+        currentPictureId.current = pictureId;
         return;
       }
       
@@ -82,7 +89,9 @@ export function useComments(pictureId: string) {
         
         const profile = profilesMap.get(comment.user_id);
         if (profile) {
-          userName = profile.email || "Unknown User";
+          userName = profile.first_name && profile.last_name 
+            ? `${profile.first_name} ${profile.last_name}` 
+            : profile.email || "Unknown User";
         }
         
         return {
@@ -108,6 +117,7 @@ export function useComments(pictureId: string) {
       if (isMounted.current) {
         setIsLoading(false);
         hasLoadedInitial.current = true;
+        currentPictureId.current = pictureId;
       }
     }
   }, [pictureId, handleError]);
@@ -115,11 +125,12 @@ export function useComments(pictureId: string) {
   // Fetch comments once when component mounts or pictureId changes
   useEffect(() => {
     // Reset state when pictureId changes
-    if (pictureId) {
+    if (pictureId !== currentPictureId.current) {
       setIsLoading(true);
       hasLoadedInitial.current = false;
-      fetchComments();
     }
+    
+    fetchComments(false);
     
     // Cleanup function to prevent state updates after unmount
     return () => {
@@ -140,10 +151,12 @@ export function useComments(pictureId: string) {
     setComments(prevComments => [newComment, ...prevComments]);
   }, []);
 
+  const refreshComments = useCallback(() => fetchComments(true), [fetchComments]);
+
   return {
     comments,
     isLoading,
     addComment,
-    refreshComments: fetchComments
+    refreshComments
   };
 }
