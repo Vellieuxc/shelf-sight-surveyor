@@ -1,3 +1,4 @@
+
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
@@ -18,6 +19,7 @@ export function transformAnalysisResult(response: any): any {
   }
   
   // Return the complete raw response data structure without transformation
+  // to preserve the hierarchical structure from Claude
   console.log("Returning complete analysis data:", response.data);
   return response.data;
 }
