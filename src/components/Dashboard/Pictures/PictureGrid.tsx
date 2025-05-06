@@ -35,11 +35,15 @@ const PictureGrid: React.FC<PictureGridProps> = ({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       {pictures.map((picture) => (
         <PictureCard 
-          key={picture.id} 
-          picture={picture}
-          onDelete={onPictureDeleted}
-          allowDelete={allowDelete}
-          createdByName={creatorMap[picture.uploaded_by]}
+          key={picture.id}
+          id={picture.id}
+          image_url={picture.image_url}
+          analysis_data={picture.analysis_data}
+          created_at={picture.created_at}
+          onClick={() => {
+            // Handle click event, could navigate to a detail view
+            console.log(`Picture clicked: ${picture.id}`);
+          }}
         />
       ))}
     </div>

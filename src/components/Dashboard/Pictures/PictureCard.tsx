@@ -35,10 +35,10 @@ const PictureCard: React.FC<PictureCardProps> = ({
             className="w-full h-full object-cover"
             loading="lazy"
           />
-          <PictureAnalysisBadge hasAnalysisData={!!analysis_data} />
+          <PictureAnalysisBadge hasAnalysis={!!analysis_data} />
         </div>
         <div className="p-3">
-          <PictureMetadata date={created_at} id={id} />
+          <PictureMetadata createdAt={created_at} exactDate={created_at} />
         </div>
       </CardContent>
     </Card>
