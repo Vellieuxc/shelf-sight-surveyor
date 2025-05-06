@@ -1,10 +1,9 @@
-
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
 /**
- * Transform the analysis result from the edge function to the format
- * expected by the frontend, preserving the raw structure from Claude
+ * Transform the analysis result from the OCR analyzer to the format
+ * expected by the frontend
  */
 export function transformAnalysisResult(response: any): any {
   // Handle empty or invalid responses
@@ -18,13 +17,14 @@ export function transformAnalysisResult(response: any): any {
     return null;
   }
   
-  // Return the raw data without any transformation
+  // For direct OCR results, preserve the raw response data structure
+  // so it can be properly visualized in the JsonView component
   return response.data;
 }
 
 /**
  * Ensures that analysis data is preserved in its original format
- * without any transformation
+ * for proper display
  */
 export function ensureAnalysisDataType(data: Json | null): any {
   if (!data) {
@@ -32,12 +32,12 @@ export function ensureAnalysisDataType(data: Json | null): any {
     return null;
   }
   
-  // Return the raw data as is, without any transformation
+  // Return the raw OCR data without transformation
   return data;
 }
 
 // Keep the utility functions for compatibility with existing code,
-// but they will not be used for transformation
+// but they will not be used for OCR data transformation
 function determineSKUConfidence(item: Record<string, any>): string {
   if (item.sku_confidence) {
     return item.sku_confidence;
