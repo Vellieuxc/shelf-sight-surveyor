@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { AnalysisData } from "@/types";
-import { analyzeImage } from "@/services/analysis";
+import { analyzeShelfImage } from "@/services/analysis";
 import { useErrorHandling } from "@/hooks";
 import { useRenderPerformanceMonitor } from "@/utils/performance/renderOptimization";
 
@@ -40,7 +40,7 @@ export function useAnalysisProcess({ onComplete }: AnalysisProcessOptions = {}) 
       
       // Call the analysis service
       console.log(`Starting analysis for picture ${pictureId}`);
-      const results = await analyzeImage(imageUrl, pictureId);
+      const results = await analyzeShelfImage(imageUrl, pictureId);
       
       console.log(`Analysis complete for picture ${pictureId}`);
       

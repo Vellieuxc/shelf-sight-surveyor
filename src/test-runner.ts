@@ -1,6 +1,4 @@
 
-#!/usr/bin/env ts-node
-
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 
