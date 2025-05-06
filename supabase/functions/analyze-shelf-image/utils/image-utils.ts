@@ -35,7 +35,7 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
     
     // Convert to base64 using a more memory-efficient chunked approach
     let base64 = '';
-    const chunkSize = 8192; // Use smaller chunks to avoid call stack issues (8KB)
+    const chunkSize = 4096; // Use smaller chunks to avoid call stack issues (4KB)
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
@@ -47,7 +47,7 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
       }
     }
     
-    // Check for valid base64 data
+    // Additional validation before returning
     if (!isValidBase64(base64)) {
       console.error(`Generated invalid base64 data [${requestId}]`);
       throw new Error("Generated invalid base64 data");
@@ -66,31 +66,19 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
  * Optimized for smaller chunks of data
  */
 function binaryToBase64Chunk(bytes: Uint8Array): string {
-  // Process in even smaller sub-chunks if needed
-  if (bytes.length > 4096) {
-    let result = '';
-    const subChunkSize = 4096;
-    for (let i = 0; i < bytes.length; i += subChunkSize) {
-      const subChunk = bytes.subarray(i, Math.min(i + subChunkSize, bytes.length));
-      result += binaryToBase64Chunk(subChunk);
-    }
-    return result;
-  }
+  if (bytes.length === 0) return '';
   
   try {
-    // Convert using standard Deno APIs with better performance
-    let binString = '';
-    
-    // Process byte-by-byte instead of using String.fromCharCode.apply
-    // This avoids call stack size exceeded errors
-    for (let i = 0; i < bytes.length; i++) {
-      binString += String.fromCharCode(bytes[i]);
-    }
-    
-    return btoa(binString);
+    // For Deno environment, use more efficient btoa approach
+    // Convert bytes to binary string
+    const binaryString = Array.from(bytes)
+      .map(byte => String.fromCharCode(byte))
+      .join('');
+      
+    return btoa(binaryString);
   } catch (error) {
     console.error("Base64 conversion error:", error);
-    throw new Error("Base64 conversion failed");
+    throw new Error("Base64 conversion failed: " + error.message);
   }
 }
 
