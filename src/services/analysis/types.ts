@@ -26,6 +26,12 @@ export interface AnalysisOptions {
    * @default false
    */
   forceReanalysis?: boolean;
+
+  /**
+   * Number of retry attempts for analysis operations
+   * @default 3
+   */
+  retryCount?: number;
 }
 
 /**
@@ -62,3 +68,4 @@ export interface AnalysisResponse {
    */
   error?: string;
 }
+

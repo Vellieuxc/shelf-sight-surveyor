@@ -4,6 +4,7 @@ import { analyzeShelfImage } from './index';
 import * as retry from './retry';
 import * as transformers from './transformers';
 import * as core from './core';
+import { AnalysisResponse } from './types';
 
 // Mock dependencies
 vi.mock('./retry', () => ({
@@ -22,9 +23,9 @@ vi.mock('./core', () => ({
 describe('Image Analysis Service', () => {
   const mockImageUrl = 'https://example.com/test-image.jpg';
   const mockImageId = 'test-image-id-123';
-  const mockResponse = {
+  const mockResponse: AnalysisResponse = {
     success: true,
-    jobId: 'test-job-id', // Added required property
+    jobId: 'test-job-id',
     status: 'completed',
     data: [
       { brand: 'Test Brand', sku_name: 'Test Product', sku_count: 3 }
