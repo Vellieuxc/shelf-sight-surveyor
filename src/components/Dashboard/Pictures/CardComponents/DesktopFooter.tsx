@@ -17,7 +17,6 @@ interface DesktopFooterProps {
   buttonSize: "sm" | "default";
   iconSize: number;
   onDelete?: () => void;
-  commentCount?: number;
 }
 
 const DesktopFooter: React.FC<DesktopFooterProps> = ({
@@ -30,8 +29,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({
   allowDelete,
   buttonSize,
   iconSize,
-  onDelete,
-  commentCount
+  onDelete
 }) => {
   return (
     <CardFooter className="hidden sm:flex flex-wrap gap-2 p-2 pt-0">
@@ -61,9 +59,9 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({
       <CommentsButton
         showComments={showComments}
         onToggle={toggleComments}
+        pictureId={pictureId}
         size={buttonSize}
         className="w-full"
-        commentCount={commentCount}
       />
     </CardFooter>
   );
