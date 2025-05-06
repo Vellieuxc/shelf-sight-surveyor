@@ -41,20 +41,17 @@ export const useCreatorInfo = (creatorId: string) => {
         
         if (data) {
           const profile = data as CreatorProfile;
-          if (profile.first_name && profile.last_name) {
-            setCreatorName(`${profile.first_name} ${profile.last_name}`);
-          } else {
-            setCreatorName(profile.email);
-          }
+          // Prioritize showing email address as requested
+          setCreatorName(profile.email);
         } else {
-          // Display creator ID as shortened format when profile not found
-          setCreatorName(`User ${creatorId.slice(0, 6)}...`);
+          // Display creator ID as full email when profile not found
+          setCreatorName(`User ID: ${creatorId}`);
         }
       } catch (error) {
         console.error("Creator info fetch error:", error);
         setError(error as Error);
         // Provide a fallback display name on error
-        setCreatorName(`User ${creatorId.slice(0, 6)}...`);
+        setCreatorName(`User ID: ${creatorId}`);
       } finally {
         setIsLoading(false);
       }

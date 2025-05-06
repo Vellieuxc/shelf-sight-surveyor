@@ -31,23 +31,17 @@ export const useCreatorInfo = ({ uploadedBy, createdByName }: UseCreatorInfoProp
           if (error) throw error;
           
           if (data) {
-            if (data.first_name && data.last_name) {
-              setCreator(`${data.first_name} ${data.last_name}`);
-            } else if (data.email) {
-              setCreator(data.email);
-            } else {
-              // Fallback if profile exists but has no name or email
-              setCreator(`User ${uploadedBy.slice(0, 6)}...`);
-            }
+            // Always use email as requested
+            setCreator(data.email);
           } else {
-            // Display uploader ID as shortened format when profile not found
-            setCreator(`User ${uploadedBy.slice(0, 6)}...`);
+            // Display uploader ID when profile not found
+            setCreator(`User ID: ${uploadedBy}`);
           }
         } catch (error) {
           console.error("Error fetching creator:", error);
           
           // Provide a fallback display name on error
-          setCreator(`User ${uploadedBy.slice(0, 6)}...`);
+          setCreator(`User ID: ${uploadedBy}`);
         }
       };
       

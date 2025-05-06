@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,19 +63,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           setPictureCount(0);
         }
         
-        // Fetch creator name
+        // Fetch creator email
         const { data: creatorData, error: creatorError } = await supabase
           .from("profiles")
-          .select("first_name, last_name, email")
+          .select("email")
           .eq("id", project.created_by)
           .single();
           
         if (!creatorError && creatorData) {
-          if (creatorData.first_name && creatorData.last_name) {
-            setCreatorName(`${creatorData.first_name} ${creatorData.last_name}`);
-          } else {
-            setCreatorName(creatorData.email);
-          }
+          setCreatorName(creatorData.email);
+        } else {
+          setCreatorName(`User ID: ${project.created_by}`);
         }
       } catch (error: any) {
         console.error("Error fetching project stats:", error);
