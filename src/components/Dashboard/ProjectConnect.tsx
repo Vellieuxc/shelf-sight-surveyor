@@ -8,6 +8,7 @@ import { Key } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth";
+import { handleDatabaseError } from "@/utils/errors/database";
 
 // Define the type for the data returned from the connect_to_project RPC function
 type ProjectConnectResult = {
@@ -43,20 +44,26 @@ const ProjectConnect: React.FC = () => {
         .rpc('connect_to_project', { 
           project_id_param: projectId 
         });
-        
+      
       if (error) {
-        toast.error("Error connecting to project: " + error.message);
+        // Use the more descriptive error handler for database errors
+        const errorMessage = profile?.role === "crew" 
+          ? "Invalid Connect ID, please contact your Consultant" 
+          : `Error connecting to project: ${error.message}`;
+          
+        toast.error(errorMessage);
+        setIsLoading(false);
         return;
       }
       
       // Since we now know the data structure better, adjust the type checking
       if (!data || !data[0]) {
         // Show more specific error message for crew members
-        if (profile?.role === "crew") {
-          toast.error("Invalid Connect ID, please contact your Consultant");
-        } else {
-          toast.error("Project not found. Please check the ID and try again.");
-        }
+        const errorMessage = profile?.role === "crew" 
+          ? "Invalid Connect ID, please contact your Consultant" 
+          : "Project not found. Please check the ID and try again.";
+          
+        toast.error(errorMessage);
         setIsLoading(false);
         return;
       }
@@ -66,11 +73,11 @@ const ProjectConnect: React.FC = () => {
       
       if (!result.project_id) {
         // Show more specific error message for crew members
-        if (profile?.role === "crew") {
-          toast.error("Invalid Connect ID, please contact your Consultant");
-        } else {
-          toast.error("Project not found. Please check the ID and try again.");
-        }
+        const errorMessage = profile?.role === "crew" 
+          ? "Invalid Connect ID, please contact your Consultant" 
+          : "Project not found. Please check the ID and try again.";
+          
+        toast.error(errorMessage);
         setIsLoading(false);
         return;
       }
@@ -85,11 +92,11 @@ const ProjectConnect: React.FC = () => {
       navigate(`/dashboard/projects/${result.project_id}/stores`);
     } catch (error: any) {
       // Show more specific error message for crew members
-      if (profile?.role === "crew") {
-        toast.error("Invalid Connect ID, please contact your Consultant");
-      } else {
-        toast.error("Failed to connect to project: " + error.message);
-      }
+      const errorMessage = profile?.role === "crew" 
+        ? "Invalid Connect ID, please contact your Consultant" 
+        : `Failed to connect to project: ${error.message}`;
+        
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
