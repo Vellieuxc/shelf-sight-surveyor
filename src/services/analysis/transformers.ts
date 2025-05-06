@@ -1,81 +1,94 @@
-
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
 /**
  * Transform the analysis result from the Claude analyzer to the format
  * expected by the frontend
- * Optimized for better error handling and always returning a valid data structure
+ * Enhanced with better error handling and fallback mechanisms
  */
 export function transformAnalysisResult(response: any): any {
   // Handle empty or invalid responses
   if (!response) {
-    console.warn("Empty analysis response received");
-    // Return empty structured data instead of null
-    return {
-      metadata: {
-        total_items: 0,
-        out_of_stock_positions: 0
-      },
-      shelves: []
-    };
+    console.warn("Empty analysis response received, returning empty data structure");
+    return createEmptyAnalysisStructure();
   }
   
   if (!response.data) {
     console.warn("No data property in analysis response", response);
     
-    // If there's an error related to OCR service, return empty structured data
-    if (response.error && response.error.includes("OCR service")) {
-      console.log("OCR service unavailable, returning empty structured data");
-      return {
-        metadata: {
-          total_items: 0,
-          out_of_stock_positions: 0
-        },
-        shelves: []
-      };
-    }
-    
-    // For other errors, return empty structured data
-    return {
-      metadata: {
-        total_items: 0,
-        out_of_stock_positions: 0
-      },
-      shelves: []
-    };
+    // Return empty structured data
+    return createEmptyAnalysisStructure();
   }
   
-  // Return the complete raw response data structure without transformation
-  // to preserve the hierarchical structure from Claude
-  console.log("Returning complete analysis data:", response.data);
-  return response.data;
+  try {
+    // Check if response has the expected structure
+    if (typeof response.data === 'object' && 
+        (response.data.metadata || response.data.shelves)) {
+      console.log("Found structured analysis data");
+      return response.data;
+    } else if (Array.isArray(response.data)) {
+      console.log("Found array data format");
+      return response.data;
+    } else {
+      console.log("Using raw response data");
+      return response.data;
+    }
+  } catch (error) {
+    console.error("Error transforming analysis data:", error);
+    return createEmptyAnalysisStructure();
+  }
 }
 
 /**
  * Ensures that analysis data is preserved in its original format
- * for proper display
- * Optimized for better error handling
+ * Enhanced with better error handling
  */
 export function ensureAnalysisDataType(data: Json | null): any {
   if (!data) {
     console.warn("Invalid or empty analysis data format", data);
-    // Return minimal valid structured data instead of null
-    return {
-      metadata: {
-        total_items: 0,
-        out_of_stock_positions: 0
-      },
-      shelves: []
-    };
+    return createEmptyAnalysisStructure();
   }
   
-  // Return the raw data without transformation
-  return data;
+  try {
+    // If data is already in the structured format, return it directly
+    if (typeof data === 'object' && 
+        (data.metadata || data.shelves || Array.isArray(data))) {
+      return data;
+    }
+    
+    // Attempt to parse JSON string if needed
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch (parseError) {
+        console.error("Failed to parse analysis data from string:", parseError);
+        return createEmptyAnalysisStructure();
+      }
+    }
+    
+    // Return the raw data as fallback
+    return data;
+  } catch (error) {
+    console.error("Error ensuring analysis data type:", error);
+    return createEmptyAnalysisStructure();
+  }
 }
 
-// Keep the utility functions for compatibility with existing code,
-// but they will not be used for Claude data transformation
+/**
+ * Creates an empty but valid analysis structure
+ */
+function createEmptyAnalysisStructure(): any {
+  return {
+    metadata: {
+      total_items: 0,
+      out_of_stock_positions: 0,
+      analysis_status: "empty"
+    },
+    shelves: []
+  };
+}
+
+// Keep utility functions for compatibility with existing code
 function determineSKUConfidence(item: Record<string, any>): string {
   if (item.sku_confidence) {
     return item.sku_confidence;

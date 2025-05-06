@@ -1,7 +1,12 @@
 
 /**
+ * Optimized utilities for image processing in edge functions
+ * Refactored for better memory efficiency and performance
+ */
+
+/**
  * Fetch an image from a URL and convert it to base64
- * Optimized to reduce image size for faster processing
+ * Memory-efficient implementation to handle large images without stack overflow
  * 
  * @param imageUrl URL of the image to fetch
  * @param requestId Unique identifier for request tracking
@@ -24,33 +29,33 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
       throw new Error(`Image too large: ${(blob.size / (1024 * 1024)).toFixed(2)}MB (max 10MB)`);
     }
     
-    // Use more memory-efficient approach to convert to base64
-    const buffer = await blob.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
+    // Use array buffer for more efficient conversion
+    const arrayBuffer = await blob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Convert to base64 using a memory-efficient approach
-    // This avoids the stack overflow caused by large images
-    let result = '';
-    const chunks: string[] = [];
-    const chunkSize = 4096; // Use a smaller chunk size to avoid stack overflow
-    let binary = '';
+    // Convert to base64 using a more memory-efficient chunked approach
+    let base64 = '';
+    const chunkSize = 32768; // Process in chunks to avoid call stack issues
     
-    // Process in small chunks to avoid call stack issues
-    for (let i = 0; i < bytes.byteLength; i += chunkSize) {
-      const end = Math.min(i + chunkSize, bytes.byteLength);
-      const slice = bytes.subarray(i, end);
-      
-      // Convert each byte to a character
-      for (let j = 0; j < slice.length; j++) {
-        binary += String.fromCharCode(slice[j]);
-      }
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      base64 += binaryToBase64(chunk);
     }
     
-    console.log(`Converted image to base64 [${requestId}]`);
-    
-    return btoa(binary);
+    console.log(`Successfully converted image to base64 [${requestId}]`);
+    return base64;
   } catch (error) {
     console.error(`Error converting image to base64 [${requestId}]:`, error);
-    throw new Error(`Failed to fetch image: ${error.message}`);
+    throw new Error(`Failed to process image: ${error.message}`);
   }
+}
+
+/**
+ * Helper function to convert binary data to base64 without stack overflow
+ */
+function binaryToBase64(bytes: Uint8Array): string {
+  const binString = Array.from(bytes)
+    .map(byte => String.fromCharCode(byte))
+    .join('');
+  return btoa(binString);
 }

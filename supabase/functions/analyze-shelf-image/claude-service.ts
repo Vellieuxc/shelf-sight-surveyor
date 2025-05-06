@@ -6,14 +6,14 @@ import { parseClaudeResponse } from "./utils/response-parser.ts";
 import { withClaudeRetry } from "./retry.ts";
 import { monitorClaudeCall } from "./monitoring.ts";
 
-// Cache to store recent analysis results to avoid redundant processing
+// Improved cache with TTL and size management
 const analysisCache = new Map();
-// Cache TTL in milliseconds (15 minutes)
-const CACHE_TTL = 15 * 60 * 1000;
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const MAX_CACHE_ENTRIES = 100;
 
 /**
- * Edge function to analyze a shelf image using Claude
- * Optimized for performance with caching and improved error handling
+ * Optimized edge function to analyze a shelf image using Claude
+ * Enhanced with better caching, error handling and rate limit management
  * 
  * @param imageUrl URL of the image to analyze
  * @param requestId Unique identifier for tracking
@@ -39,14 +39,19 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
       }
     }
     
+    // Manage cache size
+    if (analysisCache.size >= MAX_CACHE_ENTRIES) {
+      const oldestKey = analysisCache.keys().next().value;
+      analysisCache.delete(oldestKey);
+    }
+    
     // Use retry mechanism for fetching and converting the image
     let base64Image;
     try {
-      base64Image = await monitorClaudeCall(() => 
-        withClaudeRetry(
-          () => fetchAndConvertImageToBase64(imageUrl, requestId),
-          requestId
-        )
+      base64Image = await withClaudeRetry(
+        () => fetchAndConvertImageToBase64(imageUrl, requestId),
+        requestId,
+        { maxRetries: 3, initialDelay: 1000 }
       );
       
       console.log(`Successfully converted image to base64 [${requestId}]`);
@@ -61,16 +66,23 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     // Log payload estimation for debugging
     console.log(`Base64 image size: ${base64Image.length} characters [${requestId}]`);
     
-    // Call Claude API with retry capability and performance monitoring
+    // Call Claude API with retry capability
     let response;
     try {
       response = await monitorClaudeCall(() =>
         withClaudeRetry(
           () => callClaudeAPI(base64Image, prompt, requestId),
-          requestId
+          requestId,
+          { maxRetries: 3, initialDelay: 2000, maxDelay: 10000 }
         )
       );
     } catch (apiError) {
+      // Enhanced error handling - Check for rate limit errors
+      if (apiError.message && apiError.message.includes('rate_limit')) {
+        console.error(`Claude API rate limit exceeded [${requestId}]. Using fallback response.`);
+        return createFallbackResponse(requestId);
+      }
+      
       console.error(`Claude API error [${requestId}]:`, apiError);
       throw new Error(`Claude API error: ${apiError.message}`);
     }
@@ -86,7 +98,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
       throw new Error(`Empty content from Claude API [${requestId}]`);
     }
     
-    console.log(`Raw Claude response [${requestId}]:`, content);
+    console.log(`Raw Claude response [${requestId}]:`, content.substring(0, 100) + '...');
     
     // Parse the response to extract JSON
     let parsedData;
@@ -109,4 +121,21 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     console.error(`Error analyzing image with Claude [${requestId}]:`, error);
     throw error;
   }
+}
+
+/**
+ * Create a fallback response when Claude API fails
+ */
+function createFallbackResponse(requestId: string): any {
+  console.log(`Creating fallback response structure [${requestId}]`);
+  return {
+    metadata: {
+      total_items: 0,
+      out_of_stock_positions: 0,
+      analysis_status: "failed",
+      error_type: "api_unavailable"
+    },
+    shelves: [],
+    _fallback: true
+  };
 }

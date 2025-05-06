@@ -11,7 +11,10 @@ const securityHeaders = {
   'X-Frame-Options': 'DENY',
 };
 
-// Handle analysis request (direct analysis, no queueing)
+/**
+ * Optimized handler for analysis requests with direct processing
+ * Improved error handling and response formatting
+ */
 export async function handleAnalyzeRequest(req: Request, requestId: string): Promise<Response> {
   console.log(`Path: /analyze-shelf-image [${requestId}]`);
   
@@ -45,12 +48,12 @@ export async function handleAnalyzeRequest(req: Request, requestId: string): Pro
       
       console.log(`Analysis completed in ${processingTimeMs}ms [${requestId}]`);
       
-      // Return the raw data from Claude without any transformation
+      // Return structured data response
       return new Response(JSON.stringify({ 
         success: true,
         status: "completed",
         imageId,
-        data: analysisData, // Return raw data from Claude
+        data: analysisData,
         processingTime: processingTimeMs,
         requestId
       }), {
@@ -60,9 +63,12 @@ export async function handleAnalyzeRequest(req: Request, requestId: string): Pro
       
     } catch (error) {
       console.error(`Error analyzing image [${requestId}]:`, error);
+      
+      // Enhanced error response with more details
       return new Response(JSON.stringify({ 
         success: false, 
         error: `Analysis error: ${error.message}`,
+        errorType: error.name || "Unknown",
         imageId,
         requestId
       }), {

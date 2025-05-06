@@ -4,8 +4,8 @@ import { invokeAnalysisFunction } from "./core";
 import { AnalysisOptions, AnalysisResponse } from "./types";
 
 /**
- * Handles retry logic for image analysis with exponential backoff
- * Optimized for better performance and timeout handling
+ * Handles retry logic for image analysis with optimized timeout handling
+ * Refactored for better performance, reliability and error reporting
  * 
  * @param imageUrl URL of the image to analyze
  * @param imageId Identifier for the image
@@ -19,26 +19,27 @@ export async function executeWithRetry(
   options: AnalysisOptions = {}
 ): Promise<AnalysisResponse> {
   const { 
-    retryCount = 2, // Reduced from 3 to 2 for faster overall response
-    timeout = 180000, // Increased from 120000 to 180000 (3 minutes)
+    retryCount = 2,
+    timeout = 300000, // Increased to 5 minutes (300000ms) for large images
     maxImageSize = 5 * 1024 * 1024 // 5MB default max size
   } = options;
   
-  // Additional diagnostics for troubleshooting
-  console.log(`Starting direct analysis for image ${imageId} with ${retryCount} retry attempts`);
+  console.log(`Starting analysis for image ${imageId} with ${retryCount} retry attempts`);
   console.log(`Image URL: ${imageUrl}`);
+  console.log(`Timeout set to: ${timeout}ms`);
   
   // Validate image URL before proceeding
   if (!imageUrl || !imageUrl.startsWith('http')) {
     throw new Error(`Invalid image URL format: ${imageUrl}`);
   }
   
-  for (let attempt = 0; attempt < retryCount; attempt++) {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < retryCount + 1; attempt++) {
     try {
-      console.log(`Attempt ${attempt + 1}/${retryCount} to analyze image ${imageId}`);
+      console.log(`Attempt ${attempt + 1}/${retryCount + 1} to analyze image ${imageId}`);
       
       // Use a simple timeout promise instead of AbortController
-      // This is more reliable for Supabase edge functions
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error(`Analysis timed out after ${timeout}ms`)), timeout);
       });
@@ -47,7 +48,7 @@ export async function executeWithRetry(
       const response = await Promise.race([
         invokeAnalysisFunction(imageUrl, imageId, {
           ...options,
-          timeout,
+          timeout: Math.min(timeout, 270000), // Slightly shorter than our timeout
           maxImageSize
         }),
         timeoutPromise
@@ -58,27 +59,28 @@ export async function executeWithRetry(
         throw new Error(response.error || "Analysis function returned an error");
       }
       
-      console.log(`Image analysis successful on attempt ${attempt + 1}, received data:`, 
-        typeof response.data === 'object' ? 'object data' : typeof response.data);
+      console.log(`Image analysis successful on attempt ${attempt + 1}`);
       
       return response;
       
     } catch (error: any) {
+      lastError = error;
+      
       // Format error message with attempt information
       const errorMessage = `Analysis attempt ${attempt + 1} failed: ${error.message || 'Unknown error'}`;
       console.error(errorMessage);
       
       // On last attempt, throw the error to be handled by caller
-      if (attempt === retryCount - 1) {
+      if (attempt === retryCount) {
         handleError(error, {
           silent: false, 
           fallbackMessage: error.message?.includes('timeout') 
-            ? `Image analysis timed out after ${retryCount} attempts. The image may be too complex.` 
-            : `Image analysis failed after ${retryCount} attempts. Error: ${error.message}`, 
+            ? `Image analysis timed out after ${retryCount + 1} attempts. The image may be too complex.` 
+            : `Image analysis failed after ${retryCount + 1} attempts. Error: ${error.message}`, 
           context: {
             source: 'api',
             operation: 'analyzeShelfImage',
-            additionalData: { imageId, attempt: retryCount }
+            additionalData: { imageId, attempt: retryCount + 1 }
           }
         });
         throw new Error(errorMessage);
@@ -96,13 +98,13 @@ export async function executeWithRetry(
         }
       });
       
-      // Use shorter backoff times for faster response
-      const backoffTime = Math.min(1000 * Math.pow(1.5, attempt), 5000); // Reduced wait times
+      // Use adaptive backoff - increase delay with each attempt
+      const backoffTime = Math.min(2000 * Math.pow(1.5, attempt), 8000);
       console.log(`Waiting ${backoffTime}ms before retry ${attempt + 1}`);
       await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
   }
   
   // This should never be reached due to the throw in the loop
-  throw new Error("All analysis attempts failed");
+  throw lastError || new Error("All analysis attempts failed");
 }

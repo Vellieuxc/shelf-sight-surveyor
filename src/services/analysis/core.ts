@@ -6,7 +6,7 @@ import { analyzeWithOcr } from "./ocr_service";
 
 /**
  * Invokes the analysis service to analyze a shelf image
- * Bypasses OCR requirement when OCR is not configured
+ * Optimized with better timeout handling and error recovery
  * 
  * @param imageUrl URL of the image to analyze
  * @param imageId Identifier for the image
@@ -19,12 +19,13 @@ export async function invokeAnalysisFunction(
 ): Promise<AnalysisResponse> {
   const { 
     includeConfidence = true,
-    timeout = 180000, // Increased from 120000 to 180000 (3 minutes)
+    timeout = 300000, // Increased to 5 minutes
     maxImageSize = 5 * 1024 * 1024
   } = options;
   
   console.log(`Invoking analysis for image ${imageId}`);
   console.log(`Using image URL: ${imageUrl}`);
+  console.log(`Timeout set to: ${timeout}ms`);
   
   // Enhanced input validation before sending to the analyzer
   if (!imageUrl) {
@@ -71,11 +72,8 @@ export async function invokeAnalysisFunction(
         body: {
           imageUrl,
           imageId,
-          options: {
-            includeConfidence,
-            timeout: Math.min(timeout, 150000), // Increased from 25000 to 150000 (2.5 minutes)
-            directAnalysis: true, // Signal that we want direct analysis
-          }
+          includeConfidence,
+          directAnalysis: true // Signal that we want direct analysis
         }
       });
       
@@ -89,18 +87,18 @@ export async function invokeAnalysisFunction(
         console.log(`Received response from edge function`);
         return {
           success: true,
-          jobId: `edge-${Date.now()}`,
+          jobId: `direct-${Date.now()}`,
           status: 'completed',
           data
         };
       } else {
         // Try OCR as a fallback only if there's no direct data
-        return await tryOcrOrCreateEmpty(imageUrl, imageId, options, existingData);
+        return await tryOcrOrUseExistingData(imageUrl, imageId, options, existingData);
       }
     } catch (edgeError) {
       console.error(`Edge function error:`, edgeError);
       // Try OCR as a fallback
-      return await tryOcrOrCreateEmpty(imageUrl, imageId, options, existingData);
+      return await tryOcrOrUseExistingData(imageUrl, imageId, options, existingData);
     }
     
   } catch (error) {
@@ -110,9 +108,9 @@ export async function invokeAnalysisFunction(
 }
 
 /**
- * Try to use OCR if available, otherwise create empty response
+ * Try to use OCR if available, otherwise use existing data or create empty response
  */
-async function tryOcrOrCreateEmpty(
+async function tryOcrOrUseExistingData(
   imageUrl: string,
   imageId: string,
   options: AnalysisOptions,
@@ -122,17 +120,30 @@ async function tryOcrOrCreateEmpty(
     // Try OCR first (will automatically fail if OCR_API_URL is not set)
     return await analyzeWithOcr(imageUrl, imageId, options, existingData);
   } catch (ocrError) {
-    console.warn(`OCR unavailable or failed, creating empty response:`, ocrError);
+    console.warn(`OCR unavailable or failed:`, ocrError);
     
-    // Return empty structured data or existing data if available
+    // If we have existing data, use it instead of empty data
+    if (existingData) {
+      console.log(`Using existing analysis data for ${imageId} as fallback`);
+      return {
+        success: true,
+        jobId: `fallback-${Date.now()}`,
+        status: 'completed',
+        data: existingData
+      };
+    }
+    
+    // Return empty structured data as last resort
+    console.log(`Creating empty analysis structure for ${imageId}`);
     return {
       success: true,
-      jobId: `direct-${Date.now()}`,
+      jobId: `empty-${Date.now()}`,
       status: 'completed',
-      data: existingData || {
+      data: {
         metadata: {
           total_items: 0,
-          out_of_stock_positions: 0
+          out_of_stock_positions: 0,
+          analysis_status: "unavailable"
         },
         shelves: []
       }
