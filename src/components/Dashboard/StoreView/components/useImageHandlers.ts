@@ -1,58 +1,57 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useErrorHandling } from "@/hooks/use-error-handling";
-import { getFileFromCanvas } from "@/utils/imageUtils";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
+import { useImageUpload } from "@/hooks/use-image-upload";
+import { useSupabaseStorage } from "@/hooks/use-supabase-storage";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 
-// Constants
-const BUCKET_NAME = 'pictures';
+interface ImageHandlersOptions {
+  storeId: string;
+  onPictureUploaded?: () => void;
+  maxSizeMB?: number;
+}
 
-export const useImageHandlers = (storeId: string, refetchPictures: () => void) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+export const useImageHandlers = (
+  storeId: string, 
+  refetchPictures: () => void,
+  maxSizeMB = 10
+) => {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { handleError } = useErrorHandling({
-    source: 'storage',
-    componentName: 'ImageHandlers'
+  const { isOnline, captureOfflineImage } = useOfflineMode();
+  
+  // Use the base image upload hook
+  const {
+    selectedFile,
+    imagePreview,
+    isUploading,
+    setIsUploading,
+    handleFileChange,
+    handleCaptureFromCamera,
+    resetFile
+  } = useImageUpload({ 
+    maxSizeMB,
+    onError: (message) => toast({ 
+      title: "Error", 
+      description: message, 
+      variant: "destructive" 
+    })
   });
-  const { user } = useAuth(); // Get the current user
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select an image file",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setSelectedFile(file);
-    
-    // Create a preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
   
-  const handleCaptureFromCamera = async (file: File, preview: string) => {
-    setSelectedFile(file);
-    setImagePreview(preview);
-  };
+  // Use storage hook with custom options
+  const { uploadFile } = useSupabaseStorage({
+    bucket: 'pictures',
+    folder: `stores/${storeId}`
+  });
   
+  // Handle the complete upload process
   const handleUpload = async () => {
     if (!selectedFile || !user) {
       toast({
-        title: "No file selected",
-        description: "Please select or capture an image first or log in.",
+        title: "Upload Error",
+        description: "Missing file or user information",
         variant: "destructive"
       });
       return;
@@ -61,64 +60,71 @@ export const useImageHandlers = (storeId: string, refetchPictures: () => void) =
     setIsUploading(true);
     
     try {
-      // Generate a unique file name
-      const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `stores/${storeId}/${fileName}`;
+      // Handle offline mode
+      if (!isOnline) {
+        await captureOfflineImage(
+          storeId, 
+          selectedFile,
+          selectedFile.name
+        );
+        
+        toast({
+          title: "Saved Offline", 
+          description: "Picture saved locally and will be uploaded when you're online."
+        });
+        resetFile();
+        refetchPictures();
+        return;
+      }
       
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(filePath, selectedFile);
+      // Upload file to Supabase Storage
+      const fileUrl = await uploadFile(selectedFile);
       
-      if (uploadError) throw uploadError;
+      if (!fileUrl) {
+        throw new Error("Failed to upload file");
+      }
       
-      // Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(filePath);
-      
-      if (!publicUrlData) throw new Error("Failed to get public URL");
-      
-      // Create a record in the pictures table
+      // Save picture metadata to database
       const { error: dbError } = await supabase
         .from("pictures")
         .insert({
           store_id: storeId,
-          uploaded_by: user.id, // Add the required uploaded_by field
-          image_url: publicUrlData.publicUrl
+          uploaded_by: user.id,
+          image_url: fileUrl,
+          analysis_data: []
         });
       
-      if (dbError) throw dbError;
+      if (dbError) {
+        throw dbError;
+      }
       
       toast({
-        title: "Upload successful",
-        description: "The image has been uploaded successfully.",
+        title: "Upload Successful", 
+        description: "Picture uploaded successfully!"
       });
       
-      // Reset state
-      setSelectedFile(null);
-      setImagePreview(null);
-      
-      // Refresh pictures
+      resetFile();
       refetchPictures();
+      
     } catch (error) {
-      handleError(error, {
-        fallbackMessage: "Failed to upload image",
-        operation: 'uploadImage',
-        additionalData: { storeId }
+      console.error("Error uploading picture:", error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to upload picture. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setIsUploading(false);
     }
   };
-  
+
   return {
     selectedFile,
     imagePreview,
     isUploading,
     handleFileChange,
     handleCaptureFromCamera,
-    handleUpload
+    handleUpload,
+    resetFile
   };
 };

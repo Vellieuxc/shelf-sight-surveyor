@@ -10,8 +10,8 @@ interface DialogsContainerProps {
   selectedFile: File | null;
   imagePreview: string | null;
   isUploading: boolean;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleUpload: () => void;
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleUpload: () => Promise<void>;
   handleCaptureFromCamera: (file: File, preview: string) => void;
 }
 
