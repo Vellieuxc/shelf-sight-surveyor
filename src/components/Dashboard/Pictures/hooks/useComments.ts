@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { Comment } from "../types";
@@ -7,6 +7,8 @@ import { Comment } from "../types";
 export function useComments(pictureId: string) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const isMounted = useRef(true);
+  const hasLoadedInitial = useRef(false);
   
   const { handleError } = useErrorHandling({
     source: 'database',
@@ -16,9 +18,8 @@ export function useComments(pictureId: string) {
 
   // Memoize the fetch comments function to avoid recreating it on every render
   const fetchComments = useCallback(async () => {
-    // Only proceed if we have a valid pictureId
-    if (!pictureId) {
-      setIsLoading(false);
+    // Only proceed if we have a valid pictureId and haven't already loaded comments
+    if (!pictureId || (!isLoading && hasLoadedInitial.current)) {
       return;
     }
 
@@ -39,10 +40,14 @@ export function useComments(pictureId: string) {
       
       console.log("Comments data received:", commentsData);
       
+      // If component unmounted during the fetch, don't update state
+      if (!isMounted.current) return;
+      
       // If we have no comments, set empty array and return early
       if (!commentsData || commentsData.length === 0) {
         setComments([]);
         setIsLoading(false);
+        hasLoadedInitial.current = true;
         return;
       }
       
@@ -60,6 +65,9 @@ export function useComments(pictureId: string) {
         // Continue with default user names
       }
       
+      // If component unmounted during the fetch, don't update state
+      if (!isMounted.current) return;
+      
       // Create a lookup map of profiles by userId
       const profilesMap = new Map();
       if (profilesData) {
@@ -74,9 +82,7 @@ export function useComments(pictureId: string) {
         
         const profile = profilesMap.get(comment.user_id);
         if (profile) {
-          userName = profile.first_name && profile.last_name 
-            ? `${profile.first_name} ${profile.last_name}` 
-            : profile.email || "Unknown User";
+          userName = profile.email || "Unknown User";
         }
         
         return {
@@ -88,23 +94,47 @@ export function useComments(pictureId: string) {
       setComments(commentsWithUser);
     } catch (error) {
       console.error("Error fetching comments:", error);
-      handleError(error, {
-        operation: 'fetchComments',
-        fallbackMessage: "Failed to load comments",
-        additionalData: { pictureId },
-        showToast: true
-      });
-      // Set empty comments array to prevent eternal loading state
-      setComments([]);
+      if (isMounted.current) {
+        handleError(error, {
+          operation: 'fetchComments',
+          fallbackMessage: "Failed to load comments",
+          additionalData: { pictureId },
+          showToast: true
+        });
+        // Set empty comments array to prevent eternal loading state
+        setComments([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+        hasLoadedInitial.current = true;
+      }
     }
   }, [pictureId, handleError]);
   
   // Fetch comments once when component mounts or pictureId changes
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    // Reset state when pictureId changes
+    if (pictureId) {
+      setIsLoading(true);
+      hasLoadedInitial.current = false;
+      fetchComments();
+    }
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted.current = false;
+    };
+  }, [pictureId, fetchComments]);
+
+  // Reset the isMounted ref when the component remounts
+  useEffect(() => {
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const addComment = useCallback((newComment: Comment) => {
     setComments(prevComments => [newComment, ...prevComments]);

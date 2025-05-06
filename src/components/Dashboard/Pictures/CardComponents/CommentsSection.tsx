@@ -15,7 +15,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   
   return (
     <div className="p-3 pt-0 border-t">
-      <PictureComment pictureId={pictureId} />
+      <PictureComment key={pictureId} pictureId={pictureId} />
     </div>
   );
 };
