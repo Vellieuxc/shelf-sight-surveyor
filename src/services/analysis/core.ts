@@ -46,6 +46,24 @@ export async function invokeAnalysisFunction(
   }
   
   try {
+    // Fetch existing analysis data as fallback
+    let existingData = null;
+    try {
+      const { data: pictureData } = await supabase
+        .from('pictures')
+        .select('analysis_data')
+        .eq('id', imageId)
+        .single();
+        
+      existingData = pictureData?.analysis_data;
+      if (existingData) {
+        console.log(`Found existing analysis data for ${imageId}`);
+      }
+    } catch (fetchError) {
+      console.warn(`Could not retrieve existing analysis data for ${imageId}:`, fetchError);
+      // Continue without existing data
+    }
+    
     // Pre-validate if image is accessible
     try {
       console.log(`Pre-validating image access at: ${imageUrl}`);
@@ -80,8 +98,9 @@ export async function invokeAnalysisFunction(
     const response = await analyzeWithOcr(imageUrl, imageId, {
       includeConfidence,
       timeout,
-      maxImageSize
-    });
+      maxImageSize,
+      forceReanalysis: options.forceReanalysis
+    }, existingData);
     
     // Handle errors from OCR service
     if (!response.success) {

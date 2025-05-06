@@ -9,7 +9,8 @@
 import { AnalysisOptions, AnalysisResponse } from "./types";
 
 // Configuration for the OCR API endpoint
-const OCR_API_URL = import.meta.env.VITE_OCR_API_URL || 'http://localhost:8000/analyze';
+// If OCR API is not available, use null to indicate it's not accessible
+const OCR_API_URL = import.meta.env.VITE_OCR_API_URL || null;
 
 /**
  * Sends an image to the OCR analyzer API for processing
@@ -26,7 +27,35 @@ export async function invokeOcrAnalysis(
 ): Promise<AnalysisResponse> {
   console.log(`Invoking OCR analysis for image ${imageId}`);
   
+  // Check if OCR API URL is configured
+  if (!OCR_API_URL) {
+    console.warn('OCR API URL is not configured. Analysis will not be performed.');
+    return {
+      success: false,
+      jobId: `ocr-unavailable-${Date.now()}`,
+      status: 'error',
+      data: [],
+      error: 'OCR service is not configured or unavailable. Please set VITE_OCR_API_URL environment variable.'
+    };
+  }
+  
   try {
+    // Check if the service is reachable before making the actual request
+    try {
+      // Attempt a lightweight connection check
+      const pingResponse = await fetch(OCR_API_URL, { 
+        method: 'HEAD',
+        signal: AbortSignal.timeout(3000) // 3 second timeout for the ping
+      });
+      
+      if (!pingResponse.ok) {
+        throw new Error(`OCR service unavailable (HTTP ${pingResponse.status})`);
+      }
+    } catch (pingError) {
+      console.warn('OCR service is not reachable:', pingError);
+      throw new Error('OCR service is currently unavailable. Please try again later.');
+    }
+    
     // Prepare the request to the OCR API
     const response = await fetch(OCR_API_URL, {
       method: 'POST',

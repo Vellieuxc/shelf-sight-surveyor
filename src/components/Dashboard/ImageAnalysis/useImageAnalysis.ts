@@ -70,6 +70,7 @@ export const useImageAnalysis = (storeId?: string) => {
   } = useImageAnalyzer({ 
     selectedImage, 
     currentPictureId,
+    existingAnalysisData: pictureAnalysisData,
     onAnalysisComplete: async (data) => {
       saveAnalysisData(data);
     }

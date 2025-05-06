@@ -7,6 +7,7 @@ interface UseImageAnalyzerOptions {
   selectedImage: string | null;
   currentPictureId: string | null;
   onAnalysisComplete?: (data: AnalysisData[]) => void;
+  existingAnalysisData?: AnalysisData[] | null;
 }
 
 /**
@@ -16,6 +17,7 @@ export const useImageAnalyzer = ({
   selectedImage,
   currentPictureId,
   onAnalysisComplete,
+  existingAnalysisData = null,
 }: UseImageAnalyzerOptions) => {
   const { toast } = useToast();
   
@@ -58,32 +60,51 @@ export const useImageAnalyzer = ({
         description: "Your image is being analyzed...",
       });
       
-      // Analyze the image directly
-      const results = await processAnalysis(selectedImage, currentPictureId);
+      // Analyze the image directly, passing existing analysis data as fallback
+      const results = await processAnalysis(selectedImage, currentPictureId, existingAnalysisData);
       
       if (results) {
         setAnalysisData(results);
         
         toast({
           title: "Analysis Complete",
-          description: `Analyzed ${results.length} items in image`,
+          description: `Analyzed data available for image`,
+        });
+      } else if (existingAnalysisData) {
+        // Use existing data if no new results and we have existing data
+        setAnalysisData(existingAnalysisData);
+        
+        toast({
+          title: "Using Existing Analysis",
+          description: "Analysis service unavailable. Displaying existing data.",
         });
       } else {
         console.log("No results returned from processAnalysis");
         
         toast({
           title: "Analysis Issue",
-          description: "No items were detected in the image",
+          description: "No data available for the image",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Analysis error:", error);
-      toast({
-        title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
+      
+      // If we have existing data, use it despite the error
+      if (existingAnalysisData) {
+        setAnalysisData(existingAnalysisData);
+        
+        toast({
+          title: "Using Existing Analysis",
+          description: "Analysis failed. Displaying existing data.",
+        });
+      } else {
+        toast({
+          title: "Analysis Failed",
+          description: error instanceof Error ? error.message : "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
     } finally {
       completeAnalysis();
     }
