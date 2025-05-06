@@ -2,6 +2,7 @@
 import { assertEquals, assertExists, assertRejects } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { stub, restore } from "https://deno.land/std@0.168.0/testing/mock.ts";
 import * as claudeService from "../claude-service.ts";
+import { fetchAndConvertImageToBase64 } from "../utils/image-utils.ts";
 import { transformAnalysisData } from "../transformers.ts";
 
 // Mock global fetch to avoid making real API calls
@@ -26,9 +27,8 @@ Deno.test("fetchAndConvertImageToBase64: handles large images without stack over
       });
     });
     
-    // Access and invoke the private fetchAndConvertImageToBase64 function using Deno's Reflect API
-    // @ts-ignore - accessing private function for testing
-    const base64Result = await claudeService.fetchAndConvertImageToBase64("https://example.com/test.jpg", "test-request-id");
+    // Call the function directly
+    const base64Result = await fetchAndConvertImageToBase64("https://example.com/test.jpg", "test-request-id");
     
     // Verify we got a base64 string back
     assertEquals(typeof base64Result, "string");

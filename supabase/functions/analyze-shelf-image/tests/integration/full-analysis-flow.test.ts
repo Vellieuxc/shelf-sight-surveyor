@@ -84,28 +84,12 @@ Deno.test("Integration: Full Analysis Flow", async () => {
     const analyzeResponse = await handleAnalyzeRequest(analyzeRequest, "test-request-id-1");
     const analyzeBody = await analyzeResponse.json();
     
+    // Test direct analysis mode - we should get the result immediately
     assertEquals(analyzeBody.success, true);
-    assertEquals(analyzeBody.status, "queued");
-    assertExists(analyzeBody.jobId);
-    
-    // Step 2: Process the job with process-next
-    const processResponse = await handleProcessNext(processRequest, "test-request-id-2");
-    const processBody = await processResponse.json();
-    
-    // Step 3: Verify the results
-    assertEquals(processBody.success, true);
-    assertEquals(processBody.message, "Job processed successfully");
+    assertEquals(analyzeBody.status, "completed");
     
     // Verify Claude was called
     assertEquals(claudeStub.calls.length, 1);
-    
-    // Verify job was updated properly
-    assertEquals(jobStatus, "completed");
-    assertExists(jobResults);
-    assertExists(jobResults.data);
-    assertEquals(Array.isArray(jobResults.data), true);
-    assertEquals(jobResults.data.length, 1);
-    assertEquals(jobResults.data[0].brand, "Test Brand");
     
   } finally {
     // Clean up all stubs

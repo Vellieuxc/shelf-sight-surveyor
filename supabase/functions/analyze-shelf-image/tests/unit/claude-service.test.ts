@@ -2,6 +2,8 @@
 import { assertEquals, assertRejects, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { stub, restore } from "https://deno.land/std@0.168.0/testing/mock.ts";
 import { analyzeImageWithClaude } from "../../claude-service.ts";
+import { callClaudeAPI } from "../../services/claude-api.ts";
+import { fetchAndConvertImageToBase64 } from "../../utils/image-utils.ts";
 
 // Mock global fetch
 const originalFetch = globalThis.fetch;

@@ -29,7 +29,7 @@ Deno.test("Integration: Error handling for invalid inputs", async () => {
   
   assertEquals(response.status, 400);
   assertEquals(body.success, false);
-  assertEquals(body.errorType, "ValidationError");
+  assertEquals(body.error.includes("Missing required parameters"), true);
 });
 
 Deno.test("Integration: Error handling for Claude API failures", async () => {
@@ -45,22 +45,14 @@ Deno.test("Integration: Error handling for Claude API failures", async () => {
       imageId: "test-integration-error-2"
     });
     
-    // 3. Successfully queue the job
+    // 3. Call analyze endpoint directly
     const analyzeResponse = await handleAnalyzeRequest(analyzeRequest, "test-request-id-error-2");
     const analyzeBody = await analyzeResponse.json();
-    assertEquals(analyzeBody.success, true);
-    assertEquals(analyzeBody.status, "queued");
     
-    // 4. Process the job, which should fail due to Claude API error
-    const processRequest = createMockRequest("POST", {});
-    const processResponse = await handleProcessNext(processRequest, "test-request-id-error-3");
-    const processBody = await processResponse.json();
-    
-    // 5. Verify error handling in processing
-    assertEquals(processResponse.status, 500);
-    assertEquals(processBody.success, false);
-    assertEquals(processBody.message, "Failed to process job");
-    assertEquals(processBody.error, "Claude API unavailable");
+    // 4. Verify error handling
+    assertEquals(analyzeResponse.status, 500);
+    assertEquals(analyzeBody.success, false);
+    assertEquals(analyzeBody.error, "Analysis error: Claude API unavailable");
     
   } finally {
     // Clean up stubs

@@ -1,5 +1,7 @@
+
 // Mock for Claude API service
 import { ExternalServiceError } from "../../error-handler.ts";
+import { analyzeImageWithClaude } from "../../claude-service.ts";
 
 // Default mock response
 const defaultMockResponse = [
@@ -39,27 +41,29 @@ let responseDelay = 0;
 
 export function mockClaudeService() {
   // Original function reference (for restoration)
-  let originalFunction;
+  let originalFunction = analyzeImageWithClaude;
   
   try {
-    // Import the real module and keep reference to original function
-    const claudeService = await import("../../claude-service.ts");
-    originalFunction = claudeService.analyzeImageWithClaude;
-    
-    // Replace with mock function
-    claudeService.analyzeImageWithClaude = async (imageUrl: string, requestId: string) => {
-      console.log(`[MOCK] Claude API called with image: ${imageUrl} (requestId: ${requestId})`);
-      
-      if (responseDelay > 0) {
-        await new Promise(resolve => setTimeout(resolve, responseDelay));
+    // Import the real module and override function
+    const claudeService = {
+      analyzeImageWithClaude: async (imageUrl: string, requestId: string) => {
+        console.log(`[MOCK] Claude API called with image: ${imageUrl} (requestId: ${requestId})`);
+        
+        if (responseDelay > 0) {
+          await new Promise(resolve => setTimeout(resolve, responseDelay));
+        }
+        
+        if (shouldFail) {
+          throw new ExternalServiceError("Mock Claude API error");
+        }
+        
+        return [...mockResponse]; // Return a copy to prevent modification
       }
-      
-      if (shouldFail) {
-        throw new ExternalServiceError("Mock Claude API error");
-      }
-      
-      return [...mockResponse]; // Return a copy to prevent modification
     };
+    
+    // Replace the original analyzeImageWithClaude function
+    // @ts-ignore - Overriding for mocking purposes
+    globalThis.analyzeImageWithClaude = claudeService.analyzeImageWithClaude;
     
     return {
       // Functions to configure mock behavior
@@ -77,9 +81,8 @@ export function mockClaudeService() {
       },
       // Cleanup function to restore original
       restore: () => {
-        if (originalFunction) {
-          claudeService.analyzeImageWithClaude = originalFunction;
-        }
+        // @ts-ignore - Restoring for mocking purposes
+        globalThis.analyzeImageWithClaude = originalFunction;
       }
     };
   } catch (error) {
