@@ -9,7 +9,7 @@
 import { AnalysisOptions, AnalysisResponse } from "./types";
 
 // Configuration for the OCR API endpoint
-const OCR_API_URL = process.env.OCR_API_URL || 'http://localhost:8000/analyze';
+const OCR_API_URL = import.meta.env.VITE_OCR_API_URL || 'http://localhost:8000/analyze';
 
 /**
  * Sends an image to the OCR analyzer API for processing
