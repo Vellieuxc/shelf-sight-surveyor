@@ -16,18 +16,34 @@ export async function callClaudeAPI(base64Image: string, prompt: string, request
   if (!ANTHROPIC_API_KEY) {
     throw new Error("Missing ANTHROPIC_API_KEY environment variable");
   }
-  
-  // Validate base64 data before sending to Claude
+
+  // First level of validation - check if we have any data
   if (!base64Image || typeof base64Image !== 'string') {
+    console.error(`Empty or non-string base64 data provided [${requestId}]`);
     throw new Error("Invalid base64 image data: image data is empty or not a string");
   }
   
-  // Check if the base64 data appears valid
-  if (!isValidBase64(base64Image)) {
-    console.error(`Invalid base64 image data detected [${requestId}]`);
-    throw new Error("Invalid base64 image data format");
+  // Sample validation - check first few and last few characters
+  const firstChars = base64Image.substring(0, 20);
+  const lastChars = base64Image.substring(base64Image.length - 20);
+  console.log(`Base64 validation check - first 20 chars: ${firstChars}, last 20 chars: ${lastChars} [${requestId}]`);
+  
+  // Check for strict Claude requirements for base64
+  // Only include standard Base64 characters and padding
+  const strictBase64Regex = /^[A-Za-z0-9+/]+=*$/;
+  if (!strictBase64Regex.test(base64Image)) {
+    console.error(`Base64 data contains invalid characters [${requestId}]`);
+    throw new Error("Base64 data contains invalid characters");
   }
   
+  // Check if string length is divisible by 4 (required for valid base64)
+  if (base64Image.length % 4 !== 0) {
+    console.error(`Base64 data length not divisible by 4: ${base64Image.length} [${requestId}]`);
+    throw new Error("Base64 data has invalid length (must be multiple of 4)");
+  }
+  
+  // Log base64 image length for debugging
+  console.log(`Calling Claude API with base64 image length: ${base64Image.length} [${requestId}]`);
   console.log(`Calling Claude API with model: claude-3-opus-20240229 [${requestId}]`);
   
   try {
@@ -101,38 +117,4 @@ export async function callClaudeAPI(base64Image: string, prompt: string, request
     
     throw error;
   }
-}
-
-/**
- * Validates if the string appears to be valid base64 data
- * 
- * @param str The string to validate
- * @returns boolean indicating if the string appears to be valid base64
- */
-function isValidBase64(str: string): boolean {
-  // Basic validation - check if string is empty
-  if (!str || str.length === 0) {
-    return false;
-  }
-  
-  // Check string length - base64 strings should be a multiple of 4
-  if (str.length % 4 !== 0) {
-    console.warn("Base64 string length is not a multiple of 4");
-    // We'll still continue as some valid base64 can be padded
-  }
-  
-  // Check that the string only contains valid base64 characters
-  const base64Regex = /^[A-Za-z0-9+/=]+$/;
-  if (!base64Regex.test(str)) {
-    return false;
-  }
-  
-  // Check for reasonable length - extremely long strings might indicate an issue
-  // Claude has a 5MB limit for images
-  if (str.length > 5 * 1024 * 1024) {
-    console.warn("Base64 string exceeds 5MB, which is Claude's limit");
-    return false;
-  }
-  
-  return true;
 }

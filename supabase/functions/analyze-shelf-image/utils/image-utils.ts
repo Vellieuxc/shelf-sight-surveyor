@@ -29,32 +29,21 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
       throw new Error(`Image too large: ${(blob.size / (1024 * 1024)).toFixed(2)}MB (max 10MB)`);
     }
     
-    // Use array buffer for more efficient conversion
-    const arrayBuffer = await blob.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    // Convert to base64 using a more memory-efficient chunked approach
-    let base64 = '';
-    const chunkSize = 4096; // Use smaller chunks to avoid call stack issues (4KB)
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-      base64 += binaryToBase64Chunk(chunk);
+    // Read blob as base64 directly - a more reliable approach
+    try {
+      // Use array buffer approach
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Add a small delay every few chunks to avoid stack overflow on very large images
-      if (i > 0 && i % (chunkSize * 32) === 0) {
-        await new Promise(resolve => setTimeout(resolve, 0));
-      }
+      const base64 = encodeBase64(uint8Array);
+      
+      console.log(`Successfully converted image to base64, length: ${base64.length} [${requestId}]`);
+      
+      return base64;
+    } catch (encodingError) {
+      console.error(`Error encoding image to base64 [${requestId}]:`, encodingError);
+      throw new Error(`Failed to encode image: ${encodingError.message}`);
     }
-    
-    // Additional validation before returning
-    if (!isValidBase64(base64)) {
-      console.error(`Generated invalid base64 data [${requestId}]`);
-      throw new Error("Generated invalid base64 data");
-    }
-    
-    console.log(`Successfully converted image to base64 [${requestId}]`);
-    return base64;
   } catch (error) {
     console.error(`Error converting image to base64 [${requestId}]:`, error);
     throw new Error(`Failed to process image: ${error.message}`);
@@ -62,34 +51,66 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
 }
 
 /**
- * Helper function to convert binary data to base64 without stack overflow
- * Optimized for smaller chunks of data
+ * Reliable base64 encoding for Deno using built-in TextEncoder and btoa
  */
-function binaryToBase64Chunk(bytes: Uint8Array): string {
+function encodeBase64(bytes: Uint8Array): string {
+  // For small input, use standard approach
+  if (bytes.length < 10000) {
+    return encodeSmallChunk(bytes);
+  }
+  
+  // For larger inputs, use chunked approach
+  let result = '';
+  const chunkSize = 3000; // Process ~4KB chunks at a time to avoid stack issues
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    result += encodeSmallChunk(chunk);
+  }
+  
+  return result;
+}
+
+/**
+ * Encode a small chunk of data to base64
+ */
+function encodeSmallChunk(bytes: Uint8Array): string {
+  // Ensure we're working with a buffer with valid bytes
   if (bytes.length === 0) return '';
   
   try {
-    // For Deno environment, use more efficient btoa approach
-    // Convert bytes to binary string
-    const binaryString = Array.from(bytes)
+    // Use standard base64 encoding by converting to binary string first
+    const binary = Array.from(bytes)
       .map(byte => String.fromCharCode(byte))
       .join('');
       
-    return btoa(binaryString);
+    return btoa(binary);
   } catch (error) {
-    console.error("Base64 conversion error:", error);
-    throw new Error("Base64 conversion failed: " + error.message);
+    throw new Error(`Base64 encoding error: ${error.message}`);
   }
 }
 
 /**
  * Validate that the string is proper base64 data
+ * Enhanced to catch more edge cases
  */
 function isValidBase64(str: string): boolean {
-  // Basic validation - check the string isn't empty and has valid characters
+  // Basic validation - check if string is empty
   if (!str || str.length === 0) return false;
   
   // Check that the string only contains valid base64 characters
   const base64Regex = /^[A-Za-z0-9+/=]+$/;
-  return base64Regex.test(str);
+  if (!base64Regex.test(str)) return false;
+  
+  // Check padding - base64 strings should be properly padded
+  if (str.length % 4 !== 0) return false;
+  
+  // Check padding characters are only at the end
+  const paddingMatch = str.match(/=+$/);
+  if (paddingMatch) {
+    const paddingLength = paddingMatch[0].length;
+    if (paddingLength > 2) return false; // Max padding is 2 characters
+  }
+  
+  return true;
 }
