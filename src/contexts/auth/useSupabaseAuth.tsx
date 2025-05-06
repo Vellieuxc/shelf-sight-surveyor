@@ -7,8 +7,13 @@ import {
   handleSignUp as authSignUp,
   handleSignOut as authSignOut
 } from "./utils/authUtils";
-import { clearExposedTokens, shouldRefreshToken } from "@/utils/securityUtils/tokenManagement";
-import { useEffect } from "react";
+import { 
+  clearExposedTokens, 
+  shouldRefreshToken,
+  refreshTokenIfNeeded,
+  verifyTokenIntegrity
+} from "@/utils/securityUtils/tokenManagement";
+import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useSupabaseAuth = () => {
@@ -32,16 +37,40 @@ export const useSupabaseAuth = () => {
     return () => clearInterval(intervalId);
   }, []);
   
+  // Handle token refresh function
+  const handleTokenRefresh = useCallback(async () => {
+    try {
+      await supabase.auth.refreshSession();
+      console.debug('Token refreshed successfully');
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+    }
+  }, []);
+  
   // Security enhancement: Handle token refresh when close to expiration
   useEffect(() => {
     if (!session) return;
     
-    // Check if token needs refresh (5 minutes before expiration)
-    if (shouldRefreshToken(session.expires_at, 5)) {
-      // Use the built-in Supabase token refresh
-      supabase.auth.refreshSession();
+    // Verify token integrity
+    if (session.access_token && !verifyTokenIntegrity(session.access_token)) {
+      // If token integrity check fails, sign out for security
+      console.warn('Token integrity check failed, signing out');
+      authSignOut().then(() => {
+        if (navigate) navigate("/auth");
+      });
+      return;
     }
-  }, [session]);
+    
+    // Set up initial token refresh check
+    refreshTokenIfNeeded(session, handleTokenRefresh);
+    
+    // Set up periodic token refresh checks (every 4 minutes)
+    const refreshCheckInterval = setInterval(() => {
+      refreshTokenIfNeeded(session, handleTokenRefresh);
+    }, 240000); // Check every 4 minutes
+    
+    return () => clearInterval(refreshCheckInterval);
+  }, [session, handleTokenRefresh, navigate]);
 
   // Handle user sign in
   const signIn = async (email: string, password: string) => {

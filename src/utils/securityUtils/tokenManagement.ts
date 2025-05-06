@@ -68,3 +68,51 @@ export const clearExposedTokens = (): void => {
     }
   });
 };
+
+/**
+ * Refresh authentication token if it's nearing expiration
+ * @param session Current session
+ * @param refreshFunction Function to call to refresh the token
+ * @param thresholdMinutes Minutes before expiration to trigger refresh
+ */
+export const refreshTokenIfNeeded = async (
+  session: Session | null,
+  refreshFunction: () => Promise<void>,
+  thresholdMinutes = 5
+): Promise<void> => {
+  if (!session) return;
+  
+  try {
+    if (shouldRefreshToken(session.expires_at, thresholdMinutes)) {
+      console.debug('Token refresh needed, refreshing...');
+      await refreshFunction();
+    }
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+  }
+};
+
+/**
+ * Verify the integrity of an authentication token
+ * @param token The token to verify
+ * @returns Boolean indicating if the token passes basic integrity checks
+ */
+export const verifyTokenIntegrity = (token?: string | null): boolean => {
+  if (!token) return false;
+  
+  try {
+    // Basic JWT structure validation (header.payload.signature)
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    
+    // Each part should be base64url encoded
+    const validBase64url = parts.every(part => 
+      /^[A-Za-z0-9_-]+$/.test(part)
+    );
+    
+    return validBase64url;
+  } catch (e) {
+    console.error('Token integrity check failed:', e);
+    return false;
+  }
+};
