@@ -22,6 +22,8 @@ Follow these specific requirements:
 7. Use a hierarchical structure organized by shelf position
 8. Focus on facings, not the items behind the facings
 
+A facing is defined as a SKU visible on the front of the shelf, facing the customer. The product stacked behind the front-facing units on the shelf is not a facing. Example: If a soda brand occupies three positions side-by-side on a shelf, it has 3 facings.
+
 ---
 
 ### 📑 Output Structure:
@@ -83,9 +85,9 @@ Provide the JSON output with this structure:
 
 ### Guidelines for Stock Levels:
 
-* "high": More than 5 facings of the same product visible
-* "medium": 3-5 facings visible
-* "low": 1-2 facings visible
+* "high": More than 4 of the same SKU stacked behind the facing
+* "medium": 3-4 of the same SKU stacked behind the facing
+* "low": 0-2 of the same SKU stacked behind the facing
 * "out_of_stock": Empty space where product should be
 
 ### Guidelines for Positions:
