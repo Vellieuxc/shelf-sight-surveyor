@@ -32,9 +32,11 @@ const PictureCardContent: React.FC<PictureCardContentProps> = ({
           className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
         />
       </div>
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 sm:p-3">
         <div className="flex justify-between items-center">
-          <span className="text-xs text-white truncate">{format(uploadDate, "MMM d, yyyy")}</span>
+          <span className="text-xs sm:text-sm text-white truncate">
+            {format(uploadDate, "MMM d, yyyy")}
+          </span>
           <PictureAnalysisBadge hasAnalysis={hasAnalysis} />
         </div>
       </div>
@@ -42,4 +44,5 @@ const PictureCardContent: React.FC<PictureCardContentProps> = ({
   );
 };
 
-export default PictureCardContent;
+// Use React.memo for performance optimization
+export default React.memo(PictureCardContent);

@@ -48,6 +48,7 @@ const MobileFooter: React.FC<MobileFooterProps> = ({
         <DeletePictureDialog
           pictureId={pictureId}
           onDeleted={onDelete || (() => {})}
+          className="touch-target"
         />
       )}
       

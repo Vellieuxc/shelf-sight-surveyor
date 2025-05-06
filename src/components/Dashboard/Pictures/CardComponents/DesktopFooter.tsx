@@ -53,6 +53,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({
         <DeletePictureDialog
           pictureId={pictureId}
           onDeleted={onDelete || (() => {})}
+          className="flex-1"
         />
       )}
       
@@ -61,7 +62,7 @@ const DesktopFooter: React.FC<DesktopFooterProps> = ({
         onToggle={toggleComments}
         pictureId={pictureId}
         size={buttonSize}
-        className="w-full"
+        className="w-full sm:flex-1 md:w-auto"
       />
     </CardFooter>
   );

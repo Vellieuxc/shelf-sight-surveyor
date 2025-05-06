@@ -1,48 +1,51 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
 import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useCommentCount } from "../hooks/useCommentCount";
 
 interface CommentsButtonProps {
   showComments: boolean;
   onToggle: () => void;
-  pictureId: string; // Add pictureId prop
+  pictureId: string;
   size?: "sm" | "default";
   className?: string;
 }
 
-const CommentsButton: React.FC<CommentsButtonProps> = ({ 
-  showComments, 
-  onToggle, 
-  pictureId, // Use the pictureId prop
+const CommentsButton: React.FC<CommentsButtonProps> = ({
+  showComments,
+  onToggle,
+  pictureId,
   size = "default",
-  className = ""
+  className
 }) => {
-  // Use the hook to get the actual comment count
   const { count, isLoading } = useCommentCount(pictureId);
   
-  const hasComments = typeof count === 'number' && count > 0;
+  const iconSize = size === "sm" ? 16 : 18;
   
   return (
     <Button
-      variant={showComments ? "secondary" : "outline"}
+      variant="outline"
       size={size}
-      className={className}
       onClick={onToggle}
+      className={cn(
+        "transition-colors", 
+        showComments ? "bg-muted" : "",
+        className
+      )}
+      aria-label={showComments ? "Hide comments" : "Show comments"}
     >
-      <MessageSquare className={`mr-1 ${size === "sm" ? "h-3 w-3" : "h-4 w-4"}`} />
-      <span className={size === "sm" ? "text-xs" : ""}>
-        {showComments 
-          ? "Hide Comments"
-          : isLoading
-            ? "Comments"
-            : hasComments 
-              ? `Comments (${count})` 
-              : "Comments"}
-      </span>
+      <MessageSquare className="mr-2" size={iconSize} />
+      <span className="mr-1">Comments</span>
+      {!isLoading && count > 0 && (
+        <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-xs">
+          {count}
+        </span>
+      )}
     </Button>
   );
 };
 
-export default CommentsButton;
+// Use React.memo to prevent unnecessary re-renders
+export default React.memo(CommentsButton);
