@@ -78,6 +78,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
         variant: "destructive",
       });
     } finally {
+      // Ensure we set isSubmitting back to false to prevent the interface from remaining frozen
       setIsSubmitting(false);
     }
   };
@@ -92,7 +93,10 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
         disabled={isSubmitting}
       />
       <div className="flex justify-end">
-        <Button type="submit" disabled={!comment.trim() || isSubmitting}>
+        <Button 
+          type="submit" 
+          disabled={!comment.trim() || isSubmitting}
+        >
           {isSubmitting ? "Posting..." : "Post Comment"}
         </Button>
       </div>
