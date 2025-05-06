@@ -25,6 +25,15 @@ const StoresRoute = () => {
 const AnalyzeRoute = () => {
   const { storeId } = useParams<{ storeId: string }>();
   if (!storeId) return <Navigate to="/dashboard" />;
+  
+  // Get the user profile to check role
+  const { profile } = useAuth();
+  
+  // If user is crew, redirect to store view
+  if (profile?.role === "crew") {
+    return <Navigate to={`/dashboard/stores/${storeId}`} />;
+  }
+  
   return (
     <ErrorBoundary>
       <ImageAnalyzer storeId={storeId} />
@@ -55,6 +64,7 @@ const DashboardContent = () => {
         <Route index element={<ProjectConnect />} />
         <Route path="projects/:projectId/stores" element={<StoresRoute />} />
         <Route path="stores/:storeId" element={<StoreViewRoute />} />
+        {/* Note: Crew can still navigate to the analyze route, but they will be redirected */}
         <Route path="stores/:storeId/analyze" element={<AnalyzeRoute />} />
       </Routes>
     );

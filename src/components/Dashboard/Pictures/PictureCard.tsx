@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Picture } from "@/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import PictureComment from "./PictureComment";
 import { useResponsive } from "@/hooks/use-mobile";
 import DeletePictureDialog from "./DeletePictureDialog";
 import { useErrorHandling } from "@/hooks/use-error-handling";
+import { useAuth } from "@/contexts/auth";
 
 interface PictureCardProps {
   picture: Picture;
@@ -41,6 +43,10 @@ const PictureCard: React.FC<PictureCardProps> = ({
     operation: 'fetchCreator',
     silent: true // Don't show error toasts for this non-critical feature
   });
+  
+  // Get the user profile to check role
+  const { profile } = useAuth();
+  const isCrewOnly = profile?.role === "crew";
   
   // Responsive button size based on screen size
   const buttonSize = isMobile ? "sm" : "default";
@@ -136,12 +142,15 @@ const PictureCard: React.FC<PictureCardProps> = ({
           <span>Download</span>
         </Button>
         
-        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="flex-1">
-          <Button variant="ghost" size={buttonSize} className="w-full">
-            <Microscope className="mr-1" size={iconSize} />
-            <span>Analyze</span>
-          </Button>
-        </Link>
+        {/* Only show Analyze button if user is not crew */}
+        {!isCrewOnly && (
+          <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="flex-1">
+            <Button variant="ghost" size={buttonSize} className="w-full">
+              <Microscope className="mr-1" size={iconSize} />
+              <span>Analyze</span>
+            </Button>
+          </Link>
+        )}
         
         {allowDelete && (
           <DeletePictureDialog
@@ -172,12 +181,15 @@ const PictureCard: React.FC<PictureCardProps> = ({
           <span className="text-xs">Download</span>
         </Button>
         
-        <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="flex-1">
-          <Button variant="ghost" size="sm" className="w-full touch-target">
-            <Microscope className="mr-1" size={16} />
-            <span className="text-xs">Analyze</span>
-          </Button>
-        </Link>
+        {/* Only show Analyze button if user is not crew */}
+        {!isCrewOnly && (
+          <Link to={`/dashboard/stores/${picture.store_id}/analyze?pictureId=${picture.id}`} className="flex-1">
+            <Button variant="ghost" size="sm" className="w-full touch-target">
+              <Microscope className="mr-1" size={16} />
+              <span className="text-xs">Analyze</span>
+            </Button>
+          </Link>
+        )}
         
         {allowDelete && (
           <DeletePictureDialog
