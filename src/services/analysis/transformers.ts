@@ -23,13 +23,22 @@ export function transformAnalysisResult(response: any): any {
   
   try {
     // Check if response has the expected structure
-    if (typeof response.data === 'object' && 
-        (response.data.metadata || response.data.shelves)) {
-      console.log("Found structured analysis data");
-      return response.data;
-    } else if (Array.isArray(response.data)) {
-      console.log("Found array data format");
-      return response.data;
+    if (typeof response.data === 'object') {
+      // Handle structured format with metadata and shelves
+      if (response.data.metadata !== undefined || response.data.shelves !== undefined) {
+        console.log("Found structured analysis data");
+        return response.data;
+      } 
+      // Handle array format
+      else if (Array.isArray(response.data)) {
+        console.log("Found array data format");
+        return response.data;
+      } 
+      // Handle other object formats
+      else {
+        console.log("Using raw response data");
+        return response.data;
+      }
     } else {
       console.log("Using raw response data");
       return response.data;
@@ -51,14 +60,16 @@ export function ensureAnalysisDataType(data: Json | null): any {
   }
   
   try {
-    // If data is already in the structured format with metadata and shelves
-    if (typeof data === 'object' && !Array.isArray(data) && 
-        ('metadata' in data || 'shelves' in data)) {
+    // If it's an array format
+    if (Array.isArray(data)) {
       return data;
     }
     
-    // If it's an array format
-    if (Array.isArray(data)) {
+    // If data is already in the structured format with metadata and shelves
+    // We need to cast to check for properties safely
+    const objData = data as Record<string, unknown>;
+    if (typeof data === 'object' && !Array.isArray(data) && 
+        ('metadata' in objData || 'shelves' in objData)) {
       return data;
     }
     
