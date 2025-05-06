@@ -1,100 +1,76 @@
 
+import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeShelfImage } from "@/services/analysis";
 import { AnalysisData } from "@/types";
+import { analyzeImage } from "@/services/analysis";
 import { useErrorHandling } from "@/hooks";
+import { useRenderPerformanceMonitor } from "@/utils/performance/renderOptimization";
 
-interface UseAnalysisProcessOptions {
+interface AnalysisProcessOptions {
   onComplete?: (data: AnalysisData[]) => void;
-  onError?: (error: unknown) => void;
 }
 
 /**
- * Hook for processing image analysis
+ * Hook for handling the analysis process
  */
-export function useAnalysisProcess(options: UseAnalysisProcessOptions = {}) {
+export function useAnalysisProcess({ onComplete }: AnalysisProcessOptions = {}) {
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { handleError } = useErrorHandling({
-    source: 'api',
-    componentName: 'AnalysisProcess',
-    operation: 'analyzeImage'
+    source: 'analysis',
+    componentName: 'AnalysisProcess'
   });
   
-  const { onComplete, onError } = options;
+  // Track rendering performance
+  useRenderPerformanceMonitor('useAnalysisProcess');
   
   /**
-   * Process the image analysis
+   * Process the image analysis request with error handling and retry logic
    */
-  const processAnalysis = async (
-    image: string,
-    imageId: string,
-    existingData: AnalysisData[] | null = null
+  const processAnalysis = useCallback(async (
+    imageUrl: string,
+    pictureId: string,
+    existingAnalysisData?: AnalysisData[] | null
   ): Promise<AnalysisData[] | null> => {
-    if (!image || !imageId) {
-      toast({
-        title: "Analysis Error",
-        description: "Missing image or identification information",
-        variant: "destructive",
-      });
-      return null;
-    }
+    // Measure performance for analysis process
+    const startTime = performance.now();
     
     try {
-      console.log("Analyzing image ID:", imageId);
+      setIsProcessing(true);
       
-      // Use the analysis service
-      const analysisResults = await analyzeShelfImage(image, imageId);
+      // Call the analysis service
+      console.log(`Starting analysis for picture ${pictureId}`);
+      const results = await analyzeImage(imageUrl, pictureId);
       
-      console.log("Analysis results received:", analysisResults ? (Array.isArray(analysisResults) ? analysisResults.length : "object") : "no results");
+      console.log(`Analysis complete for picture ${pictureId}`);
       
-      // If analysis failed but we have existing data, use that instead
-      if (!analysisResults && existingData) {
-        console.log("Using existing analysis data as fallback");
-        
-        toast({
-          title: "Analysis Notice",
-          description: "Using existing analysis data. OCR service unavailable.",
-          variant: "default",
-        });
-        
-        // Call the onComplete callback if provided
-        onComplete?.(existingData);
-        return existingData;
+      // If we have results, call the onComplete callback
+      if (results && onComplete) {
+        onComplete(results);
       }
       
-      // Call the onComplete callback if provided
-      if (analysisResults) {
-        onComplete?.(analysisResults);
-      }
+      // Measure and log processing time
+      const processingTime = (performance.now() - startTime) / 1000;
+      console.log(`Analysis processing completed in ${processingTime.toFixed(2)}s`);
       
-      return analysisResults;
+      return results;
     } catch (error) {
-      // If we have existing data, use it as a fallback
-      if (existingData) {
-        console.log("Error during analysis, using existing data as fallback");
-        
-        toast({
-          title: "Analysis Notice",
-          description: "Using existing analysis data. OCR service encountered an error.",
-          variant: "default",
-        });
-        
-        onComplete?.(existingData);
-        return existingData;
-      }
-      
+      // Handle the error with the error handling utility
       handleError(error, {
-        fallbackMessage: "Error analyzing image. Please try again.",
-        additionalData: { imageId },
-        useShadcnToast: true
+        fallbackMessage: "Image analysis failed",
+        operation: "processAnalysis",
+        additionalData: { pictureId }
       });
       
-      onError?.(error);
-      return null;
+      // Return existing data as fallback if available
+      return existingAnalysisData || null;
+    } finally {
+      setIsProcessing(false);
     }
-  };
+  }, [handleError, onComplete]);
   
   return {
+    isProcessing,
     processAnalysis
   };
 }

@@ -1,48 +1,73 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
-import PictureAnalysisBadge from "../PictureAnalysisBadge";
-import { CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import OptimizedImage from "@/components/common/OptimizedImage";
+import { useRenderPerformanceMonitor } from "@/utils/performance/renderOptimization";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PictureCardContentProps {
   imageUrl: string;
   createdAt: string;
   hasAnalysis: boolean;
-  onImageLoad: () => void;
-  imageLoaded: boolean;
+  onImageLoad?: () => void;
+  imageLoaded?: boolean;
 }
 
+/**
+ * Performance-optimized component for rendering the picture card content
+ */
 const PictureCardContent: React.FC<PictureCardContentProps> = ({
   imageUrl,
   createdAt,
   hasAnalysis,
   onImageLoad,
-  imageLoaded
+  imageLoaded = false,
 }) => {
-  const uploadDate = new Date(createdAt);
-
+  const [isLoaded, setIsLoaded] = useState(imageLoaded);
+  
+  // Monitor render performance
+  useRenderPerformanceMonitor('PictureCardContent');
+  
+  // Format the creation date
+  const displayDate = format(new Date(createdAt), "PPP");
+  
+  const handleImageLoad = () => {
+    setIsLoaded(true);
+    if (onImageLoad) onImageLoad();
+  };
+  
   return (
-    <CardContent className="p-0 relative aspect-video">
-      <div className={`w-full h-full ${!imageLoaded ? "bg-gray-200 animate-pulse" : ""}`}>
-        <img 
-          src={imageUrl} 
-          alt="Store picture" 
-          loading="lazy"
-          onLoad={onImageLoad}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+    <div className="relative">
+      {/* Show skeleton loader until image is loaded */}
+      {!isLoaded && (
+        <div className="absolute inset-0 w-full z-0">
+          <Skeleton className="w-full h-[200px] rounded-t-lg" />
+        </div>
+      )}
+      
+      {/* Optimized image with lazy loading and placeholder */}
+      <div className="w-full h-[200px] overflow-hidden">
+        <OptimizedImage
+          src={imageUrl}
+          alt={`Store picture from ${displayDate}`}
+          className="w-full h-full object-cover transition-transform hover:scale-105"
+          onLoad={handleImageLoad}
+          priority={false}
         />
       </div>
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 sm:p-3">
-        <div className="flex justify-between items-center">
-          <span className="text-xs sm:text-sm text-white truncate">
-            {format(uploadDate, "MMM d, yyyy")}
-          </span>
-          <PictureAnalysisBadge hasAnalysis={hasAnalysis} />
+      
+      {/* Analysis badge */}
+      {hasAnalysis && (
+        <div className="absolute top-2 right-2">
+          <Badge variant="secondary" className="bg-green-600 text-white hover:bg-green-700">
+            Analyzed
+          </Badge>
         </div>
-      </div>
-    </CardContent>
+      )}
+    </div>
   );
 };
 
-// Use React.memo for performance optimization
-export default React.memo(PictureCardContent);
+export default PictureCardContent;
