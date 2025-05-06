@@ -11,6 +11,8 @@ export function useComments(pictureId: string) {
   const isMounted = useRef(true);
   const hasLoadedInitial = useRef(false);
   const currentPictureId = useRef(pictureId);
+  const channelRef = useRef<any>(null);
+  const isRefreshing = useRef(false);
   
   const { handleError } = useErrorHandling({
     source: 'database',
@@ -26,13 +28,14 @@ export function useComments(pictureId: string) {
     }
     
     // Skip loading if we've already loaded and this isn't a forced refresh
-    if (!forceRefresh && hasLoadedInitial.current && pictureId === currentPictureId.current) {
+    if (!forceRefresh && hasLoadedInitial.current && pictureId === currentPictureId.current && !isRefreshing.current) {
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
+      isRefreshing.current = true;
       
       console.log(`Fetching comments for picture ${pictureId}, force refresh: ${forceRefresh}`);
       
@@ -54,6 +57,7 @@ export function useComments(pictureId: string) {
         hasLoadedInitial.current = true;
         currentPictureId.current = pictureId;
         setIsLoading(false);
+        isRefreshing.current = false;
         return;
       }
       
@@ -118,12 +122,15 @@ export function useComments(pictureId: string) {
         setIsLoading(false);
         hasLoadedInitial.current = true;
         currentPictureId.current = pictureId;
+        isRefreshing.current = false;
       }
     }
   }, [pictureId, handleError]);
   
   // Fetch comments when pictureId changes
   useEffect(() => {
+    isMounted.current = true;
+    
     // Reset state when pictureId changes
     if (pictureId !== currentPictureId.current) {
       setIsLoading(true);
@@ -159,22 +166,20 @@ export function useComments(pictureId: string) {
         console.log(`Subscription status for comments on picture ${pictureId}:`, status);
       });
     
+    // Store the channel reference for proper cleanup
+    channelRef.current = channel;
+    
     // Cleanup function
     return () => {
       console.log(`Cleaning up subscription for ${channelName}`);
       isMounted.current = false;
-      supabase.removeChannel(channel);
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [pictureId, fetchComments]);
-
-  // Reset the isMounted ref when the component remounts
-  useEffect(() => {
-    isMounted.current = true;
-    
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   // Force refresh the comments
   const refreshComments = useCallback(() => {

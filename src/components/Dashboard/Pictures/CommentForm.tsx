@@ -42,6 +42,9 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
       return;
     }
     
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     
     try {
@@ -78,7 +81,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
         variant: "destructive",
       });
     } finally {
-      // Ensure we set isSubmitting back to false to prevent the interface from remaining frozen
+      // Always reset the submission state to prevent UI freeze
       setIsSubmitting(false);
     }
   };

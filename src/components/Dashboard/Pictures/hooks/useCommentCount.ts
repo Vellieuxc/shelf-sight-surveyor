@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -9,9 +9,11 @@ export function useCommentCount(pictureId: string) {
   const [count, setCount] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const channelRef = useRef<any>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    let isMounted = true;
+    isMounted.current = true;
     
     const fetchCommentCount = async () => {
       if (!pictureId) return;
@@ -26,12 +28,12 @@ export function useCommentCount(pictureId: string) {
           .eq('picture_id', pictureId);
         
         if (error) throw error;
-        if (!isMounted) return;
+        if (!isMounted.current) return;
         
         setCount(count || 0);
         setIsLoading(false);
       } catch (err) {
-        if (isMounted) {
+        if (isMounted.current) {
           console.error("Error fetching comment count:", err);
           setError(err as Error);
           setIsLoading(false);
@@ -42,8 +44,11 @@ export function useCommentCount(pictureId: string) {
     fetchCommentCount();
     
     // Setup realtime subscription for comment count updates
+    const channelName = `picture_comments_count_${pictureId}`;
+    console.log(`Setting up comment count subscription for ${channelName}`);
+    
     const channel = supabase
-      .channel(`picture_comments_count_${pictureId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -54,16 +59,26 @@ export function useCommentCount(pictureId: string) {
         },
         (payload) => {
           console.log("Comment count update received:", payload);
-          fetchCommentCount();
+          if (isMounted.current) {
+            fetchCommentCount();
+          }
         }
       )
       .subscribe((status) => {
         console.log(`Comment count subscription status for picture ${pictureId}:`, status);
       });
     
+    // Store the channel reference to ensure proper cleanup
+    channelRef.current = channel;
+    
     return () => {
-      isMounted = false;
-      supabase.removeChannel(channel);
+      console.log(`Cleaning up comment count subscription for ${channelName}`);
+      isMounted.current = false;
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [pictureId]);
 
