@@ -16,16 +16,38 @@ Deno.test("Integration: Full Analysis Flow", async () => {
   try {
     // Set up mocks for all dependencies
     
-    // 1. Mock Claude service
+    // 1. Mock Claude service - with a response matching the new shelf structure format
     const claudeStub = stub(claudeService, "analyzeImageWithClaude", () => {
-      return Promise.resolve([{
-        SKUBrand: "Test Brand",
-        SKUFullName: "Test Product",
-        NumberFacings: 3,
-        PriceSKU: "$5.99",
-        ShelfSection: "middle",
-        BoundingBox: { confidence: 0.95 }
-      }]);
+      return Promise.resolve({
+        metadata: {
+          total_items: 12,
+          out_of_stock_positions: 2,
+          empty_space_percentage: 15,
+          image_quality: "good"
+        },
+        shelves: [
+          {
+            position: "top",
+            items: [
+              {
+                position: "top-left",
+                product_name: "Test Product",
+                brand: "Test Brand",
+                price: "$5.99",
+                facings: 3,
+                stock_level: "medium",
+                out_of_stock: false
+              },
+              {
+                position: "top-right",
+                out_of_stock: true,
+                missing_product: "Unknown",
+                empty_space_width: "medium"
+              }
+            ]
+          }
+        ]
+      });
     });
     
     // 2. Set up queue mocks
@@ -90,6 +112,14 @@ Deno.test("Integration: Full Analysis Flow", async () => {
     
     // Verify Claude was called
     assertEquals(claudeStub.calls.length, 1);
+    
+    // Verify we got the structured format
+    const resultData = analyzeBody.data;
+    assertExists(resultData.metadata);
+    assertExists(resultData.shelves);
+    assertEquals(resultData.metadata.total_items, 12);
+    assertEquals(resultData.shelves.length, 1);
+    assertEquals(resultData.shelves[0].items.length, 2);
     
   } finally {
     // Clean up all stubs

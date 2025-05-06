@@ -1,9 +1,8 @@
-
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
 /**
- * Transform the analysis result from the OCR analyzer to the format
+ * Transform the analysis result from the Claude analyzer to the format
  * expected by the frontend
  */
 export function transformAnalysisResult(response: any): any {
@@ -33,12 +32,12 @@ export function ensureAnalysisDataType(data: Json | null): any {
     return null;
   }
   
-  // Return the raw OCR data without transformation
+  // Return the raw data without transformation
   return data;
 }
 
 // Keep the utility functions for compatibility with existing code,
-// but they will not be used for OCR data transformation
+// but they will not be used for Claude data transformation
 function determineSKUConfidence(item: Record<string, any>): string {
   if (item.sku_confidence) {
     return item.sku_confidence;

@@ -14,23 +14,48 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 describe('Edge Function Integration', () => {
-  const mockClaudeFormatResponse = {
-    data: [
-      { 
-        SKUBrand: "Test Brand", 
-        SKUFullName: "Test Product", 
-        NumberFacings: 3,
-        PriceSKU: "$5.99",
-        ShelfSection: "top",
-        BoundingBox: { confidence: 0.95 }
+  // Test data for the new structured Claude format
+  const mockClaudeStructuredResponse = {
+    metadata: {
+      total_items: 45,
+      out_of_stock_positions: 8,
+      empty_space_percentage: 15,
+      image_quality: "good"
+    },
+    shelves: [
+      {
+        position: "top",
+        items: [
+          {
+            position: "top-left",
+            product_name: "Brand X Cereal",
+            brand: "Brand X",
+            price: "$4.99",
+            facings: 3,
+            stock_level: "medium",
+            out_of_stock: false
+          },
+          {
+            position: "top-center",
+            out_of_stock: true,
+            missing_product: "Unknown",
+            empty_space_width: "medium"
+          }
+        ]
       },
       {
-        SKUBrand: "Another Brand",
-        SKUFullName: "Another Product",
-        NumberFacings: 2,
-        PriceSKU: "$3.99",
-        ShelfSection: "middle",
-        BoundingBox: { confidence: 0.82 }
+        position: "bottom",
+        items: [
+          {
+            position: "bottom-right",
+            product_name: "Brand Y Soda",
+            brand: "Brand Y",
+            price: "$2.49",
+            facings: 5,
+            stock_level: "high",
+            out_of_stock: false
+          }
+        ]
       }
     ]
   };
@@ -43,8 +68,8 @@ describe('Edge Function Integration', () => {
     vi.restoreAllMocks();
   });
   
-  it('correctly calls the edge function and transforms the response', async () => {
-    // Setup the mock response with Claude's format
+  it('correctly calls the edge function and handles the new structured response', async () => {
+    // Setup the mock response with Claude's new structured format
     vi.mocked(supabase.functions.invoke)
       .mockResolvedValueOnce({
         data: {
@@ -52,7 +77,7 @@ describe('Edge Function Integration', () => {
           status: 'completed',
           jobId: 'test-job-id',
           imageId: 'test-image-id',
-          data: mockClaudeFormatResponse.data
+          data: mockClaudeStructuredResponse
         },
         error: null
       });
@@ -71,25 +96,19 @@ describe('Edge Function Integration', () => {
       }
     });
     
-    // Verify the result
+    // Verify the result contains the structured data format
     expect(result.success).toBeTruthy();
     expect(result.status).toBe('completed');
+    expect(result.data).toEqual(mockClaudeStructuredResponse);
     
     // Now, test the transformation of the result
     const transformedResult = transformAnalysisResult(result);
     
-    // Check the transformed data
-    expect(transformedResult).toHaveLength(2);
-    expect(transformedResult[0].brand).toBe('Test Brand');
-    expect(transformedResult[0].sku_name).toBe('Test Product');
-    expect(transformedResult[0].sku_count).toBe(3);
-    expect(transformedResult[0].sku_price).toBe(5.99);
-    expect(transformedResult[0].sku_position).toBe('top');
-    expect(transformedResult[0].sku_confidence).toBe('high');
-    
-    // Check second item
-    expect(transformedResult[1].brand).toBe('Another Brand');
-    expect(transformedResult[1].sku_count).toBe(2);
+    // Check the transformed data maintains the structured format
+    expect(transformedResult).toEqual(mockClaudeStructuredResponse);
+    expect(transformedResult.metadata.total_items).toBe(45);
+    expect(transformedResult.shelves).toHaveLength(2);
+    expect(transformedResult.shelves[0].items).toHaveLength(2);
   });
   
   it('handles edge function errors correctly', async () => {
@@ -109,49 +128,18 @@ describe('Edge Function Integration', () => {
   
   it('handles empty or malformed data', () => {
     // Test with null data
-    expect(transformAnalysisResult(null)).toEqual([]);
+    expect(transformAnalysisResult(null)).toBeNull();
     
     // Test with invalid data structure
-    expect(transformAnalysisResult({ invalidKey: "value" })).toEqual([]);
+    expect(transformAnalysisResult({ invalidKey: "value" })).toBeNull();
     
-    // Test with empty data array
-    expect(transformAnalysisResult({ data: [] })).toEqual([]);
-  });
-
-  it('correctly transforms data from Claude format to frontend format', () => {
-    const sampleInput = [
-      {
-        SKUBrand: "Test Brand",
-        SKUFullName: "Test Product",
-        NumberFacings: 3,
-        PriceSKU: "$5.99",
-        ShelfSection: "middle",
-        BoundingBox: { confidence: 0.95 }
-      },
-      {
-        brand: "Direct Brand",
-        sku_name: "Direct Product",
-        sku_count: 4,
-        sku_price: 7.99,
-        sku_position: "bottom",
-        sku_confidence: "medium"
-      }
-    ];
-
-    const result = ensureAnalysisDataType(sampleInput);
+    // Test that ensureAnalysisDataType preserves the original structure
+    const testData = { 
+      metadata: { total_items: 10 }, 
+      shelves: [{ position: "top", items: [] }] 
+    };
     
-    expect(result).toHaveLength(2);
-    // First item: Claude format transformed
-    expect(result[0].brand).toBe("Test Brand");
-    expect(result[0].sku_name).toBe("Test Product");
-    expect(result[0].sku_count).toBe(3);
-    expect(result[0].sku_price).toBe(5.99);
-    expect(result[0].sku_position).toBe("middle");
-    expect(result[0].sku_confidence).toBe("high");
-    
-    // Second item: Already in our format
-    expect(result[1].brand).toBe("Direct Brand");
-    expect(result[1].sku_count).toBe(4);
-    expect(result[1].sku_price).toBe(7.99);
+    const result = ensureAnalysisDataType(testData);
+    expect(result).toEqual(testData);
   });
 });
