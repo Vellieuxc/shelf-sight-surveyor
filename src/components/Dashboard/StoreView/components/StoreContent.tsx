@@ -46,6 +46,7 @@ const StoreContent: React.FC<StoreContentProps> = ({
         isProjectClosed={isProjectClosed}
         isConsultant={isConsultant}
         isBoss={isBoss}
+        storeId={storeId}
       />
     </div>
   );

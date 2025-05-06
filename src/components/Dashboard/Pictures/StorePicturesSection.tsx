@@ -16,6 +16,7 @@ interface StorePicturesSectionProps {
   isProjectClosed?: boolean;
   isConsultant?: boolean;
   isBoss?: boolean;
+  storeId: string;
 }
 
 const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
@@ -26,7 +27,8 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
   onPictureDeleted,
   isProjectClosed = false,
   isConsultant = false,
-  isBoss = false
+  isBoss = false,
+  storeId
 }) => {
   // Determine if the user can add photos (not closed, or is consultant/boss)
   const canAddPhotos = !isProjectClosed || isConsultant || isBoss;
@@ -53,6 +55,7 @@ const StorePicturesSection: React.FC<StorePicturesSectionProps> = ({
             allowDelete={canAddPhotos}
             onUploadClick={onUploadClick}
             onCaptureClick={onCaptureClick}
+            storeId={storeId}
           />
         ) : (
           <EmptyPicturesState 

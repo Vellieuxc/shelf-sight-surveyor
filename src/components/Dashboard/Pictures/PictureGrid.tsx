@@ -11,6 +11,7 @@ interface PictureGridProps {
   creatorMap?: Record<string, string>;
   onUploadClick?: () => void;
   onCaptureClick?: () => void;
+  storeId?: string;
 }
 
 const PictureGrid: React.FC<PictureGridProps> = ({ 
@@ -19,12 +20,13 @@ const PictureGrid: React.FC<PictureGridProps> = ({
   allowDelete = true,
   creatorMap = {},
   onUploadClick = () => {},
-  onCaptureClick = () => {}
+  onCaptureClick = () => {},
+  storeId = ""
 }) => {
   if (pictures.length === 0) {
     return (
       <EmptyPicturesState
-        canAddPhotos={false}
+        canAddPhotos={allowDelete}
         onUploadClick={onUploadClick}
         onCaptureClick={onCaptureClick}
       />
@@ -40,6 +42,9 @@ const PictureGrid: React.FC<PictureGridProps> = ({
           image_url={picture.image_url}
           analysis_data={picture.analysis_data}
           created_at={picture.created_at}
+          storeId={storeId}
+          allowDelete={allowDelete}
+          onDelete={onPictureDeleted}
           onClick={() => {
             // Handle click event, could navigate to a detail view
             console.log(`Picture clicked: ${picture.id}`);
