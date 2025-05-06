@@ -10,12 +10,39 @@ export function transformAnalysisResult(response: any): any {
   // Handle empty or invalid responses
   if (!response) {
     console.warn("Empty analysis response received");
-    return null;
+    // Return empty structured data instead of null
+    return {
+      metadata: {
+        total_items: 0,
+        out_of_stock_positions: 0
+      },
+      shelves: []
+    };
   }
   
   if (!response.data) {
     console.warn("No data property in analysis response", response);
-    return null;
+    
+    // If there's an error related to OCR service, return empty structured data
+    if (response.error && response.error.includes("OCR service")) {
+      console.log("OCR service unavailable, returning empty structured data");
+      return {
+        metadata: {
+          total_items: 0,
+          out_of_stock_positions: 0
+        },
+        shelves: []
+      };
+    }
+    
+    // For other errors, return empty structured data
+    return {
+      metadata: {
+        total_items: 0,
+        out_of_stock_positions: 0
+      },
+      shelves: []
+    };
   }
   
   // Return the complete raw response data structure without transformation
@@ -31,7 +58,14 @@ export function transformAnalysisResult(response: any): any {
 export function ensureAnalysisDataType(data: Json | null): any {
   if (!data) {
     console.warn("Invalid or empty analysis data format", data);
-    return null;
+    // Return minimal valid structured data instead of null
+    return {
+      metadata: {
+        total_items: 0,
+        out_of_stock_positions: 0
+      },
+      shelves: []
+    };
   }
   
   // Return the raw data without transformation
