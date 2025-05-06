@@ -42,7 +42,7 @@ const CommentsButton: React.FC<CommentsButtonProps> = ({
       <MessageSquare className="mr-2" size={iconSize} />
       <span className="mr-1">Comments</span>
       {!isLoading && count !== undefined && count > 0 && (
-        <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-foreground text-xs">
+        <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-xs">
           {count}
         </span>
       )}
