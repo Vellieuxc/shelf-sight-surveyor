@@ -6,7 +6,8 @@ export interface AnalysisOptions {
   timeout?: number;
   includeConfidence?: boolean;
   sessionId?: string;
-  maxImageSize?: number; // Adding maxImageSize property to fix type errors
+  maxImageSize?: number;
+  forceReanalysis?: boolean; // Adding the missing property that was causing the error
 }
 
 export interface AnalysisResponse {
