@@ -20,6 +20,7 @@ Follow these specific requirements:
 5. Provide stock level estimates for each product
 6. Include metadata with total item count and out-of-stock positions
 7. Use a hierarchical structure organized by shelf position
+8. Focus on facings, not the items behind the facings
 
 ---
 
@@ -78,6 +79,7 @@ Provide the JSON output with this structure:
 * When products are stacked or overlapping, count as separate facings only if more than 50% of the front is visible.
 * In crowded shelves, prioritize clear and unobstructed facings over partially visible ones, but still include all identifiable products.
 * If products are arranged in multiple rows (depth), only count front-row items that are directly visible.
+* Focus on counting and analyzing the facings (front-facing products) and not the items stocked behind them.
 
 ### Guidelines for Stock Levels:
 
