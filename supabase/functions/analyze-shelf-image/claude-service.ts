@@ -8,12 +8,12 @@ import { monitorClaudeCall } from "./monitoring.ts";
 
 // Cache to store recent analysis results to avoid redundant processing
 const analysisCache = new Map();
-// Cache TTL in milliseconds (30 minutes)
-const CACHE_TTL = 30 * 60 * 1000;
+// Cache TTL in milliseconds (15 minutes)
+const CACHE_TTL = 15 * 60 * 1000;
 
 /**
  * Edge function to analyze a shelf image using Claude
- * Optimized for performance with caching
+ * Optimized for performance with caching and improved error handling
  * 
  * @param imageUrl URL of the image to analyze
  * @param requestId Unique identifier for tracking
@@ -24,7 +24,7 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
   console.log(`Fetching image from URL: ${imageUrl} [${requestId}]`);
   
   try {
-    // Check cache first
+    // Check cache first - use URL as cache key
     const cacheKey = `${imageUrl}`;
     if (analysisCache.has(cacheKey)) {
       const { data, timestamp } = analysisCache.get(cacheKey);
@@ -40,14 +40,20 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     }
     
     // Use retry mechanism for fetching and converting the image
-    const base64Image = await monitorClaudeCall(() => 
-      withClaudeRetry(
-        () => fetchAndConvertImageToBase64(imageUrl, requestId),
-        requestId
-      )
-    );
-    
-    console.log(`Successfully converted image to base64 [${requestId}]`);
+    let base64Image;
+    try {
+      base64Image = await monitorClaudeCall(() => 
+        withClaudeRetry(
+          () => fetchAndConvertImageToBase64(imageUrl, requestId),
+          requestId
+        )
+      );
+      
+      console.log(`Successfully converted image to base64 [${requestId}]`);
+    } catch (imgError) {
+      console.error(`Failed to process image [${requestId}]:`, imgError);
+      throw new Error(`Image processing failed: ${imgError.message}`);
+    }
     
     // Generate the comprehensive prompt
     const prompt = generateComprehensivePrompt(requestId);
@@ -56,19 +62,40 @@ export async function analyzeImageWithClaude(imageUrl: string, requestId: string
     console.log(`Base64 image size: ${base64Image.length} characters [${requestId}]`);
     
     // Call Claude API with retry capability and performance monitoring
-    const response = await monitorClaudeCall(() =>
-      withClaudeRetry(
-        () => callClaudeAPI(base64Image, prompt, requestId),
-        requestId
-      )
-    );
+    let response;
+    try {
+      response = await monitorClaudeCall(() =>
+        withClaudeRetry(
+          () => callClaudeAPI(base64Image, prompt, requestId),
+          requestId
+        )
+      );
+    } catch (apiError) {
+      console.error(`Claude API error [${requestId}]:`, apiError);
+      throw new Error(`Claude API error: ${apiError.message}`);
+    }
+    
+    if (!response || !response.content) {
+      throw new Error(`Invalid response from Claude API [${requestId}]`);
+    }
     
     // Extract the content from response
-    const content = response.content[0].text;
+    const content = response.content[0]?.text;
+    
+    if (!content) {
+      throw new Error(`Empty content from Claude API [${requestId}]`);
+    }
+    
     console.log(`Raw Claude response [${requestId}]:`, content);
     
     // Parse the response to extract JSON
-    const parsedData = await parseClaudeResponse(content, requestId);
+    let parsedData;
+    try {
+      parsedData = await parseClaudeResponse(content, requestId);
+    } catch (parseError) {
+      console.error(`Failed to parse Claude response [${requestId}]:`, parseError);
+      throw new Error(`Failed to parse Claude response: ${parseError.message}`);
+    }
     
     // Store in cache
     analysisCache.set(cacheKey, {

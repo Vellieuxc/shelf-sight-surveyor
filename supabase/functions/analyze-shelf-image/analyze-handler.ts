@@ -11,13 +11,13 @@ const securityHeaders = {
   'X-Frame-Options': 'DENY',
 };
 
-// Handle analysis request (no longer queueing)
+// Handle analysis request (direct analysis, no queueing)
 export async function handleAnalyzeRequest(req: Request, requestId: string): Promise<Response> {
   console.log(`Path: /analyze-shelf-image [${requestId}]`);
   
   try {
     // Extract request data
-    const { imageUrl, imageId, includeConfidence = true, directAnalysis = true } = await req.json();
+    const { imageUrl, imageId, includeConfidence = true } = await req.json();
     
     // Validate inputs
     if (!imageUrl || !imageId) {
@@ -46,7 +46,6 @@ export async function handleAnalyzeRequest(req: Request, requestId: string): Pro
       console.log(`Analysis completed in ${processingTimeMs}ms [${requestId}]`);
       
       // Return the raw data from Claude without any transformation
-      
       return new Response(JSON.stringify({ 
         success: true,
         status: "completed",

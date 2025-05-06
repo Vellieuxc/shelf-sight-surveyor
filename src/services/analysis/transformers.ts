@@ -5,7 +5,7 @@ import { Json } from "@/integrations/supabase/types";
 /**
  * Transform the analysis result from the Claude analyzer to the format
  * expected by the frontend
- * Optimized for better error handling and performance
+ * Optimized for better error handling and always returning a valid data structure
  */
 export function transformAnalysisResult(response: any): any {
   // Handle empty or invalid responses
