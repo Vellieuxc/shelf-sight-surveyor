@@ -17,7 +17,7 @@ export function useAnalysisProcess({ onComplete }: AnalysisProcessOptions = {}) 
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { handleError } = useErrorHandling({
-    source: 'analysis',
+    source: 'api', // Changed from 'analysis' to 'api' since it's related to API operations
     componentName: 'AnalysisProcess'
   });
   

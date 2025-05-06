@@ -11,11 +11,10 @@ interface PictureCommentProps {
 const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
   const { comments, isLoading, error, addComment } = useComments(pictureId);
 
-  // Handler for when a comment is added
-  const handleCommentAdded = (newComment: any) => {
-    // Add comment to local state immediately
-    addComment(newComment);
+  // Changed to match the expected function signature with no parameters
+  const handleCommentAdded = () => {
     // We don't need to manually refresh since we have real-time updates set up now
+    // The CommentForm will handle adding the comment to the database
   };
 
   return (
