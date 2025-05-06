@@ -2,10 +2,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "@/utils/errors";
 import { AnalysisOptions, AnalysisResponse } from "./types";
+import { analyzeWithOcr } from "./ocr_service";
 
 /**
- * Invokes the edge function to analyze a shelf image
- * with enhanced input validation and security
+ * Invokes the analysis service to analyze a shelf image
+ * Now using the OCR-based analyzer
  * 
  * @param imageUrl URL of the image to analyze
  * @param imageId Identifier for the image
@@ -22,10 +23,10 @@ export async function invokeAnalysisFunction(
     maxImageSize = 5 * 1024 * 1024
   } = options;
   
-  console.log(`Invoking analyze-shelf-image edge function directly for image ${imageId}`);
+  console.log(`Invoking OCR-based analyzer for image ${imageId}`);
   console.log(`Using image URL: ${imageUrl}`);
   
-  // Enhanced input validation before sending to edge function
+  // Enhanced input validation before sending to the analyzer
   if (!imageUrl) {
     throw new Error("Image URL is required");
   }
@@ -45,7 +46,7 @@ export async function invokeAnalysisFunction(
   }
   
   try {
-    // Pre-validate if image is accessible before sending to edge function
+    // Pre-validate if image is accessible
     try {
       console.log(`Pre-validating image access at: ${imageUrl}`);
       const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
@@ -71,46 +72,34 @@ export async function invokeAnalysisFunction(
       console.log(`Image pre-validation successful: ${contentType}`);
     } catch (imageError) {
       console.warn(`Image pre-validation warning: ${imageError.message}`);
-      // Continue anyway as the edge function will handle the image fetch
+      // Continue anyway as the OCR service will handle the image fetch
     }
     
-    // Invoke the edge function with direct analysis (no queuing)
-    console.log(`Sending analysis request to edge function`);
-    const { data: response, error } = await supabase.functions.invoke('analyze-shelf-image', {
-      body: {
-        imageUrl: imageUrl.trim(),
-        imageId: imageId.trim(),
-        includeConfidence,
-        directAnalysis: true, // Signal to edge function to analyze directly
-        maxImageSize
-      }
+    // Use the OCR service for analysis
+    console.log(`Sending analysis request to OCR service`);
+    const response = await analyzeWithOcr(imageUrl, imageId, {
+      includeConfidence,
+      timeout,
+      maxImageSize
     });
     
-    // Handle edge function errors
-    if (error) {
-      console.error(`Error from edge function:`, error);
-      throw error;
+    // Handle errors from OCR service
+    if (!response.success) {
+      console.error(`Error from OCR service:`, response.error);
+      throw new Error(response.error || "Unknown error from OCR service");
     }
     
-    console.log("Direct response from analysis function:", response ? "received" : "null");
+    console.log("Direct response from OCR analysis:", response ? "received" : "null");
     
     // Validate response
     if (!response) {
-      throw new Error("No response received from analysis function");
+      throw new Error("No response received from OCR service");
     }
     
-    return response as AnalysisResponse;
+    return response;
     
   } catch (error) {
-    console.error("Error invoking analysis function:", error);
+    console.error("Error invoking OCR analysis:", error);
     throw error;
   }
 }
-
-/**
- * REMOVED: waitForAnalysisCompletion - no longer needed as we're not queuing
- */
-
-/**
- * REMOVED: processNextQueuedAnalysis - no longer needed as we're not queuing
- */
