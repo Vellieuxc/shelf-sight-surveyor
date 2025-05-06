@@ -64,11 +64,12 @@ const CommentsList: React.FC<CommentsListProps> = ({
     );
   }
   
+  console.log("Rendering comments list with:", comments?.length || 0, "comments");
+  
   // Show empty state
   if (!comments || comments.length === 0) {
     return (
       <div className="text-muted-foreground text-sm py-4">
-        <h3 className="text-lg font-medium mb-2">Comments</h3>
         <p>No comments yet. Be the first to comment!</p>
       </div>
     );

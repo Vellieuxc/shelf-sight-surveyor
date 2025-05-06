@@ -9,12 +9,11 @@ interface PictureCommentProps {
 }
 
 const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
-  const { comments, isLoading, error, addComment } = useComments(pictureId);
+  const { comments, isLoading, error, refreshComments } = useComments(pictureId);
 
-  // Changed to match the expected function signature with no parameters
   const handleCommentAdded = () => {
-    // We don't need to manually refresh since we have real-time updates set up now
-    // The CommentForm will handle adding the comment to the database
+    console.log("Comment added, refreshing comments list");
+    refreshComments();
   };
 
   return (

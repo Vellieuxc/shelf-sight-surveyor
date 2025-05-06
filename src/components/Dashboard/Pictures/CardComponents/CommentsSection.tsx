@@ -17,6 +17,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = memo(({
   // Get comment count for this picture
   const { count } = useCommentCount(pictureId);
   
+  console.log(`CommentsSection - Picture ID: ${pictureId}, Show: ${showComments}, Count: ${count}`);
+  
   // Don't render anything if comments are not shown
   if (!showComments) return null;
   

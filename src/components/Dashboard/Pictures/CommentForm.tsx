@@ -45,18 +45,24 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
     setIsSubmitting(true);
     
     try {
+      console.log("Submitting comment for picture:", pictureId);
+      
       // Insert comment using sanitized content for improved security
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from("picture_comments")
         .insert({
           picture_id: pictureId,
           user_id: user.id,
           content: sanitizedContent
-        });
+        })
+        .select();
         
       if (error) throw error;
       
+      console.log("Comment added successfully:", data);
       setComment("");
+      
+      // Explicitly call onCommentAdded to refresh the comments list
       onCommentAdded();
       
       toast({

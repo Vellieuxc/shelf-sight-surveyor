@@ -97,6 +97,7 @@ export function useComments(pictureId: string) {
       });
       
       setComments(commentsWithUser);
+      console.log("Comments fetched:", commentsWithUser.length, commentsWithUser);
     } catch (error) {
       if (isMounted.current) {
         const errorObj = error as Error;
@@ -141,13 +142,16 @@ export function useComments(pictureId: string) {
           filter: `picture_id=eq.${pictureId}`
         },
         (payload) => {
+          console.log("Real-time update received:", payload);
           if (!isMounted.current) return;
           
           // Refetch comments to ensure we have the latest data with user information
           fetchComments(true);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Subscription status for comments on picture ${pictureId}:`, status);
+      });
     
     // Cleanup function
     return () => {
@@ -171,7 +175,10 @@ export function useComments(pictureId: string) {
   }, []);
 
   // Force refresh the comments
-  const refreshComments = useCallback(() => fetchComments(true), [fetchComments]);
+  const refreshComments = useCallback(() => {
+    console.log("Force refreshing comments");
+    return fetchComments(true);
+  }, [fetchComments]);
 
   return {
     comments,
