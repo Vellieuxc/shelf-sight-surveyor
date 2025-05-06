@@ -20,7 +20,7 @@ const ProjectConnect: React.FC = () => {
   const [projectId, setProjectId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +51,13 @@ const ProjectConnect: React.FC = () => {
       
       // Since we now know the data structure better, adjust the type checking
       if (!data || !data[0]) {
-        toast.error("Project not found. Please check the ID and try again.");
+        // Show more specific error message for crew members
+        if (profile?.role === "crew") {
+          toast.error("Invalid Connect ID, please contact your Consultant");
+        } else {
+          toast.error("Project not found. Please check the ID and try again.");
+        }
+        setIsLoading(false);
         return;
       }
       
@@ -59,7 +65,13 @@ const ProjectConnect: React.FC = () => {
       const result = data[0] as ProjectConnectResult;
       
       if (!result.project_id) {
-        toast.error("Project not found. Please check the ID and try again.");
+        // Show more specific error message for crew members
+        if (profile?.role === "crew") {
+          toast.error("Invalid Connect ID, please contact your Consultant");
+        } else {
+          toast.error("Project not found. Please check the ID and try again.");
+        }
+        setIsLoading(false);
         return;
       }
       
@@ -72,7 +84,12 @@ const ProjectConnect: React.FC = () => {
       // Navigate to the project
       navigate(`/dashboard/projects/${result.project_id}/stores`);
     } catch (error: any) {
-      toast.error("Failed to connect to project: " + error.message);
+      // Show more specific error message for crew members
+      if (profile?.role === "crew") {
+        toast.error("Invalid Connect ID, please contact your Consultant");
+      } else {
+        toast.error("Failed to connect to project: " + error.message);
+      }
     } finally {
       setIsLoading(false);
     }
