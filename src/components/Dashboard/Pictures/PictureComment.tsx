@@ -9,7 +9,7 @@ interface PictureCommentProps {
 }
 
 const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
-  const { comments, isLoading, addComment, refreshComments } = useComments(pictureId);
+  const { comments, isLoading, error, addComment, refreshComments } = useComments(pictureId);
 
   // Handler for when a comment is added
   const handleCommentAdded = (newComment: any) => {
@@ -28,7 +28,8 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
       
       <CommentsList 
         comments={comments} 
-        isLoading={isLoading} 
+        isLoading={isLoading}
+        error={error}
       />
     </div>
   );

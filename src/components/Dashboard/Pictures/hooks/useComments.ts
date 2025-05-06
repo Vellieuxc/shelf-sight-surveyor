@@ -7,6 +7,7 @@ import { Comment } from "../types";
 export function useComments(pictureId: string) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
   const hasLoadedInitial = useRef(false);
   const currentPictureId = useRef(pictureId);
@@ -31,6 +32,7 @@ export function useComments(pictureId: string) {
 
     try {
       setIsLoading(true);
+      setError(null);
       
       // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
@@ -49,6 +51,7 @@ export function useComments(pictureId: string) {
         setComments([]);
         hasLoadedInitial.current = true;
         currentPictureId.current = pictureId;
+        setIsLoading(false);
         return;
       }
       
@@ -96,6 +99,8 @@ export function useComments(pictureId: string) {
       setComments(commentsWithUser);
     } catch (error) {
       if (isMounted.current) {
+        const errorObj = error as Error;
+        setError(errorObj);
         handleError(error, {
           operation: 'fetchComments',
           fallbackMessage: "Failed to load comments",
@@ -118,6 +123,7 @@ export function useComments(pictureId: string) {
     // Reset state when pictureId changes
     if (pictureId !== currentPictureId.current) {
       setIsLoading(true);
+      setError(null);
       hasLoadedInitial.current = false;
     }
     
@@ -149,6 +155,7 @@ export function useComments(pictureId: string) {
   return {
     comments,
     isLoading,
+    error,
     addComment,
     refreshComments
   };

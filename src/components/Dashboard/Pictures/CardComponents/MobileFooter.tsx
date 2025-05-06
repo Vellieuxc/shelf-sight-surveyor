@@ -14,6 +14,7 @@ interface MobileFooterProps {
   toggleComments: () => void;
   allowDelete: boolean;
   onDelete?: () => void;
+  commentCount?: number;
 }
 
 const MobileFooter: React.FC<MobileFooterProps> = ({
@@ -24,7 +25,8 @@ const MobileFooter: React.FC<MobileFooterProps> = ({
   showComments,
   toggleComments,
   allowDelete,
-  onDelete
+  onDelete,
+  commentCount
 }) => {
   return (
     <div className="grid grid-cols-2 gap-2 p-2 pt-0 sm:hidden">
@@ -56,6 +58,7 @@ const MobileFooter: React.FC<MobileFooterProps> = ({
         onToggle={toggleComments}
         size="sm"
         className="touch-target"
+        commentCount={commentCount}
       />
     </div>
   );
