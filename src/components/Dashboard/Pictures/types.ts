@@ -1,3 +1,4 @@
+
 export interface Comment {
   id: string;
   picture_id: string;
@@ -5,4 +6,9 @@ export interface Comment {
   content: string;
   created_at: string;
   user_name?: string;
+}
+
+export interface DeletePictureDialogProps {
+  pictureId: string;
+  onDeleted?: () => void;
 }
