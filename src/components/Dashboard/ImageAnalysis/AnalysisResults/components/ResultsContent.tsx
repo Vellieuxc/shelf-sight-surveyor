@@ -37,6 +37,10 @@ export const ResultsContent: React.FC<ResultsContentProps> = ({
     return <AnalysisEmptyState />;
   }
   
-  // Always show raw JSON from the analysis
-  return <JsonView data={analysisData} />;
+  // Display the full JSON output from the edge function
+  return (
+    <div className="w-full">
+      <JsonView data={analysisData} />
+    </div>
+  );
 };

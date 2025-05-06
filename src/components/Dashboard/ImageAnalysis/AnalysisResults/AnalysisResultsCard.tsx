@@ -33,33 +33,32 @@ const AnalysisResultsCard: React.FC<AnalysisResultsCardProps> = ({
   } = useAnalysisEditor(analysisData, onUpdateAnalysisData);
 
   return (
-    <Card className="card-shadow">
+    <Card className="card-shadow h-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <ResultsHeader 
           analysisData={analysisData}
           isLoading={isLoading}
           isAnalyzing={isAnalyzing}
-          showRawJson={true} // Always show JSON view
-          editMode={false} // Disable edit mode
-          toggleViewMode={() => {}} // No-op since we're always in JSON view
-          setEditMode={() => {}} // No-op since editing is disabled
-          saveChanges={() => {}} // No-op since editing is disabled
-          cancelChanges={() => {}} // No-op since editing is disabled
+          showRawJson={true}
+          editMode={false}
+          toggleViewMode={() => {}}
+          setEditMode={() => {}}
+          saveChanges={() => {}}
+          cancelChanges={() => {}}
           onExportToExcel={onExportToExcel}
         />
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-hidden">
         <ResultsContent
           isLoading={isLoading}
           isAnalyzing={isAnalyzing}
           analysisData={analysisData}
           editableData={editableData}
-          editMode={false} // Disable edit mode
-          showRawJson={true} // Always show JSON view
+          editMode={false}
+          showRawJson={true}
           onInputChange={handleInputChange}
         />
       </CardContent>
-      {analysisData && <CardFooter className="flex justify-between" />}
     </Card>
   );
 };

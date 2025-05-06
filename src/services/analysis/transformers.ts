@@ -1,3 +1,4 @@
+
 import { AnalysisData } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
@@ -17,8 +18,8 @@ export function transformAnalysisResult(response: any): any {
     return null;
   }
   
-  // For direct OCR results, preserve the raw response data structure
-  // so it can be properly visualized in the JsonView component
+  // Return the complete raw response data structure without transformation
+  console.log("Returning complete analysis data:", response.data);
   return response.data;
 }
 
