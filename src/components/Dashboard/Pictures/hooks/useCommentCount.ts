@@ -29,13 +29,11 @@ export function useCommentCount(pictureId: string) {
         if (!isMounted) return;
         
         setCount(count || 0);
+        setIsLoading(false);
       } catch (err) {
         if (isMounted) {
           console.error("Error fetching comment count:", err);
           setError(err as Error);
-        }
-      } finally {
-        if (isMounted) {
           setIsLoading(false);
         }
       }
@@ -45,7 +43,7 @@ export function useCommentCount(pictureId: string) {
     
     // Setup realtime subscription for comment count updates
     const channel = supabase
-      .channel('picture_comments_count')
+      .channel(`picture_comments_count_${pictureId}`)
       .on(
         'postgres_changes',
         {
@@ -54,11 +52,14 @@ export function useCommentCount(pictureId: string) {
           table: 'picture_comments',
           filter: `picture_id=eq.${pictureId}`
         },
-        () => {
+        (payload) => {
+          console.log("Comment count update received:", payload);
           fetchCommentCount();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Comment count subscription status for picture ${pictureId}:`, status);
+      });
     
     return () => {
       isMounted = false;

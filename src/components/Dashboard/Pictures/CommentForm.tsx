@@ -84,7 +84,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" data-testid="comment-form">
       <Textarea
         placeholder="Add a comment..."
         value={comment}

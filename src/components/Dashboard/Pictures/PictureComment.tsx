@@ -17,7 +17,7 @@ const PictureComment: React.FC<PictureCommentProps> = ({ pictureId }) => {
   };
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 space-y-6" data-testid="picture-comment-container">
       <CommentForm 
         pictureId={pictureId} 
         onCommentAdded={handleCommentAdded} 

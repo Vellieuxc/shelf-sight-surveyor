@@ -34,6 +34,8 @@ export function useComments(pictureId: string) {
       setIsLoading(true);
       setError(null);
       
+      console.log(`Fetching comments for picture ${pictureId}, force refresh: ${forceRefresh}`);
+      
       // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
         .from('picture_comments')
@@ -97,9 +99,10 @@ export function useComments(pictureId: string) {
       });
       
       setComments(commentsWithUser);
-      console.log("Comments fetched:", commentsWithUser.length, commentsWithUser);
+      console.log("Comments fetched successfully:", commentsWithUser.length);
     } catch (error) {
       if (isMounted.current) {
+        console.error("Error fetching comments:", error);
         const errorObj = error as Error;
         setError(errorObj);
         handleError(error, {
@@ -131,8 +134,11 @@ export function useComments(pictureId: string) {
     fetchComments(false);
     
     // Set up real-time subscription for comments
+    const channelName = `picture_comments_${pictureId}`;
+    console.log(`Setting up subscription for ${channelName}`);
+    
     const channel = supabase
-      .channel(`picture_comments_${pictureId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -142,7 +148,7 @@ export function useComments(pictureId: string) {
           filter: `picture_id=eq.${pictureId}`
         },
         (payload) => {
-          console.log("Real-time update received:", payload);
+          console.log("Real-time update received for comments:", payload);
           if (!isMounted.current) return;
           
           // Refetch comments to ensure we have the latest data with user information
@@ -155,6 +161,7 @@ export function useComments(pictureId: string) {
     
     // Cleanup function
     return () => {
+      console.log(`Cleaning up subscription for ${channelName}`);
       isMounted.current = false;
       supabase.removeChannel(channel);
     };
@@ -169,22 +176,16 @@ export function useComments(pictureId: string) {
     };
   }, []);
 
-  // Add a comment to the local state
-  const addComment = useCallback((newComment: Comment) => {
-    setComments(prevComments => [newComment, ...prevComments]);
-  }, []);
-
   // Force refresh the comments
   const refreshComments = useCallback(() => {
-    console.log("Force refreshing comments");
+    console.log("Force refreshing comments for picture:", pictureId);
     return fetchComments(true);
-  }, [fetchComments]);
+  }, [fetchComments, pictureId]);
 
   return {
     comments,
     isLoading,
     error,
-    addComment,
     refreshComments
   };
 }

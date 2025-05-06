@@ -36,7 +36,7 @@ const CommentsList: React.FC<CommentsListProps> = ({
   // Show loading skeletons
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="comments-loading">
         <h3 className="text-lg font-medium">Comments</h3>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="space-y-2">
@@ -77,7 +77,7 @@ const CommentsList: React.FC<CommentsListProps> = ({
   
   // Show comments list
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="comments-list">
       <h3 className="text-lg font-medium">Comments ({comments.length})</h3>
       {comments.map((comment) => (
         <CommentItem key={comment.id} comment={comment} />
