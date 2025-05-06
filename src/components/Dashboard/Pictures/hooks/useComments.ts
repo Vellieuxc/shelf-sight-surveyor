@@ -129,9 +129,30 @@ export function useComments(pictureId: string) {
     
     fetchComments(false);
     
+    // Set up real-time subscription for comments
+    const channel = supabase
+      .channel(`picture_comments_${pictureId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'picture_comments',
+          filter: `picture_id=eq.${pictureId}`
+        },
+        (payload) => {
+          if (!isMounted.current) return;
+          
+          // Refetch comments to ensure we have the latest data with user information
+          fetchComments(true);
+        }
+      )
+      .subscribe();
+    
     // Cleanup function
     return () => {
       isMounted.current = false;
+      supabase.removeChannel(channel);
     };
   }, [pictureId, fetchComments]);
 

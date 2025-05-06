@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import CommentItem from "./CommentItem";
 import { Comment } from "./types";
 import { AlertCircle } from "lucide-react";
@@ -10,7 +10,8 @@ interface CommentsListProps {
   error?: Error | null;
 }
 
-const CommentsList: React.FC<CommentsListProps> = ({ comments, isLoading, error }) => {
+// Use memo to prevent unnecessary re-renders
+const CommentsList: React.FC<CommentsListProps> = memo(({ comments, isLoading, error }) => {
   // Show error state
   if (error) {
     return (
@@ -54,6 +55,8 @@ const CommentsList: React.FC<CommentsListProps> = ({ comments, isLoading, error 
       ))}
     </div>
   );
-};
+});
+
+CommentsList.displayName = "CommentsList";
 
 export default CommentsList;

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,13 +17,13 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, profile } = useAuth();
-  const { handleError, runSafely } = useErrorHandling({
+  const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'CommentForm',
     operation: 'addComment'
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!comment.trim() || !user) {
@@ -35,20 +35,9 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
     
     setIsSubmitting(true);
     
-    const { data, error } = await runSafely(async () => {
-      // Add the comment to database
-      const { error } = await supabase
-        .from('picture_comments')
-        .insert({
-          picture_id: pictureId,
-          user_id: user.id,
-          content: comment.trim()
-        });
-      
-      if (error) throw error;
-      
-      // Create a temporary comment object for UI
-      const newComment: Comment = {
+    try {
+      // Create a temporary comment object for optimistic UI update
+      const tempComment: Comment = {
         id: crypto.randomUUID(), // Temporary ID that will be replaced on refresh
         picture_id: pictureId,
         user_id: user.id,
@@ -59,22 +48,36 @@ const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) 
           : user.email || "You"
       };
       
-      return newComment;
-    }, {
-      operation: 'addComment',
-      fallbackMessage: "Failed to add comment",
-      showToast: true
-    });
-    
-    if (data && !error) {
-      // Add the new comment to the comments array
-      onCommentAdded(data);
+      // Update UI immediately (optimistic update)
+      onCommentAdded(tempComment);
+      
+      // Clear the comment field immediately for better UX
       setComment("");
+      
+      // Add the comment to database
+      const { error } = await supabase
+        .from('picture_comments')
+        .insert({
+          picture_id: pictureId,
+          user_id: user.id,
+          content: tempComment.content
+        });
+      
+      if (error) throw error;
+      
+      // Success toast
       toast.success("Comment added");
+    } catch (error) {
+      handleError(error, {
+        operation: 'addComment',
+        fallbackMessage: "Failed to add comment",
+        showToast: true
+      });
+      // If desired, could revert the optimistic update here
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
-  };
+  }, [comment, user, profile, pictureId, onCommentAdded, handleError]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">

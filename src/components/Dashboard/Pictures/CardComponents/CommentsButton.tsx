@@ -2,23 +2,27 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
+import { useCommentCount } from "../hooks/useCommentCount";
 
 interface CommentsButtonProps {
   showComments: boolean;
   onToggle: () => void;
+  pictureId: string; // Add pictureId prop
   size?: "sm" | "default";
   className?: string;
-  commentCount?: number;
 }
 
 const CommentsButton: React.FC<CommentsButtonProps> = ({ 
   showComments, 
   onToggle, 
+  pictureId, // Use the pictureId prop
   size = "default",
-  className = "",
-  commentCount
+  className = ""
 }) => {
-  const hasComments = typeof commentCount === 'number' && commentCount > 0;
+  // Use the hook to get the actual comment count
+  const { count, isLoading } = useCommentCount(pictureId);
+  
+  const hasComments = typeof count === 'number' && count > 0;
   
   return (
     <Button
@@ -31,9 +35,11 @@ const CommentsButton: React.FC<CommentsButtonProps> = ({
       <span className={size === "sm" ? "text-xs" : ""}>
         {showComments 
           ? "Hide Comments"
-          : hasComments 
-            ? `Comments (${commentCount})` 
-            : "Comments"}
+          : isLoading
+            ? "Comments"
+            : hasComments 
+              ? `Comments (${count})` 
+              : "Comments"}
       </span>
     </Button>
   );

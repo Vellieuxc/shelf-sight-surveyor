@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Comment } from "./types";
 
@@ -7,7 +7,8 @@ interface CommentItemProps {
   comment: Comment;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment }) => {
+// Use memo to prevent unnecessary re-renders
+const CommentItem: React.FC<CommentItemProps> = memo(({ comment }) => {
   const commentDate = new Date(comment.created_at);
   const formattedDate = format(commentDate, "PPP");
   const timeAgo = formatDistanceToNow(commentDate, { addSuffix: true });
@@ -26,6 +27,8 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment }) => {
       <p className="text-sm mt-1 whitespace-pre-line">{comment.content}</p>
     </div>
   );
-};
+});
+
+CommentItem.displayName = "CommentItem";
 
 export default CommentItem;
