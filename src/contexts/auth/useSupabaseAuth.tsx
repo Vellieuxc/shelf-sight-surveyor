@@ -7,6 +7,9 @@ import {
   handleSignUp as authSignUp,
   handleSignOut as authSignOut
 } from "./utils/authUtils";
+import { clearExposedTokens, shouldRefreshToken } from "@/utils/securityUtils/tokenManagement";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useSupabaseAuth = () => {
   // Use navigate with a try-catch to handle cases where router context might not be available
@@ -18,6 +21,27 @@ export const useSupabaseAuth = () => {
   }
 
   const { user, session, profile, isLoading, setProfile } = useAuthState();
+
+  // Security enhancement: Prevent token leakage
+  useEffect(() => {
+    // Clear any exposed tokens when auth state changes
+    clearExposedTokens();
+    
+    // Set up periodic token exposure check
+    const intervalId = setInterval(clearExposedTokens, 60000); // Check every minute
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  // Security enhancement: Handle token refresh when close to expiration
+  useEffect(() => {
+    if (!session) return;
+    
+    // Check if token needs refresh (5 minutes before expiration)
+    if (shouldRefreshToken(session.expires_at, 5)) {
+      // Use the built-in Supabase token refresh
+      supabase.auth.refreshSession();
+    }
+  }, [session]);
 
   // Handle user sign in
   const signIn = async (email: string, password: string) => {
@@ -50,9 +74,13 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Handle user sign out
+  // Handle user sign out - enhanced with token cleanup
   const signOut = async () => {
     try {
+      // First clear any potentially exposed tokens
+      clearExposedTokens();
+      
+      // Then proceed with sign out
       const success = await authSignOut();
       if (success && navigate) {
         navigate("/auth");
