@@ -1,100 +1,96 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
+import { validateAndSanitizeComment } from "@/utils/validation/commentValidation";
 import { toast } from "sonner";
 import { useErrorHandling } from "@/hooks/use-error-handling";
-import { Comment } from "./types";
 
 interface CommentFormProps {
   pictureId: string;
-  onCommentAdded: (newComment: Comment) => void;
+  onCommentAdded: () => void;
 }
 
 const CommentForm: React.FC<CommentFormProps> = ({ pictureId, onCommentAdded }) => {
-  const [comment, setComment] = useState("");
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, profile } = useAuth();
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const { user } = useAuth();
   const { handleError } = useErrorHandling({
     source: 'database',
     componentName: 'CommentForm',
     operation: 'addComment'
   });
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors([]);
     
-    if (!comment.trim() || !user) {
-      if (!user) {
-        toast.error("You need to be logged in to comment");
-      }
+    if (!user || !pictureId) return;
+
+    // Validate and sanitize the comment content
+    const { isValid, sanitizedContent, errors } = validateAndSanitizeComment(content);
+    
+    if (!isValid) {
+      setValidationErrors(errors);
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Create a temporary comment object for optimistic UI update
-      const tempComment: Comment = {
-        id: crypto.randomUUID(), // Temporary ID that will be replaced on refresh
+      // Insert the sanitized comment into the database
+      const { error } = await supabase.from("picture_comments").insert({
         picture_id: pictureId,
         user_id: user.id,
-        content: comment.trim(),
-        created_at: new Date().toISOString(),
-        user_name: profile?.firstName && profile?.lastName 
-          ? `${profile.firstName} ${profile.lastName}` 
-          : user.email || "You"
-      };
-      
-      // Update UI immediately (optimistic update)
-      onCommentAdded(tempComment);
-      
-      // Clear the comment field immediately for better UX
-      setComment("");
-      
-      // Add the comment to database
-      const { error } = await supabase
-        .from('picture_comments')
-        .insert({
-          picture_id: pictureId,
-          user_id: user.id,
-          content: tempComment.content
-        });
-      
+        content: sanitizedContent
+      });
+
       if (error) throw error;
       
-      // Success toast
-      toast.success("Comment added");
+      // Clear form and notify success
+      setContent("");
+      toast.success("Comment added successfully");
+      onCommentAdded();
     } catch (error) {
       handleError(error, {
-        operation: 'addComment',
         fallbackMessage: "Failed to add comment",
+        operation: 'addComment',
+        additionalData: { pictureId },
         showToast: true
       });
-      // If desired, could revert the optimistic update here
     } finally {
       setIsSubmitting(false);
     }
-  }, [comment, user, profile, pictureId, onCommentAdded, handleError]);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
       <Textarea
-        placeholder={user ? "Add a comment..." : "Please log in to comment"}
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
+        placeholder="Add a comment..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
         className="min-h-[80px] resize-none"
-        disabled={!user || isSubmitting}
+        disabled={isSubmitting}
       />
+      
+      {validationErrors.length > 0 && (
+        <div className="text-sm text-destructive">
+          {validationErrors.map((error, index) => (
+            <p key={index}>{error}</p>
+          ))}
+        </div>
+      )}
+      
       <div className="flex justify-end">
         <Button 
           type="submit" 
-          disabled={!user || !comment.trim() || isSubmitting}
-          size="sm"
+          size="sm" 
+          disabled={isSubmitting || !content.trim()}
         >
-          {isSubmitting ? "Saving..." : "Add Comment"}
+          {isSubmitting ? "Submitting..." : "Add Comment"}
         </Button>
       </div>
     </form>
