@@ -1,7 +1,7 @@
 
 import { handleError } from "@/utils/errors";
 import { invokeAnalysisFunction } from "./core";
-import { AnalysisOptions, AnalysisResponse } from "./types";
+import { AnalysisOptions, AnalysisResponse, AnalysisStatus } from "./types";
 
 /**
  * Handles retry logic for image analysis with optimized timeout handling
@@ -19,14 +19,13 @@ export async function executeWithRetry(
   options: AnalysisOptions = {}
 ): Promise<AnalysisResponse> {
   const { 
-    retryCount = 2,
-    timeout = 300000, // Increased to 5 minutes (300000ms) for large images
-    maxImageSize = 5 * 1024 * 1024 // 5MB default max size
+    timeout = 300000, // 5 minutes (300000ms) for large images
+    maxImageSize = 5 * 1024 * 1024, // 5MB default max size
+    retryCount = 2, // Default to 2 retries (3 attempts total)
+    forceReanalysis = false
   } = options;
   
   console.log(`Starting analysis for image ${imageId} with ${retryCount} retry attempts`);
-  console.log(`Image URL: ${imageUrl}`);
-  console.log(`Timeout set to: ${timeout}ms`);
   
   // Validate image URL before proceeding
   if (!imageUrl || !imageUrl.startsWith('http')) {
@@ -39,7 +38,7 @@ export async function executeWithRetry(
     try {
       console.log(`Attempt ${attempt + 1}/${retryCount + 1} to analyze image ${imageId}`);
       
-      // Use a simple timeout promise instead of AbortController
+      // Create a simple timeout promise rather than using AbortController
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error(`Analysis timed out after ${timeout}ms`)), timeout);
       });
@@ -49,10 +48,11 @@ export async function executeWithRetry(
         invokeAnalysisFunction(imageUrl, imageId, {
           ...options,
           timeout: Math.min(timeout, 270000), // Slightly shorter than our timeout
-          maxImageSize
+          maxImageSize,
+          forceReanalysis
         }),
         timeoutPromise
-      ]);
+      ]) as AnalysisResponse;
       
       // Check for errors in the response
       if (response.success === false) {
@@ -99,7 +99,7 @@ export async function executeWithRetry(
       });
       
       // Use adaptive backoff - increase delay with each attempt
-      const backoffTime = Math.min(2000 * Math.pow(1.5, attempt), 8000);
+      const backoffTime = Math.min(1000 * Math.pow(1.5, attempt), 5000);
       console.log(`Waiting ${backoffTime}ms before retry ${attempt + 1}`);
       await new Promise(resolve => setTimeout(resolve, backoffTime));
     }

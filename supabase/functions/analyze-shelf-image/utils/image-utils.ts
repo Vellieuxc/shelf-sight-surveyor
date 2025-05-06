@@ -35,11 +35,16 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
     
     // Convert to base64 using a more memory-efficient chunked approach
     let base64 = '';
-    const chunkSize = 16384; // Use smaller chunks to avoid call stack issues (16KB)
+    const chunkSize = 8192; // Use smaller chunks to avoid call stack issues (8KB)
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
       base64 += binaryToBase64Chunk(chunk);
+      
+      // Add a small delay every few chunks to avoid stack overflow on very large images
+      if (i > 0 && i % (chunkSize * 32) === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
     }
     
     // Check for valid base64 data
@@ -62,9 +67,9 @@ export async function fetchAndConvertImageToBase64(imageUrl: string, requestId: 
  */
 function binaryToBase64Chunk(bytes: Uint8Array): string {
   // Process in even smaller sub-chunks if needed
-  if (bytes.length > 8192) {
+  if (bytes.length > 4096) {
     let result = '';
-    const subChunkSize = 8192;
+    const subChunkSize = 4096;
     for (let i = 0; i < bytes.length; i += subChunkSize) {
       const subChunk = bytes.subarray(i, Math.min(i + subChunkSize, bytes.length));
       result += binaryToBase64Chunk(subChunk);
@@ -73,9 +78,15 @@ function binaryToBase64Chunk(bytes: Uint8Array): string {
   }
   
   try {
-    const binString = Array.from(bytes)
-      .map(byte => String.fromCharCode(byte))
-      .join('');
+    // Convert using standard Deno APIs with better performance
+    let binString = '';
+    
+    // Process byte-by-byte instead of using String.fromCharCode.apply
+    // This avoids call stack size exceeded errors
+    for (let i = 0; i < bytes.length; i++) {
+      binString += String.fromCharCode(bytes[i]);
+    }
+    
     return btoa(binString);
   } catch (error) {
     console.error("Base64 conversion error:", error);

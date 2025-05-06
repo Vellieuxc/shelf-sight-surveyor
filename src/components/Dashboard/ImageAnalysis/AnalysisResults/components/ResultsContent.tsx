@@ -41,7 +41,7 @@ export const ResultsContent: React.FC<ResultsContentProps> = ({
   // Check if the data has the new structured shelf inventory format
   const hasStructuredFormat = analysisData && 
     (analysisData.shelves || 
-     (analysisData.metadata && analysisData.metadata.total_items));
+     (analysisData.metadata && analysisData.metadata.total_items !== undefined));
 
   // Display the structured view or full JSON output from the edge function
   return (

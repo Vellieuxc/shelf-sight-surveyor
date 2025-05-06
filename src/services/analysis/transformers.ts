@@ -5,7 +5,7 @@ import { Json } from "@/integrations/supabase/types";
 /**
  * Transform the analysis result from the Claude analyzer to the format
  * expected by the frontend
- * Enhanced with better error handling and fallback mechanisms
+ * Enhanced with better error handling, more robust type checking, and fallback mechanisms
  */
 export function transformAnalysisResult(response: any): any {
   // Handle empty or invalid responses
@@ -25,7 +25,8 @@ export function transformAnalysisResult(response: any): any {
     // Check if response has the expected structure
     if (typeof response.data === 'object') {
       // Handle structured format with metadata and shelves
-      if (response.data.metadata !== undefined || response.data.shelves !== undefined) {
+      const objData = response.data as Record<string, unknown>;
+      if ('metadata' in objData || 'shelves' in objData) {
         console.log("Found structured analysis data");
         return response.data;
       } 
@@ -67,10 +68,11 @@ export function ensureAnalysisDataType(data: Json | null): any {
     
     // If data is already in the structured format with metadata and shelves
     // We need to cast to check for properties safely
-    const objData = data as Record<string, unknown>;
-    if (typeof data === 'object' && !Array.isArray(data) && 
-        ('metadata' in objData || 'shelves' in objData)) {
-      return data;
+    if (typeof data === 'object' && !Array.isArray(data)) {
+      const objData = data as Record<string, unknown>;
+      if ('metadata' in objData || 'shelves' in objData) {
+        return data;
+      }
     }
     
     // Attempt to parse JSON string if needed

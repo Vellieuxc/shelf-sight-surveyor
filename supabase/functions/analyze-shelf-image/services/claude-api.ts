@@ -3,7 +3,7 @@ import { corsHeaders } from "../cors.ts";
 
 /**
  * Call the Claude API with the given prompt and image
- * Enhanced with better error handling and timeout management
+ * Enhanced with better error handling, timeout management, and request optimization
  * 
  * @param base64Image Base64 encoded image data
  * @param prompt System prompt for Claude
@@ -22,7 +22,7 @@ export async function callClaudeAPI(base64Image: string, prompt: string, request
   try {
     // Use AbortController to handle timeouts
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
     
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -85,7 +85,7 @@ export async function callClaudeAPI(base64Image: string, prompt: string, request
     // Better error handling for aborted requests
     if (error.name === 'AbortError') {
       console.error(`Claude API request timed out [${requestId}]`);
-      throw new Error('Claude API request timed out after 3 minutes');
+      throw new Error('Claude API request timed out after 2 minutes');
     }
     
     throw error;

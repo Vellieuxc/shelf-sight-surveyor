@@ -1,5 +1,4 @@
 
-import { generateRequestId } from "./utils.ts";
 import { corsHeaders } from "./cors.ts";
 import { analyzeImageWithClaude } from "./claude-service.ts";
 

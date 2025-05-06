@@ -38,13 +38,18 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
 }) => {
   const isActionDisabled = isLoading || isAnalyzing || !analysisData;
   
+  // Check if we have structured data to toggle between views
+  const hasStructuredFormat = analysisData && 
+    (analysisData.shelves || 
+     (analysisData.metadata && analysisData.metadata.total_items !== undefined));
+  
   return (
     <div className="w-full flex justify-between items-center">
       <h3 className="font-medium text-base sm:text-lg">Analysis Results</h3>
       
       <div className="flex space-x-2">
-        {/* View toggle if toggle function is provided */}
-        {toggleViewMode && (
+        {/* View toggle if we have structured data */}
+        {hasStructuredFormat && toggleViewMode && (
           <Tabs
             value={showRawJson ? "json" : "structured"}
             onValueChange={(value) => {

@@ -1,71 +1,55 @@
 
+// Import types from other files if needed
+import { AnalysisData } from "@/types";
+
 /**
- * Configuration options for image analysis
+ * Status of the analysis job
+ */
+export type AnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'error';
+
+/**
+ * Response from the analysis service
+ */
+export interface AnalysisResponse {
+  success: boolean;
+  jobId: string;
+  status: AnalysisStatus;
+  data: any; // The analyzed data, can be in different formats
+  error?: string;
+  processingTime?: number;
+}
+
+/**
+ * Configuration options for the analysis request
  */
 export interface AnalysisOptions {
   /**
-   * Include confidence scores in the results
+   * Include confidence scores in the result
    * @default true
    */
   includeConfidence?: boolean;
   
   /**
-   * Maximum time to wait for analysis (in milliseconds)
-   * @default 120000 (2 minutes)
+   * Maximum time to wait for analysis to complete in milliseconds
+   * @default 300000 (5 minutes)
    */
   timeout?: number;
   
   /**
-   * Maximum image size in bytes
-   * @default 5 * 1024 * 1024 (5MB)
+   * Maximum allowed image size in bytes
+   * @default 5242880 (5MB)
    */
   maxImageSize?: number;
   
   /**
-   * Force reanalysis of the image even if existing data is available
+   * Number of retry attempts if analysis fails
+   * @default 2
+   */
+  retryCount?: number;
+  
+  /**
+   * Force reanalysis even if cached data exists
    * @default false
    */
   forceReanalysis?: boolean;
-
-  /**
-   * Number of retry attempts for analysis operations
-   * @default 3
-   */
-  retryCount?: number;
 }
-
-/**
- * Status of analysis job
- */
-export type AnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'error';
-
-/**
- * Response from analysis function
- */
-export interface AnalysisResponse {
-  /**
-   * Whether the request was successful
-   */
-  success: boolean;
-  
-  /**
-   * Unique identifier for the analysis job
-   */
-  jobId: string;
-  
-  /**
-   * Status of the analysis job
-   */
-  status: AnalysisStatus;
-  
-  /**
-   * Analysis results (if available)
-   */
-  data?: any;
-  
-  /**
-   * Error message (if any)
-   */
-  error?: string;
-}
-
