@@ -11,4 +11,5 @@ export interface Comment {
 export interface DeletePictureDialogProps {
   pictureId: string;
   onDeleted?: () => void;
+  className?: string;
 }

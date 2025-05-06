@@ -16,10 +16,12 @@ import { toast } from "sonner";
 import { picturesService } from "@/services/api/pictures";
 import { useErrorHandling } from "@/hooks/use-error-handling";
 import { DeletePictureDialogProps } from "./types";
+import { cn } from "@/lib/utils";
 
 const DeletePictureDialog: React.FC<DeletePictureDialogProps> = ({
   pictureId,
-  onDeleted
+  onDeleted,
+  className
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,7 +61,7 @@ const DeletePictureDialog: React.FC<DeletePictureDialogProps> = ({
       <Button
         variant="ghost"
         size="sm"
-        className="w-full sm:flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+        className={cn("w-full sm:flex-1 text-destructive hover:text-destructive hover:bg-destructive/10", className)}
         onClick={() => setIsOpen(true)}
       >
         <Trash2 className="mr-1 h-4 w-4" />
