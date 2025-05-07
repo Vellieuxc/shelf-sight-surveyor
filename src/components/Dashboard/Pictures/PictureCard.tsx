@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import PictureAnalysisBadge from "./PictureAnalysisBadge";
 import PictureMetadata from "./PictureMetadata";
-import OptimizedImage from "@/components/Common/OptimizedImage";
+import OptimizedImage from "@/components/common/OptimizedImage";
 import { createDeepEqualityFn } from "@/utils/performance/componentOptimization";
 import { DesktopFooter, MobileFooter, CommentsSection } from "./CardComponents";
 import { useAuth } from "@/contexts/auth";
