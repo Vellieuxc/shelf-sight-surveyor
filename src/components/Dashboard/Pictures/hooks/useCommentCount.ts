@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -12,34 +12,34 @@ export function useCommentCount(pictureId: string) {
   const channelRef = useRef<any>(null);
   const isMounted = useRef(true);
 
+  const fetchCommentCount = useCallback(async () => {
+    if (!pictureId) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const { count, error } = await supabase
+        .from('picture_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('picture_id', pictureId);
+      
+      if (error) throw error;
+      if (!isMounted.current) return;
+      
+      setCount(count || 0);
+      setIsLoading(false);
+    } catch (err) {
+      if (isMounted.current) {
+        console.error("Error fetching comment count:", err);
+        setError(err as Error);
+        setIsLoading(false);
+      }
+    }
+  }, [pictureId]);
+  
   useEffect(() => {
     isMounted.current = true;
-    
-    const fetchCommentCount = async () => {
-      if (!pictureId) return;
-      
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const { count, error } = await supabase
-          .from('picture_comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('picture_id', pictureId);
-        
-        if (error) throw error;
-        if (!isMounted.current) return;
-        
-        setCount(count || 0);
-        setIsLoading(false);
-      } catch (err) {
-        if (isMounted.current) {
-          console.error("Error fetching comment count:", err);
-          setError(err as Error);
-          setIsLoading(false);
-        }
-      }
-    };
     
     fetchCommentCount();
     
@@ -80,7 +80,13 @@ export function useCommentCount(pictureId: string) {
         channelRef.current = null;
       }
     };
-  }, [pictureId]);
+  }, [pictureId, fetchCommentCount]);
 
-  return { count, isLoading, error };
+  // Add a refresh function that can be called manually
+  const refreshCount = useCallback(() => {
+    console.log(`Manually refreshing comment count for picture ${pictureId}`);
+    fetchCommentCount();
+  }, [pictureId, fetchCommentCount]);
+
+  return { count, isLoading, error, refreshCount };
 }

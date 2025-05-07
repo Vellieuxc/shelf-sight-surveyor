@@ -1,5 +1,5 @@
 
-import React, { memo } from "react";
+import React, { memo, useEffect } from "react";
 import PictureComment from "../PictureComment";
 import { useCommentCount } from "../hooks/useCommentCount";
 
@@ -15,7 +15,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = memo(({
   className = ""
 }) => {
   // Get comment count for this picture
-  const { count } = useCommentCount(pictureId);
+  const { count, refreshCount } = useCommentCount(pictureId);
+  
+  // Refresh comment count whenever comments section becomes visible
+  useEffect(() => {
+    if (showComments) {
+      refreshCount();
+    }
+  }, [showComments, refreshCount]);
   
   console.log(`CommentsSection - Picture ID: ${pictureId}, Show: ${showComments}, Count: ${count}`);
   

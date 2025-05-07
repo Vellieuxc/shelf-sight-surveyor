@@ -20,7 +20,7 @@ const CommentsButton: React.FC<CommentsButtonProps> = ({
   size = "default",
   className
 }) => {
-  const { count, isLoading } = useCommentCount(pictureId);
+  const { count, isLoading, refreshCount } = useCommentCount(pictureId);
   
   const iconSize = size === "sm" ? 16 : 18;
   
@@ -30,7 +30,13 @@ const CommentsButton: React.FC<CommentsButtonProps> = ({
     <Button
       variant="outline"
       size={size}
-      onClick={onToggle}
+      onClick={() => {
+        // When toggling comments on, refresh the count to ensure it's up to date
+        if (!showComments) {
+          refreshCount();
+        }
+        onToggle();
+      }}
       className={cn(
         "transition-colors", 
         showComments ? "bg-muted" : "",
