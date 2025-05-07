@@ -9,7 +9,7 @@ import { ReactNode } from 'react';
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(),
+    from: vi.fn()
   }
 }));
 
