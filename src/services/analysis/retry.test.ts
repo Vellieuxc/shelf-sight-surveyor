@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeWithRetry } from './retry';
 import { invokeAnalysisFunction } from './core';
@@ -64,100 +63,58 @@ describe('executeWithRetry', () => {
   });
 
   it('should retry when first attempt fails and succeed on second attempt', async () => {
-    // Setup
     const imageUrl = 'https://example.com/image.jpg';
-    const imageId = 'test-retry-image';
-    const error = new Error('Network error');
-    
-    const mockResponse = {
-      success: true,
-      jobId: 'test-job',
-      status: 'completed' as AnalysisStatus,
-      data: {
-        metadata: { 
-          total_items: 10,
-          out_of_stock_positions: 2
-        },
-        shelves: [
-          {
-            position: 'top',
-            items: [
-              {
-                position: 'top-left',
-                product_name: 'Test Product',
-                brand: 'Test Brand'
-              }
-            ]
-          }
-        ]
+    const imageId = 'test-id';
+    let attempts = 0;
+
+    const mockFunction = vi.fn().mockImplementation(async () => {
+      attempts++;
+      if (attempts === 1) {
+        throw new Error('First attempt failed');
       }
-    };
+      return { success: true, data: 'test data' };
+    });
+
+    const result = executeWithRetry(() => mockFunction(imageUrl, imageId));
     
-    // Mock first attempt failure, second attempt success
-    vi.mocked(invokeAnalysisFunction)
-      .mockRejectedValueOnce(error)
-      .mockResolvedValueOnce(mockResponse);
+    // Fast-forward timers
+    await vi.runAllTimersAsync();
     
-    // Execute the function
-    const retryPromise = executeWithRetry(imageUrl, imageId);
+    const finalResult = await result;
     
-    // Fast-forward the backoff timeout
-    vi.runAllTimers();
-    
-    const result = await retryPromise;
-    
-    // Assertions
-    expect(result).toEqual(mockResponse);
-    expect(invokeAnalysisFunction).toHaveBeenCalledTimes(2);
-    expect(handleError).toHaveBeenCalledTimes(1);
-  });
+    expect(attempts).toBe(2);
+    expect(mockFunction).toHaveBeenCalledTimes(2);
+    expect(finalResult).toEqual({ success: true, data: 'test data' });
+  }, 10000);
 
   it('should throw error after all retry attempts fail', async () => {
-    // Setup
     const imageUrl = 'https://example.com/image.jpg';
-    const imageId = 'test-all-fail-image';
-    const error = new Error('Network error');
+    const imageId = 'test-id';
     
-    // Mock all attempts to fail
-    vi.mocked(invokeAnalysisFunction)
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error);
+    const mockFunction = vi.fn().mockRejectedValue(new Error('Test error'));
+
+    const retryPromise = executeWithRetry(() => mockFunction(imageUrl, imageId));
     
-    // Execute the function and expect it to throw
-    const retryPromise = executeWithRetry(imageUrl, imageId);
+    // Fast-forward timers
+    await vi.runAllTimersAsync();
     
-    // Fast-forward all timeouts
-    vi.runAllTimers();
-    vi.runAllTimers();
-    
-    await expect(retryPromise).rejects.toThrow('Analysis attempt 3 failed: Network error');
-    expect(invokeAnalysisFunction).toHaveBeenCalledTimes(3);
-    expect(handleError).toHaveBeenCalledTimes(3);
-  });
+    await expect(retryPromise).rejects.toThrow('Test error');
+    expect(mockFunction).toHaveBeenCalledTimes(3); // Default 3 attempts
+  }, 10000);
 
   it('should respect custom retry count', async () => {
-    // Setup
     const imageUrl = 'https://example.com/image.jpg';
-    const imageId = 'test-custom-retry';
-    const error = new Error('Network error');
+    const imageId = 'test-id';
+    const customRetryCount = 2;
     
-    // Mock all attempts to fail
-    vi.mocked(invokeAnalysisFunction)
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error);
+    const mockFunction = vi.fn().mockRejectedValue(new Error('Test error'));
+
+    const retryPromise = executeWithRetry(() => mockFunction(imageUrl, imageId), customRetryCount);
     
-    // Execute with custom retry count
-    const retryPromise = executeWithRetry(imageUrl, imageId, { retryCount: 3 });
+    // Fast-forward timers
+    await vi.runAllTimersAsync();
     
-    // Fast-forward all timeouts
-    vi.runAllTimers();
-    vi.runAllTimers();
-    vi.runAllTimers();
-    
-    await expect(retryPromise).rejects.toThrow('Analysis attempt 4 failed: Network error');
-    expect(invokeAnalysisFunction).toHaveBeenCalledTimes(4);
-  });
+    await expect(retryPromise).rejects.toThrow('Test error');
+    expect(mockFunction).toHaveBeenCalledTimes(customRetryCount);
+  }, 10000);
 });

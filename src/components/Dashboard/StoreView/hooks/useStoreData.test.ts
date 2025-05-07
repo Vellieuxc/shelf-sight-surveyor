@@ -1,8 +1,9 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useStoreData } from './useStoreData';
 import { supabase } from '@/integrations/supabase/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactNode } from 'react';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -11,10 +12,20 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
-// Create a wrapper component that provides the auth context
-const wrapper = ({ children }: { children: React.ReactNode }) => {
-  return children;
-};
+// Create a wrapper component that provides the query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      gcTime: Infinity,
+      staleTime: Infinity,
+    },
+  },
+});
+
+function Wrapper({ children }: { children: ReactNode }) {
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
 
 describe('useStoreData Hook', () => {
   const mockStoreId = 'test-store-id';
@@ -23,6 +34,7 @@ describe('useStoreData Hook', () => {
   
   beforeEach(() => {
     vi.resetAllMocks();
+    queryClient.clear();
     
     // Mock the Supabase responses
     vi.mocked(supabase.from).mockImplementation((table) => {
@@ -74,7 +86,7 @@ describe('useStoreData Hook', () => {
       storeId: mockStoreId,
       onError: mockOnError,
       onLoading: mockOnLoading
-    }), { wrapper });
+    }), { wrapper: Wrapper });
     
     // Initial state should be loading
     expect(result.current.isLoading).toBe(true);

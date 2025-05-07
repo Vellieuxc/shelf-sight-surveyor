@@ -1,5 +1,4 @@
-
-import { AnalysisData } from "@/types";
+import { AnalysisData, AnalysisResult } from "@/types";
 import { Json } from "@/integrations/supabase/types";
 
 /**
@@ -7,46 +6,23 @@ import { Json } from "@/integrations/supabase/types";
  * expected by the frontend
  * Enhanced with better error handling, more robust type checking, and fallback mechanisms
  */
-export function transformAnalysisResult(response: any): any {
-  // Handle empty or invalid responses
-  if (!response) {
-    console.warn("Empty analysis response received, returning empty data structure");
-    return createEmptyAnalysisStructure();
+export function transformAnalysisResult(data: any): AnalysisResult | null {
+  if (!data || !data.data || !data.data.metadata || !data.data.shelves) {
+    return null;
   }
-  
-  if (!response.data) {
-    console.warn("No data property in analysis response", response);
-    
-    // Return empty structured data
-    return createEmptyAnalysisStructure();
-  }
-  
+
   try {
-    // Check if response has the expected structure
-    if (typeof response.data === 'object') {
-      // Handle structured format with metadata and shelves
-      const objData = response.data as Record<string, unknown>;
-      if ('metadata' in objData || 'shelves' in objData) {
-        console.log("Found structured analysis data");
-        return response.data;
-      } 
-      // Handle array format
-      else if (Array.isArray(response.data)) {
-        console.log("Found array data format");
-        return response.data;
-      } 
-      // Handle other object formats
-      else {
-        console.log("Using raw response data");
-        return response.data;
-      }
-    } else {
-      console.log("Using raw response data");
-      return response.data;
-    }
+    return {
+      metadata: {
+        analysis_status: data.data.metadata.analysis_status || 'empty',
+        out_of_stock_positions: data.data.metadata.out_of_stock_positions || 0,
+        total_items: data.data.metadata.total_items || 0,
+      },
+      shelves: data.data.shelves || [],
+    };
   } catch (error) {
-    console.error("Error transforming analysis data:", error);
-    return createEmptyAnalysisStructure();
+    console.error('Error transforming analysis result:', error);
+    return null;
   }
 }
 

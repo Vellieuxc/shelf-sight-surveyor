@@ -1,13 +1,12 @@
-
 import { describe, it, expect, vi } from 'vitest';
 import { transformAnalysisResult, ensureAnalysisDataType } from './transformers';
 
 describe('Analysis Data Transformers', () => {
-  it('should return raw data without transformation', () => {
-    // Test with structured shelf format
+  it('should transform analysis result correctly', () => {
     const mockResponse = {
       data: {
         metadata: {
+          analysis_status: 'completed',
           total_items: 45,
           out_of_stock_positions: 8
         },
@@ -27,20 +26,49 @@ describe('Analysis Data Transformers', () => {
     };
 
     const result = transformAnalysisResult(mockResponse);
-    expect(result).toEqual(mockResponse.data);
-    expect(result.metadata.total_items).toBe(45);
-    expect(result.shelves).toHaveLength(1);
+    expect(result).toEqual({
+      metadata: {
+        analysis_status: 'completed',
+        total_items: 45,
+        out_of_stock_positions: 8
+      },
+      shelves: mockResponse.data.shelves
+    });
   });
 
   it('should handle null or undefined input', () => {
     expect(transformAnalysisResult(null)).toBeNull();
     expect(transformAnalysisResult(undefined)).toBeNull();
     expect(transformAnalysisResult({} as any)).toBeNull();
+    expect(transformAnalysisResult({ data: {} } as any)).toBeNull();
+  });
+
+  it('should handle missing metadata fields', () => {
+    const mockResponse = {
+      data: {
+        metadata: {},
+        shelves: []
+      }
+    };
+
+    const result = transformAnalysisResult(mockResponse);
+    expect(result).toEqual({
+      metadata: {
+        analysis_status: 'empty',
+        total_items: 0,
+        out_of_stock_positions: 0
+      },
+      shelves: []
+    });
   });
 
   it('should ensure analysis data type maintains structure', () => {
     const testData = {
-      metadata: { total_items: 10 },
+      metadata: {
+        analysis_status: 'completed',
+        total_items: 10,
+        out_of_stock_positions: 2
+      },
       shelves: [{ position: "middle", items: [] }]
     };
 

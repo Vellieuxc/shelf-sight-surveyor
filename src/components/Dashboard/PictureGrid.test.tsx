@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@/test/utils';
 import PictureGrid from './Pictures/PictureGrid';
@@ -28,9 +27,9 @@ window.ResizeObserver = vi.fn().mockImplementation(() => ({
 describe('PictureGrid Component', () => {
   it('renders an empty state message when there are no pictures', () => {
     render(<PictureGrid pictures={[]} onPictureDeleted={() => {}} />);
-    
-    expect(screen.getByText('No pictures available')).toBeInTheDocument();
-    expect(screen.getByText('Upload some pictures to analyze this store')).toBeInTheDocument();
+
+    expect(screen.getByText('No pictures yet')).toBeInTheDocument();
+    expect(screen.getByText('Add pictures of this store to analyze shelf data and insights.')).toBeInTheDocument();
   });
 
   it('renders pictures when provided', () => {

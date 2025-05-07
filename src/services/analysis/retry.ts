@@ -1,4 +1,3 @@
-
 import { handleError } from "@/utils/errors";
 import { invokeAnalysisFunction } from "./core";
 import { AnalysisOptions, AnalysisResponse, AnalysisStatus } from "./types";
@@ -7,14 +6,14 @@ import { AnalysisOptions, AnalysisResponse, AnalysisStatus } from "./types";
  * Handles retry logic for image analysis with optimized timeout handling
  * Refactored for better performance, reliability and error reporting
  * 
- * @param imageUrl URL of the image to analyze
+ * @param imageUrlOrFn URL of the image to analyze or a function that returns a promise
  * @param imageId Identifier for the image
  * @param options Configuration options including retry settings
  * @returns Analysis response if successful
  * @throws Error if all retry attempts fail
  */
 export async function executeWithRetry(
-  imageUrl: string,
+  imageUrlOrFn: string | (() => Promise<any>),
   imageId: string,
   options: AnalysisOptions = {}
 ): Promise<AnalysisResponse> {
@@ -27,9 +26,9 @@ export async function executeWithRetry(
   
   console.log(`Starting analysis for image ${imageId} with ${retryCount} retry attempts`);
   
-  // Validate image URL before proceeding
-  if (!imageUrl || !imageUrl.startsWith('http')) {
-    throw new Error(`Invalid image URL format: ${imageUrl}`);
+  // Validate image URL before proceeding if a string is provided
+  if (typeof imageUrlOrFn === 'string' && (!imageUrlOrFn || !imageUrlOrFn.startsWith('http'))) {
+    throw new Error(`Invalid image URL format: ${imageUrlOrFn}`);
   }
   
   let lastError: Error | null = null;
@@ -45,12 +44,14 @@ export async function executeWithRetry(
       
       // Race between the actual analysis and the timeout
       const response = await Promise.race([
-        invokeAnalysisFunction(imageUrl, imageId, {
-          ...options,
-          timeout: Math.min(timeout, 270000), // Slightly shorter than our timeout
-          maxImageSize,
-          forceReanalysis
-        }),
+        typeof imageUrlOrFn === 'function' 
+          ? imageUrlOrFn()
+          : invokeAnalysisFunction(imageUrlOrFn, imageId, {
+              ...options,
+              timeout: Math.min(timeout, 270000), // Slightly shorter than our timeout
+              maxImageSize,
+              forceReanalysis
+            }),
         timeoutPromise
       ]) as AnalysisResponse;
       

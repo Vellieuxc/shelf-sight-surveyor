@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, CameraIcon, ImageIcon } from "lucide-react";
@@ -23,11 +22,12 @@ const StoreActions: React.FC<StoreActionsProps> = ({
   }
   
   return (
-    <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+    <div className="flex flex-wrap gap-2 mt-4 sm:mt-0" data-testid="store-actions">
       {onUploadClick && (
         <Button 
           onClick={onUploadClick}
           className="flex items-center gap-2"
+          data-testid="upload-button"
         >
           <ImageIcon className="h-4 w-4" />
           <span>Upload</span>
@@ -39,6 +39,7 @@ const StoreActions: React.FC<StoreActionsProps> = ({
           onClick={onCaptureClick}
           className="flex items-center gap-2"
           variant="secondary"
+          data-testid="capture-button"
         >
           <CameraIcon className="h-4 w-4" />
           <span>Take Picture</span>

@@ -1,38 +1,71 @@
-
-import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import React, { ReactElement, ReactNode } from 'react';
+import { render as rtlRender, RenderOptions as RTLRenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/auth';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi } from 'vitest';
 
-// Import jest-dom separately - don't try to re-export its types
+// Import jest-dom separately
 import '@testing-library/jest-dom';
 
-// Define a type for the wrapper options
-interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
-  route?: string;
+// Create a QueryClient for testing
+export const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      gcTime: Infinity,
+      staleTime: Infinity,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
+
+interface AllTheProvidersProps {
+  children: ReactNode;
+  queryClient?: QueryClient;
 }
 
-// Create a custom render function that includes providers
-const customRender = (
-  ui: ReactElement,
-  options?: CustomRenderOptions
-) => {
-  const { route = '/', ...renderOptions } = options || {};
-
-  // Set up the URL location
-  window.history.pushState({}, 'Test page', route);
-
-  return render(ui, {
-    wrapper: ({ children }) => (
+export const AllTheProviders = ({ children, queryClient = createTestQueryClient() }: AllTheProvidersProps) => {
+  return (
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </BrowserRouter>
-    ),
-    ...renderOptions,
-  });
+    </QueryClientProvider>
+  );
 };
 
-// Re-export everything from testing-library/react
+type RenderOptions = Omit<RTLRenderOptions, 'wrapper'> & {
+  queryClient?: QueryClient;
+};
+
+const customRender = (
+  ui: ReactElement,
+  { queryClient, ...options }: RenderOptions = {}
+) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <AllTheProviders queryClient={queryClient}>
+      {children}
+    </AllTheProviders>
+  );
+
+  return rtlRender(ui, { ...options, wrapper: Wrapper });
+};
+
+// Mock Supabase channel
+export const mockSupabaseChannel = {
+  subscribe: vi.fn().mockReturnValue({
+    unsubscribe: vi.fn()
+  })
+};
+
+// Helper to wait for all pending promises
+export const waitForPromises = () => new Promise(resolve => setImmediate(resolve));
+
+// Re-export everything
 export * from '@testing-library/react';
-// Don't re-export from jest-dom as it's not a module with exports
 export { customRender as render };

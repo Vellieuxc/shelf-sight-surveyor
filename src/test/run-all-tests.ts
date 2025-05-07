@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
@@ -10,11 +9,13 @@ describe('Test Runner', () => {
 });
 
 // Import all test files here to ensure they are included in the test run
-import '../components/Dashboard/StoreHeader/SynthesizeButton.test';
-import '../components/Dashboard/StoreHeader/StoreInfo.test';
-import '../components/Dashboard/StoreHeader/index.test';
-import '../components/Dashboard/StoreView/hooks/useStoreData.test';
-import '../components/Dashboard/StoreView/StoreSummary.test';
+import '../components/Dashboard/StoreHeader/SynthesizeButton.test.tsx';
+import '../components/Dashboard/StoreHeader/StoreInfo.test.tsx';
+import '../components/Dashboard/StoreHeader/index.test.tsx';
+import '../components/Dashboard/StoreView/hooks/useStoreData.test.ts';
+import '../components/Dashboard/StoreView/StoreSummary.test.tsx';
+import '../components/Dashboard/StoreView/StoreActions.test.tsx';
+import '../components/Dashboard/StoreView/StoreLoading.test.tsx';
 import '../components/Dashboard/PictureGrid.test';
 
 // Run all tests
